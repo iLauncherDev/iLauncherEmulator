@@ -39,7 +39,7 @@ void cpu_dump_state()
 {
     printf("cpu debug : {\n");
     for (size_t i = 0; i < sizeof(cpu_state) / sizeof(uint64_t); i++)
-        printf("\t%s: 0x%llx;\n", cpu_regs_string[i], cpu_state[i]);
+        printf("\t%s: 0x%llx;\n", cpu_regs_string[i], (unsigned long long)cpu_state[i]);
     printf("};\n");
 }
 
@@ -268,7 +268,7 @@ void cpu_emulate_i8086(uint8_t debug)
                                  reg_id, value,
                                  cpu_type_reg, cpu_type_int);
             if (debug)
-                printf("add %s, %llx\n", cpu_regs_string[reg_id], value);
+                printf("add %s, %llx\n", cpu_regs_string[reg_id], (unsigned long long)value);
             break;
         case 0x05:
             reg_id = cpu_rm16(cpu_ip);
@@ -277,7 +277,7 @@ void cpu_emulate_i8086(uint8_t debug)
                                  reg_id, value,
                                  cpu_type_reg, cpu_type_int);
             if (debug)
-                printf("sub %s, %llx\n", cpu_regs_string[reg_id], value);
+                printf("sub %s, %llx\n", cpu_regs_string[reg_id], (unsigned long long)value);
             break;
         default:
             break;
@@ -292,91 +292,91 @@ void cpu_emulate_i8086(uint8_t debug)
     case 0xb0:
         cpu_exec_instruction(cpu_instruction_mov, cpu_al, cpu_imm8(cpu_ip), cpu_type_reg, cpu_type_int);
         if (debug)
-            printf("mov al, 0x%llx\n", cpu_state[cpu_al]);
+            printf("mov al, 0x%llx\n", (unsigned long long)cpu_state[cpu_al]);
         break;
     case 0xb1:
         cpu_exec_instruction(cpu_instruction_mov, cpu_cl, cpu_imm8(cpu_ip), cpu_type_reg, cpu_type_int);
         if (debug)
-            printf("mov cl, 0x%llx\n", cpu_state[cpu_cl]);
+            printf("mov cl, 0x%llx\n", (unsigned long long)cpu_state[cpu_cl]);
         break;
     case 0xb2:
         cpu_exec_instruction(cpu_instruction_mov, cpu_dl, cpu_imm8(cpu_ip), cpu_type_reg, cpu_type_int);
         if (debug)
-            printf("mov dl, 0x%llx\n", cpu_state[cpu_dl]);
+            printf("mov dl, 0x%llx\n", (unsigned long long)cpu_state[cpu_dl]);
         break;
     case 0xb3:
         cpu_exec_instruction(cpu_instruction_mov, cpu_bl, cpu_imm8(cpu_ip), cpu_type_reg, cpu_type_int);
         if (debug)
-            printf("mov bl, 0x%llx\n", cpu_state[cpu_bl]);
+            printf("mov bl, 0x%llx\n", (unsigned long long)cpu_state[cpu_bl]);
         break;
     case 0xb4:
         cpu_exec_instruction(cpu_instruction_mov, cpu_ah, cpu_imm8(cpu_ip), cpu_type_reg, cpu_type_int);
         if (debug)
-            printf("mov ah, 0x%llx\n", cpu_state[cpu_ah]);
+            printf("mov ah, 0x%llx\n", (unsigned long long)cpu_state[cpu_ah]);
         break;
     case 0xb5:
         cpu_exec_instruction(cpu_instruction_mov, cpu_ch, cpu_imm8(cpu_ip), cpu_type_reg, cpu_type_int);
         if (debug)
-            printf("mov ch, 0x%llx\n", cpu_state[cpu_ch]);
+            printf("mov ch, 0x%llx\n", (unsigned long long)cpu_state[cpu_ch]);
         break;
     case 0xb6:
         cpu_exec_instruction(cpu_instruction_mov, cpu_dh, cpu_imm8(cpu_ip), cpu_type_reg, cpu_type_int);
         if (debug)
-            printf("mov dh, 0x%llx\n", cpu_state[cpu_dh]);
+            printf("mov dh, 0x%llx\n", (unsigned long long)cpu_state[cpu_dh]);
         break;
     case 0xb7:
         cpu_exec_instruction(cpu_instruction_mov, cpu_bh, cpu_imm8(cpu_ip), cpu_type_reg, cpu_type_int);
         if (debug)
-            printf("mov bh, 0x%llx\n", cpu_state[cpu_bh]);
+            printf("mov bh, 0x%llx\n", (unsigned long long)cpu_state[cpu_bh]);
         break;
     case 0xb8:
         cpu_exec_instruction(cpu_instruction_mov, cpu_ax, cpu_imm16(cpu_ip), cpu_type_reg, cpu_type_int);
         if (debug)
-            printf("mov ax, 0x%llx\n", cpu_state[cpu_ax]);
+            printf("mov ax, 0x%llx\n", (unsigned long long)cpu_state[cpu_ax]);
         break;
     case 0xb9:
         cpu_exec_instruction(cpu_instruction_mov, cpu_cx, cpu_imm16(cpu_ip), cpu_type_reg, cpu_type_int);
         if (debug)
-            printf("mov cx, 0x%llx\n", cpu_state[cpu_cx]);
+            printf("mov cx, 0x%llx\n", (unsigned long long)cpu_state[cpu_cx]);
         break;
     case 0xba:
         cpu_exec_instruction(cpu_instruction_mov, cpu_dx, cpu_imm16(cpu_ip), cpu_type_reg, cpu_type_int);
         if (debug)
-            printf("mov dx, 0x%llx\n", cpu_state[cpu_dx]);
+            printf("mov dx, 0x%llx\n", (unsigned long long)cpu_state[cpu_dx]);
         break;
     case 0xbb:
         cpu_exec_instruction(cpu_instruction_mov, cpu_bx, cpu_imm16(cpu_ip), cpu_type_reg, cpu_type_int);
         if (debug)
-            printf("mov bx, 0x%llx\n", cpu_state[cpu_bx]);
+            printf("mov bx, 0x%llx\n", (unsigned long long)cpu_state[cpu_bx]);
         break;
     case 0xbc:
         cpu_exec_instruction(cpu_instruction_mov, cpu_sp, cpu_imm16(cpu_ip), cpu_type_reg, cpu_type_int);
         if (debug)
-            printf("mov sp, 0x%llx\n", cpu_state[cpu_sp]);
+            printf("mov sp, 0x%llx\n", (unsigned long long)cpu_state[cpu_sp]);
         break;
     case 0xbd:
         cpu_exec_instruction(cpu_instruction_mov, cpu_bp, cpu_imm16(cpu_ip), cpu_type_reg, cpu_type_int);
         if (debug)
-            printf("mov bp, 0x%llx\n", cpu_state[cpu_bp]);
+            printf("mov bp, 0x%llx\n", (unsigned long long)cpu_state[cpu_bp]);
         break;
     case 0xbe:
         cpu_exec_instruction(cpu_instruction_mov, cpu_si, cpu_imm16(cpu_ip), cpu_type_reg, cpu_type_int);
         if (debug)
-            printf("mov si, 0x%llx\n", cpu_state[cpu_si]);
+            printf("mov si, 0x%llx\n", (unsigned long long)cpu_state[cpu_si]);
         break;
     case 0xbf:
         cpu_exec_instruction(cpu_instruction_mov, cpu_di, cpu_imm16(cpu_ip), cpu_type_reg, cpu_type_int);
         if (debug)
-            printf("mov di, 0x%llx\n", cpu_state[cpu_di]);
+            printf("mov di, 0x%llx\n", (unsigned long long)cpu_state[cpu_di]);
         break;
     case 0xe9:
         cpu_state[cpu_ip] = cpu_rel16(cpu_ip);
         if (debug)
-            printf("jmp 0x%llx\n", cpu_state[cpu_ip]);
+            printf("jmp 0x%llx\n", (unsigned long long)cpu_state[cpu_ip]);
     case 0xeb:
         cpu_state[cpu_ip] = cpu_rel8(cpu_ip);
         if (debug)
-            printf("jmp 0x%llx\n", cpu_state[cpu_ip]);
+            printf("jmp 0x%llx\n", (unsigned long long)cpu_state[cpu_ip]);
         break;
     case 0xec:
         if (debug)
@@ -404,7 +404,7 @@ void cpu_emulate_i8086(uint8_t debug)
             for (size_t i = 0; i < 80 * 8 * 25 * 16 * 4; i++)
                 vram[0xb8000 + i] = (uint8_t)cpu_state[cpu_ax];
         if (debug)
-            printf("int 0x%llx\n", value);
+            printf("int 0x%llx\n", (unsigned long long)value);
         cpu_state[cpu_ip]++;
         break;
     case 0xf0:

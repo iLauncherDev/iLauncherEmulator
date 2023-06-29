@@ -1,4 +1,5 @@
-#include "lib/ctype.h"
+#include <stdint.h>
+#include <stdbool.h>
 #include <pthread.h>
 #include <stdio.h>
 #include <string.h>
@@ -22,12 +23,12 @@ void *window_update()
     }
 }
 
-int32_t main(int32_t argc, int8_t **argv)
+int32_t main(int32_t argc, char **argv)
 {
     uint8_t debug_code = false;
     for (int32_t i = 1; i < argc; i++)
     {
-        if (!strcmp((const int8_t *)argv[i], "-memory"))
+        if (!strcmp(argv[i], "-memory"))
         {
             if (vram)
                 continue;
@@ -37,7 +38,7 @@ int32_t main(int32_t argc, int8_t **argv)
             printf("Allocated %sMB In RAM\n", argv[i + 1]);
             i++;
         }
-        else if (!strcmp((const int8_t *)argv[i], "-debug-code"))
+        else if (!strcmp(argv[i], "-debug-code"))
         {
             debug_code = true;
         }
