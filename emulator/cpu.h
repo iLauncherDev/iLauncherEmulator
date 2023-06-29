@@ -2,8 +2,7 @@
 #define CPU_H
 #include "../lib/ctype.h"
 #include <stdio.h>
-#include <string.h>
-#include <strings.h>
+#include <SDL2/SDL.h>
 
 typedef enum cpu_regs
 {
@@ -76,6 +75,8 @@ typedef enum cpu_regs
     cpu_instruction_and,
     cpu_instruction_or,
     cpu_instruction_mov,
+    cpu_instruction_push,
+    cpu_instruction_pop,
 } cpu_regs_t;
 
 static int8_t *cpu_regs_string[] = {
@@ -142,6 +143,7 @@ extern uint64_t cpu_state[51];
 
 void cpu_dump_state();
 void cpu_exec_instruction(uint16_t instruction, uint64_t reg1, uint64_t reg2, uint8_t reg1_type, uint8_t reg2_type);
-void cpu_emulate_i386();
+void cpu_emulate_i8086(uint8_t debug);
+void cpu_emulate_i386(uint8_t debug);
 
 #endif

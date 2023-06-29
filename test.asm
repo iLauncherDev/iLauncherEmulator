@@ -1,9 +1,6 @@
-bits 32
+bits 16
 
-start:
-    nop
-    jmp end
-
-end:
-    nop
-    jmp start
+loop:
+    add ax, 1
+    int 0x20
+    jmp loop

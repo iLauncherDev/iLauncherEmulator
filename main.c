@@ -17,14 +17,14 @@ void *window_update()
     while (true)
     {
         window_surface = SDL_GetWindowSurface(window);
-        memcpy(window_surface->pixels, &vram[0xb0000], window_surface->pitch * window_surface->h);
+        memcpy(window_surface->pixels, &vram[0xb8000], window_surface->pitch * window_surface->h);
         SDL_UpdateWindowSurface(window);
     }
 }
 
 int32_t main(int32_t argc, int8_t **argv)
 {
-    uint8_t debug_cpu_state = false;
+    uint8_t debug_code = false;
     for (int32_t i = 1; i < argc; i++)
     {
         if (!strcmp((const int8_t *)argv[i], "-memory"))
@@ -37,9 +37,9 @@ int32_t main(int32_t argc, int8_t **argv)
             printf("Allocated %sMB In RAM\n", argv[i + 1]);
             i++;
         }
-        else if (!strcmp((const int8_t *)argv[i], "-debug"))
+        else if (!strcmp((const int8_t *)argv[i], "-debug-code"))
         {
-            debug_cpu_state = true;
+            debug_code = true;
         }
         else
         {
@@ -60,6 +60,8 @@ int32_t main(int32_t argc, int8_t **argv)
     window_surface = SDL_GetWindowSurface(window);
     pthread_t window_update_thread;
     pthread_create(&window_update_thread, NULL, window_update, NULL);
+    extern void sleep(uint32_t);
+    uint8_t a = 0;
     while (true)
     {
         while (SDL_PollEvent(&event) != 0)
@@ -69,9 +71,7 @@ int32_t main(int32_t argc, int8_t **argv)
                 return 0;
             }
         }
-        cpu_emulate_i386();
-        if (debug_cpu_state)
-            cpu_dump_state();
+        cpu_emulate_i8086(debug_code);
     }
     return 0;
 }

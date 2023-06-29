@@ -6,4 +6,4 @@ build:
 	@$(CC) $(shell ls **/*.c; ls *.c) -o iLEmu-system-x86_64 $(CC_FLAGS)
 
 run:
-	@./iLEmu-system-x86_64 -memory 128 -debug
+	@./iLEmu-system-x86_64 -memory 128 -debug-code
