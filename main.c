@@ -1,7 +1,6 @@
+#include "lib/ctype.h"
 #include <pthread.h>
 #include <stdio.h>
-#include <stdint.h>
-#include <stdbool.h>
 #include <string.h>
 #include <strings.h>
 #include <SDL2/SDL.h>
@@ -28,17 +27,17 @@ int32_t main(int32_t argc, int8_t **argv)
     uint8_t debug_cpu_state = false;
     for (int32_t i = 1; i < argc; i++)
     {
-        if (!strcmp(argv[i], "-memory"))
+        if (!strcmp((const int8_t *)argv[i], "-memory"))
         {
             if (vram)
                 continue;
             vram = malloc(atoi(argv[i + 1]) * 1024 * 1024);
             if (!vram)
                 return 1;
-            printf("Allocated %uMB In RAM\n", atoi(argv[i + 1]));
+            printf("Allocated %sMB In RAM\n", argv[i + 1]);
             i++;
         }
-        else if (!strcmp(argv[i], "-debug"))
+        else if (!strcmp((const int8_t *)argv[i], "-debug"))
         {
             debug_cpu_state = true;
         }

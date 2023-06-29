@@ -6,7 +6,7 @@ void cpu_dump_state()
 {
     printf("cpu debug : {\n");
     for (size_t i = 0; i < sizeof(cpu_state) / sizeof(uint64_t); i++)
-        printf("\t%s: 0x%lx;\n", cpu_regs_string[i], cpu_state[i]);
+        printf("\t%s: 0x%llx;\n", cpu_regs_string[i], cpu_state[i]);
     printf("};\n");
 }
 

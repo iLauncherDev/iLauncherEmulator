@@ -1,8 +1,7 @@
 #ifndef CPU_H
 #define CPU_H
+#include "../lib/ctype.h"
 #include <stdio.h>
-#include <stdint.h>
-#include <stdbool.h>
 #include <string.h>
 #include <strings.h>
 
