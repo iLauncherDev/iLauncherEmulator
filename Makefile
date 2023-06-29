@@ -5,4 +5,4 @@ build:
 	@gcc $(shell ls **/*.c; ls *.c) -o iLEmu-system-x86_64 $(GCC_FLAGS)
 
 run:
-	@./iLEmu-system-x86_64 -memory 128
+	@./iLEmu-system-x86_64 -memory 128 -debug

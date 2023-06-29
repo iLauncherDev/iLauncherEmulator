@@ -38,7 +38,7 @@ int32_t main(int32_t argc, int8_t **argv)
             printf("Allocated %uMB In RAM\n", atoi(argv[i + 1]));
             i++;
         }
-        else if (!strcmp(argv[i], "-debug-cpu-state"))
+        else if (!strcmp(argv[i], "-debug"))
         {
             debug_cpu_state = true;
         }

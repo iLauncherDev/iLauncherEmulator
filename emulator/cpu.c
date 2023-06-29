@@ -159,20 +159,55 @@ void cpu_exec_instruction(uint16_t instruction, uint64_t reg1, uint64_t reg2, ui
     }
 }
 
+uint32_t cpu_rel32()
+{
+    cpu_state[cpu_eip]++;
+    uint8_t b4 = vram[cpu_state[cpu_eip]];
+    cpu_state[cpu_eip]++;
+    uint8_t b3 = vram[cpu_state[cpu_eip]];
+    cpu_state[cpu_eip]++;
+    uint8_t b2 = vram[cpu_state[cpu_eip]];
+    cpu_state[cpu_eip]++;
+    uint8_t b1 = vram[cpu_state[cpu_eip]];
+    uint32_t rel = (b4 << 24) | (b3 << 16) | (b2 << 8) | b1;
+    return (uint32_t)(cpu_state[cpu_eip] + rel + 1);
+}
+
+uint16_t cpu_rel16()
+{
+    cpu_state[cpu_eip]++;
+    uint8_t b2 = vram[cpu_state[cpu_eip]];
+    cpu_state[cpu_eip]++;
+    uint8_t b1 = vram[cpu_state[cpu_eip]];
+    uint16_t rel = (b2 << 8) | b1;
+    return (uint16_t)(cpu_state[cpu_eip] + rel + 1);
+}
+
+uint8_t cpu_rel8()
+{
+    cpu_state[cpu_eip]++;
+    uint8_t rel = vram[cpu_state[cpu_eip]];
+    return (uint8_t)(cpu_state[cpu_eip] + rel + 1);
+}
+
 void cpu_emulate_i386()
 {
-    if (cpu_state[cpu_ip])
-        cpu_state[cpu_eip] = cpu_state[cpu_ip];
+    extern void sleep(int);
     uint8_t *opcode = &vram[cpu_state[cpu_eip]];
     switch (*opcode)
     {
+    case 0x00:
+        break;
+    case 0x90:
+        sleep(1);
+        cpu_state[cpu_eip]++;
+        break;
     case 0xeb:
-        cpu_state[cpu_eip] = opcode[1];
+        cpu_state[cpu_eip] = cpu_rel8();
         break;
     default:
         printf("OPCODE: 0x%x\n", *opcode);
         cpu_state[cpu_eip]++;
-        extern void sleep(int);
         sleep(1);
         break;
     }
