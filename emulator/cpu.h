@@ -61,7 +61,9 @@ typedef enum cpu_regs
     cpu_r14,
     cpu_r15,
 
+    cpu_flags,
     cpu_eflags,
+    cpu_rflags,
     cpu_useresp,
 
     cpu_type_reg,
@@ -140,7 +142,7 @@ static int8_t *cpu_regs_string[] = {
 };
 
 extern uint8_t *vram;
-extern uint64_t cpu_state[51];
+extern uint64_t cpu_state[53];
 
 void cpu_dump_state();
 void cpu_exec_instruction(uint16_t instruction, uint64_t reg1, uint64_t reg2, uint8_t reg1_type, uint8_t reg2_type);

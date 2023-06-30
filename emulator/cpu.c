@@ -4,7 +4,7 @@ extern SDL_Window *window;
 extern SDL_Surface *window_surface;
 extern uint64_t window_framebuffer[];
 
-uint64_t cpu_state[51];
+uint64_t cpu_state[53];
 uint8_t regs32[] = {
     cpu_eax,
     cpu_ecx,
@@ -57,7 +57,7 @@ void cpu_exec_instruction(uint16_t instruction, uint64_t reg1, uint64_t reg2, ui
     uint64_t reg1_id = reg1, reg2_id = reg2;
     if (reg2_type == cpu_type_buffer_reg)
     {
-        if (reg2_id >= cpu_ah && reg2_id <= cpu_dl)
+        if (reg2_id >= cpu_gs && reg2_id <= cpu_dl)
             reg2 = *(uint8_t *)(vram + cpu_state[reg2]);
         else if (reg2_id >= cpu_di && reg2_id <= cpu_ip)
             reg2 = *(uint16_t *)(vram + cpu_state[reg2]);
@@ -68,7 +68,7 @@ void cpu_exec_instruction(uint16_t instruction, uint64_t reg1, uint64_t reg2, ui
     }
     if (reg2_type == cpu_type_buffer)
     {
-        if (reg2_id >= cpu_ah && reg2_id <= cpu_dl)
+        if (reg2_id >= cpu_gs && reg2_id <= cpu_dl)
             reg2 = *(uint8_t *)(vram + reg2);
         else if (reg2_id >= cpu_di && reg2_id <= cpu_ip)
             reg2 = *(uint16_t *)(vram + reg2);
@@ -83,10 +83,19 @@ void cpu_exec_instruction(uint16_t instruction, uint64_t reg1, uint64_t reg2, ui
     {
     case cpu_instruction_add:
         if (reg1_type == cpu_type_reg)
-            cpu_state[reg1] += reg2_type == cpu_type_reg ? cpu_state[reg2] : reg2;
+        {
+            if (reg1_id >= cpu_gs && reg1_id <= cpu_dl)
+                cpu_state[reg1] = (uint8_t)(cpu_state[reg1] + (reg2_type == cpu_type_reg ? cpu_state[reg2] : reg2));
+            else if (reg1_id >= cpu_di && reg1_id <= cpu_ip)
+                cpu_state[reg1] = (uint16_t)(cpu_state[reg1] + (reg2_type == cpu_type_reg ? cpu_state[reg2] : reg2));
+            else if (reg1_id >= cpu_edi && reg1_id <= cpu_eip)
+                cpu_state[reg1] = (uint32_t)(cpu_state[reg1] + (reg2_type == cpu_type_reg ? cpu_state[reg2] : reg2));
+            else if (reg1_id >= cpu_rdi && reg1_id <= cpu_r15)
+                cpu_state[reg1] = (uint64_t)(cpu_state[reg1] + (reg2_type == cpu_type_reg ? cpu_state[reg2] : reg2));
+        }
         if (reg1_type >= cpu_type_buffer_reg && reg1_type <= cpu_type_buffer)
         {
-            if (reg1_id >= cpu_ah && reg1_id <= cpu_dl)
+            if (reg1_id >= cpu_gs && reg1_id <= cpu_dl)
                 *(uint8_t *)(vram + reg1) += reg2_type == cpu_type_reg ? cpu_state[reg2] : reg2;
             else if (reg1_id >= cpu_di && reg1_id <= cpu_ip)
                 *(uint16_t *)(vram + reg1) += reg2_type == cpu_type_reg ? cpu_state[reg2] : reg2;
@@ -98,10 +107,19 @@ void cpu_exec_instruction(uint16_t instruction, uint64_t reg1, uint64_t reg2, ui
         break;
     case cpu_instruction_sub:
         if (reg1_type == cpu_type_reg)
-            cpu_state[reg1] -= reg2_type == cpu_type_reg ? cpu_state[reg2] : reg2;
+        {
+            if (reg1_id >= cpu_gs && reg1_id <= cpu_dl)
+                cpu_state[reg1] = (uint8_t)(cpu_state[reg1] - (reg2_type == cpu_type_reg ? cpu_state[reg2] : reg2));
+            else if (reg1_id >= cpu_di && reg1_id <= cpu_ip)
+                cpu_state[reg1] = (uint16_t)(cpu_state[reg1] - (reg2_type == cpu_type_reg ? cpu_state[reg2] : reg2));
+            else if (reg1_id >= cpu_edi && reg1_id <= cpu_eip)
+                cpu_state[reg1] = (uint32_t)(cpu_state[reg1] - (reg2_type == cpu_type_reg ? cpu_state[reg2] : reg2));
+            else if (reg1_id >= cpu_rdi && reg1_id <= cpu_r15)
+                cpu_state[reg1] = (uint64_t)(cpu_state[reg1] - (reg2_type == cpu_type_reg ? cpu_state[reg2] : reg2));
+        }
         if (reg1_type >= cpu_type_buffer_reg && reg1_type <= cpu_type_buffer)
         {
-            if (reg1_id >= cpu_ah && reg1_id <= cpu_dl)
+            if (reg1_id >= cpu_gs && reg1_id <= cpu_dl)
                 *(uint8_t *)(vram + reg1) -= reg2_type == cpu_type_reg ? cpu_state[reg2] : reg2;
             else if (reg1_id >= cpu_di && reg1_id <= cpu_ip)
                 *(uint16_t *)(vram + reg1) -= reg2_type == cpu_type_reg ? cpu_state[reg2] : reg2;
@@ -113,10 +131,19 @@ void cpu_exec_instruction(uint16_t instruction, uint64_t reg1, uint64_t reg2, ui
         break;
     case cpu_instruction_mul:
         if (reg1_type == cpu_type_reg)
-            cpu_state[reg1] *= reg2_type == cpu_type_reg ? cpu_state[reg2] : reg2;
+        {
+            if (reg1_id >= cpu_gs && reg1_id <= cpu_dl)
+                cpu_state[reg1] = (uint8_t)(cpu_state[reg1] * (reg2_type == cpu_type_reg ? cpu_state[reg2] : reg2));
+            else if (reg1_id >= cpu_di && reg1_id <= cpu_ip)
+                cpu_state[reg1] = (uint16_t)(cpu_state[reg1] * (reg2_type == cpu_type_reg ? cpu_state[reg2] : reg2));
+            else if (reg1_id >= cpu_edi && reg1_id <= cpu_eip)
+                cpu_state[reg1] = (uint32_t)(cpu_state[reg1] * (reg2_type == cpu_type_reg ? cpu_state[reg2] : reg2));
+            else if (reg1_id >= cpu_rdi && reg1_id <= cpu_r15)
+                cpu_state[reg1] = (uint64_t)(cpu_state[reg1] * (reg2_type == cpu_type_reg ? cpu_state[reg2] : reg2));
+        }
         if (reg1_type >= cpu_type_buffer_reg && reg1_type <= cpu_type_buffer)
         {
-            if (reg1_id >= cpu_ah && reg1_id <= cpu_dl)
+            if (reg1_id >= cpu_gs && reg1_id <= cpu_dl)
                 *(uint8_t *)(vram + reg1) *= reg2_type == cpu_type_reg ? cpu_state[reg2] : reg2;
             else if (reg1_id >= cpu_di && reg1_id <= cpu_ip)
                 *(uint16_t *)(vram + reg1) *= reg2_type == cpu_type_reg ? cpu_state[reg2] : reg2;
@@ -128,10 +155,19 @@ void cpu_exec_instruction(uint16_t instruction, uint64_t reg1, uint64_t reg2, ui
         break;
     case cpu_instruction_div:
         if (reg1_type == cpu_type_reg)
-            cpu_state[reg1] /= reg2_type == cpu_type_reg ? cpu_state[reg2] : reg2;
+        {
+            if (reg1_id >= cpu_gs && reg1_id <= cpu_dl)
+                cpu_state[reg1] = (uint8_t)(cpu_state[reg1] / (reg2_type == cpu_type_reg ? cpu_state[reg2] : reg2));
+            else if (reg1_id >= cpu_di && reg1_id <= cpu_ip)
+                cpu_state[reg1] = (uint16_t)(cpu_state[reg1] / (reg2_type == cpu_type_reg ? cpu_state[reg2] : reg2));
+            else if (reg1_id >= cpu_edi && reg1_id <= cpu_eip)
+                cpu_state[reg1] = (uint32_t)(cpu_state[reg1] / (reg2_type == cpu_type_reg ? cpu_state[reg2] : reg2));
+            else if (reg1_id >= cpu_rdi && reg1_id <= cpu_r15)
+                cpu_state[reg1] = (uint64_t)(cpu_state[reg1] / (reg2_type == cpu_type_reg ? cpu_state[reg2] : reg2));
+        }
         if (reg1_type >= cpu_type_buffer_reg && reg1_type <= cpu_type_buffer)
         {
-            if (reg1_id >= cpu_ah && reg1_id <= cpu_dl)
+            if (reg1_id >= cpu_gs && reg1_id <= cpu_dl)
                 *(uint8_t *)(vram + reg1) /= reg2_type == cpu_type_reg ? cpu_state[reg2] : reg2;
             else if (reg1_id >= cpu_di && reg1_id <= cpu_ip)
                 *(uint16_t *)(vram + reg1) /= reg2_type == cpu_type_reg ? cpu_state[reg2] : reg2;
@@ -143,10 +179,19 @@ void cpu_exec_instruction(uint16_t instruction, uint64_t reg1, uint64_t reg2, ui
         break;
     case cpu_instruction_and:
         if (reg1_type == cpu_type_reg)
-            cpu_state[reg1] &= reg2_type == cpu_type_reg ? cpu_state[reg2] : reg2;
+        {
+            if (reg1_id >= cpu_gs && reg1_id <= cpu_dl)
+                cpu_state[reg1] = (uint8_t)(cpu_state[reg1] & (reg2_type == cpu_type_reg ? cpu_state[reg2] : reg2));
+            else if (reg1_id >= cpu_di && reg1_id <= cpu_ip)
+                cpu_state[reg1] = (uint16_t)(cpu_state[reg1] & (reg2_type == cpu_type_reg ? cpu_state[reg2] : reg2));
+            else if (reg1_id >= cpu_edi && reg1_id <= cpu_eip)
+                cpu_state[reg1] = (uint32_t)(cpu_state[reg1] & (reg2_type == cpu_type_reg ? cpu_state[reg2] : reg2));
+            else if (reg1_id >= cpu_rdi && reg1_id <= cpu_r15)
+                cpu_state[reg1] = (uint64_t)(cpu_state[reg1] & (reg2_type == cpu_type_reg ? cpu_state[reg2] : reg2));
+        }
         if (reg1_type >= cpu_type_buffer_reg && reg1_type <= cpu_type_buffer)
         {
-            if (reg1_id >= cpu_ah && reg1_id <= cpu_dl)
+            if (reg1_id >= cpu_gs && reg1_id <= cpu_dl)
                 *(uint8_t *)(vram + reg1) &= reg2_type == cpu_type_reg ? cpu_state[reg2] : reg2;
             else if (reg1_id >= cpu_di && reg1_id <= cpu_ip)
                 *(uint16_t *)(vram + reg1) &= reg2_type == cpu_type_reg ? cpu_state[reg2] : reg2;
@@ -158,10 +203,19 @@ void cpu_exec_instruction(uint16_t instruction, uint64_t reg1, uint64_t reg2, ui
         break;
     case cpu_instruction_or:
         if (reg1_type == cpu_type_reg)
-            cpu_state[reg1] |= reg2_type == cpu_type_reg ? cpu_state[reg2] : reg2;
+        {
+            if (reg1_id >= cpu_gs && reg1_id <= cpu_dl)
+                cpu_state[reg1] = (uint8_t)(cpu_state[reg1] | (reg2_type == cpu_type_reg ? cpu_state[reg2] : reg2));
+            else if (reg1_id >= cpu_di && reg1_id <= cpu_ip)
+                cpu_state[reg1] = (uint16_t)(cpu_state[reg1] | (reg2_type == cpu_type_reg ? cpu_state[reg2] : reg2));
+            else if (reg1_id >= cpu_edi && reg1_id <= cpu_eip)
+                cpu_state[reg1] = (uint32_t)(cpu_state[reg1] | (reg2_type == cpu_type_reg ? cpu_state[reg2] : reg2));
+            else if (reg1_id >= cpu_rdi && reg1_id <= cpu_r15)
+                cpu_state[reg1] = (uint64_t)(cpu_state[reg1] | (reg2_type == cpu_type_reg ? cpu_state[reg2] : reg2));
+        }
         if (reg1_type >= cpu_type_buffer_reg && reg1_type <= cpu_type_buffer)
         {
-            if (reg1_id >= cpu_ah && reg1_id <= cpu_dl)
+            if (reg1_id >= cpu_gs && reg1_id <= cpu_dl)
                 *(uint8_t *)(vram + reg1) |= reg2_type == cpu_type_reg ? cpu_state[reg2] : reg2;
             else if (reg1_id >= cpu_di && reg1_id <= cpu_ip)
                 *(uint16_t *)(vram + reg1) |= reg2_type == cpu_type_reg ? cpu_state[reg2] : reg2;
@@ -174,11 +228,18 @@ void cpu_exec_instruction(uint16_t instruction, uint64_t reg1, uint64_t reg2, ui
     case cpu_instruction_mov:
         if (reg1_type == cpu_type_reg)
         {
-            cpu_state[reg1] = reg2_type == cpu_type_reg ? cpu_state[reg2] : reg2;
+            if (reg1_id >= cpu_gs && reg1_id <= cpu_dl)
+                cpu_state[reg1] = (uint8_t)(reg2_type == cpu_type_reg ? cpu_state[reg2] : reg2);
+            else if (reg1_id >= cpu_di && reg1_id <= cpu_ip)
+                cpu_state[reg1] = (uint16_t)(reg2_type == cpu_type_reg ? cpu_state[reg2] : reg2);
+            else if (reg1_id >= cpu_edi && reg1_id <= cpu_eip)
+                cpu_state[reg1] = (uint32_t)(reg2_type == cpu_type_reg ? cpu_state[reg2] : reg2);
+            else if (reg1_id >= cpu_rdi && reg1_id <= cpu_r15)
+                cpu_state[reg1] = (uint64_t)(reg2_type == cpu_type_reg ? cpu_state[reg2] : reg2);
         }
         if (reg1_type >= cpu_type_buffer_reg && reg1_type <= cpu_type_buffer)
         {
-            if (reg2_id >= cpu_ah && reg2_id <= cpu_dl)
+            if (reg2_id >= cpu_gs && reg2_id <= cpu_dl)
                 *(uint8_t *)(vram + reg1) = reg2_type == cpu_type_reg ? cpu_state[reg2] : reg2;
             else if (reg2_id >= cpu_di && reg2_id <= cpu_ip)
                 *(uint16_t *)(vram + reg1) = reg2_type == cpu_type_reg ? cpu_state[reg2] : reg2;
