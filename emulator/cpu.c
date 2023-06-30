@@ -2,6 +2,7 @@
 
 extern SDL_Window *window;
 extern SDL_Surface *window_surface;
+extern uint64_t window_framebuffer[];
 
 uint64_t cpu_state[51];
 uint8_t regs32[] = {
@@ -258,6 +259,58 @@ void cpu_emulate_i8086(uint8_t debug)
     case 0x00:
         cpu_state[cpu_ip]++;
         break;
+    case 0x80:
+        switch ((opcode[1] & 0x38) >> 3)
+        {
+        case 0x00:
+            reg_id = cpu_rm8(cpu_ip);
+            value = cpu_imm8(cpu_ip);
+            cpu_exec_instruction(cpu_instruction_add,
+                                 reg_id, value,
+                                 cpu_type_reg, cpu_type_int);
+            if (debug)
+                printf("add %s, %llx\n", cpu_regs_string[reg_id], (unsigned long long)value);
+            break;
+        case 0x05:
+            reg_id = cpu_rm8(cpu_ip);
+            value = cpu_imm8(cpu_ip);
+            cpu_exec_instruction(cpu_instruction_sub,
+                                 reg_id, value,
+                                 cpu_type_reg, cpu_type_int);
+            if (debug)
+                printf("sub %s, %llx\n", cpu_regs_string[reg_id], (unsigned long long)value);
+            break;
+        default:
+            break;
+        }
+        cpu_state[cpu_ip]++;
+        break;
+    case 0x81:
+        switch ((opcode[1] & 0x38) >> 3)
+        {
+        case 0x00:
+            reg_id = cpu_rm16(cpu_ip);
+            value = cpu_imm16(cpu_ip);
+            cpu_exec_instruction(cpu_instruction_add,
+                                 reg_id, value,
+                                 cpu_type_reg, cpu_type_int);
+            if (debug)
+                printf("add %s, %llx\n", cpu_regs_string[reg_id], (unsigned long long)value);
+            break;
+        case 0x05:
+            reg_id = cpu_rm16(cpu_ip);
+            value = cpu_imm16(cpu_ip);
+            cpu_exec_instruction(cpu_instruction_sub,
+                                 reg_id, value,
+                                 cpu_type_reg, cpu_type_int);
+            if (debug)
+                printf("sub %s, %llx\n", cpu_regs_string[reg_id], (unsigned long long)value);
+            break;
+        default:
+            break;
+        }
+        cpu_state[cpu_ip]++;
+        break;
     case 0x83:
         switch ((opcode[1] & 0x38) >> 3)
         {
@@ -401,8 +454,8 @@ void cpu_emulate_i8086(uint8_t debug)
     case 0xcd:
         value = cpu_imm8(cpu_ip);
         if (value == 0x20)
-            for (size_t i = 0; i < 80 * 8 * 25 * 16 * 4; i++)
-                vram[0xb8000 + i] = (uint8_t)cpu_state[cpu_ax];
+            for (size_t i = 0; i < window_framebuffer[1] * window_framebuffer[2] * window_framebuffer[3]; i++)
+                vram[window_framebuffer[0] + i] = (uint8_t)cpu_state[cpu_ax];
         if (debug)
             printf("int 0x%llx\n", (unsigned long long)value);
         cpu_state[cpu_ip]++;
