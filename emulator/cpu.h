@@ -137,15 +137,16 @@ static int8_t *cpu_regs_string[] = {
     (int8_t *)"r14",
     (int8_t *)"r15",
 
+    (int8_t *)"flags",
     (int8_t *)"eflags",
+    (int8_t *)"rflags",
     (int8_t *)"useresp",
 };
 
 extern uint8_t *vram;
-extern uint64_t cpu_state[53];
+extern uint64_t cpu_state[];
 
 void cpu_dump_state();
-void cpu_exec_instruction(uint16_t instruction, uint64_t reg1, uint64_t reg2, uint8_t reg1_type, uint8_t reg2_type);
 void cpu_emulate_i8086(uint8_t debug);
 void cpu_emulate_i386(uint8_t debug);
 
