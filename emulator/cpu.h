@@ -143,9 +143,11 @@ static int8_t *cpu_regs_string[] = {
     (int8_t *)"useresp",
 };
 
-extern uint8_t *vram;
+extern uint64_t vm_memory_size;
+extern uint8_t *vm_memory;
 extern uint64_t cpu_state[];
 
+void cpu_setup_precalcs();
 void cpu_dump_state();
 void cpu_emulate_i8086(uint8_t debug);
 void cpu_emulate_i386(uint8_t debug);

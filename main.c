@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <strings.h>
+#include <unistd.h>
 #include <SDL2/SDL.h>
 #include "emulator/cpu.h"
 
@@ -20,7 +21,8 @@ uint64_t window_framebuffer[] = {
     0,
 };
 
-uint8_t *vram;
+uint64_t vm_memory_size;
+uint8_t *vm_memory;
 
 void *window_update()
 {
@@ -29,6 +31,21 @@ void *window_update()
     while (true)
     {
         window_surface = SDL_GetWindowSurface(window);
+        while (SDL_PollEvent(&event) != 0)
+        {
+            if (event.type == SDL_QUIT)
+            {
+                exit(0);
+            }
+            else if (event.type == SDL_KEYUP)
+            {
+                scancode[event.key.keysym.scancode] = false;
+            }
+            else if (event.type == SDL_KEYDOWN)
+            {
+                scancode[event.key.keysym.scancode] = true;
+            }
+        }
         if (window_surface->w != window_framebuffer[1] ||
             window_surface->h != window_framebuffer[2])
         {
@@ -50,7 +67,7 @@ void *window_update()
         {
             ready = true;
         }
-        memcpy(window_surface->pixels, &vram[window_framebuffer[0]], window_surface->pitch * window_surface->h);
+        memcpy(window_surface->pixels, &vm_memory[window_framebuffer[0]], window_surface->pitch * window_surface->h);
         SDL_UpdateWindowSurface(window);
     }
     return (void *)NULL;
@@ -68,12 +85,13 @@ int32_t main(int32_t argc, char **argv)
             if (argc - i < 2)
                 continue;
             i++;
-            if (vram)
+            if (vm_memory)
                 continue;
-            vram = malloc(atoi(argv[i]) * 1024 * 1024);
-            if (!vram)
+            vm_memory = malloc(atoi(argv[i]) * 1024 * 1024);
+            if (!vm_memory)
                 return 1;
             printf("Allocated %sMB In RAM\n", argv[i]);
+            vm_memory_size = atoi(argv[i]) * 1024 * 1024;
         }
         else if (!strcmp(argv[i], "-bios"))
         {
@@ -99,10 +117,13 @@ int32_t main(int32_t argc, char **argv)
             return 1;
         }
     }
-    if (!vram)
-        vram = malloc(128 * 1024 * 1024), printf("Allocated %sMB In RAM\n", "128");
+    if (!vm_memory)
+        vm_memory = malloc(16 * 1024 * 1024),
+        vm_memory_size = 16 * 1024 * 1024,
+        printf("Allocated %sMB In RAM\n", "16");
     if (bios_bin)
-        fread((void *)vram, size, 1, bios_bin);
+        fread((void *)vm_memory, size, 1, bios_bin);
+    cpu_setup_precalcs();
     cpu_state[cpu_eip] = cpu_state[cpu_ip] = 0;
     SDL_Init(SDL_INIT_VIDEO);
     window = SDL_CreateWindow("Emulator", 0, 0, 80 * 8, 25 * 16, SDL_WINDOW_SHOWN);
@@ -110,26 +131,8 @@ int32_t main(int32_t argc, char **argv)
     pthread_t window_update_thread;
     pthread_create(&window_update_thread, NULL, window_update, NULL);
     while (!window_framebuffer[0])
-        ;
+        sleep(1);
     while (true)
-    {
-        while (SDL_PollEvent(&event) != 0)
-        {
-            if (event.type == SDL_QUIT)
-            {
-                return 0;
-            }
-            else if (event.type == SDL_KEYUP)
-            {
-                scancode[event.key.keysym.scancode] = false;
-            }
-            else if (event.type == SDL_KEYDOWN)
-            {
-                scancode[event.key.keysym.scancode] = true;
-            }
-        }
-        for (size_t t = 0; t < 0xffff; t++)
-            cpu_emulate_i8086(debug_code);
-    }
+        cpu_emulate_i8086(debug_code);
     return 0;
 }

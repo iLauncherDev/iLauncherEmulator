@@ -4,6 +4,8 @@ extern SDL_Window *window;
 extern SDL_Surface *window_surface;
 extern uint64_t window_framebuffer[];
 
+uint8_t x80_precalc[256];
+
 uint8_t *opcode;
 uint64_t cpu_state[53];
 uint8_t regs32[] = {
@@ -36,6 +38,12 @@ uint8_t regs8[] = {
     cpu_dh,
     cpu_bh,
 };
+
+void cpu_setup_precalcs()
+{
+    for (size_t i = 0; i < 0xff; i++)
+        x80_precalc[i] = (i & 0x38) >> 3;
+}
 
 void cpu_dump_state()
 {
@@ -95,27 +103,27 @@ static inline uint8_t cpu_rel8(uint8_t reg)
 
 void cpu_emulate_i8086(uint8_t debug)
 {
-    opcode = &vram[cpu_state[cpu_ip]];
+    opcode = &vm_memory[cpu_state[cpu_ip] & 0xffff];
     uint8_t reg_id;
     uint16_t value;
     switch (*opcode)
     {
     case 0x80:
-        switch ((opcode[1] & 0x38) >> 3)
+        switch (x80_precalc[opcode[1]])
         {
         case 0x00:
             reg_id = cpu_rm8(cpu_ip);
             value = cpu_imm8(cpu_ip);
             cpu_state[reg_id] = (uint8_t)(cpu_state[reg_id] + value);
             if (debug)
-                printf("add %s, %llx\n", cpu_regs_string[reg_id], (unsigned long long)value);
+                printf("add %s, 0x%llx\n", cpu_regs_string[reg_id], (unsigned long long)value);
             break;
         case 0x05:
             reg_id = cpu_rm8(cpu_ip);
             value = cpu_imm8(cpu_ip);
             cpu_state[reg_id] = (uint8_t)(cpu_state[reg_id] - value);
             if (debug)
-                printf("sub %s, %llx\n", cpu_regs_string[reg_id], (unsigned long long)value);
+                printf("sub %s, 0x%llx\n", cpu_regs_string[reg_id], (unsigned long long)value);
             break;
         default:
             break;
@@ -123,21 +131,21 @@ void cpu_emulate_i8086(uint8_t debug)
         cpu_state[cpu_ip]++;
         break;
     case 0x81:
-        switch ((opcode[1] & 0x38) >> 3)
+        switch (x80_precalc[opcode[1]])
         {
         case 0x00:
             reg_id = cpu_rm16(cpu_ip);
             value = cpu_imm16(cpu_ip);
             cpu_state[reg_id] = (uint16_t)(cpu_state[reg_id] + value);
             if (debug)
-                printf("add %s, %llx\n", cpu_regs_string[reg_id], (unsigned long long)value);
+                printf("add %s, 0x%llx\n", cpu_regs_string[reg_id], (unsigned long long)value);
             break;
         case 0x05:
             reg_id = cpu_rm16(cpu_ip);
             value = cpu_imm16(cpu_ip);
             cpu_state[reg_id] = (uint16_t)(cpu_state[reg_id] - value);
             if (debug)
-                printf("sub %s, %llx\n", cpu_regs_string[reg_id], (unsigned long long)value);
+                printf("sub %s, 0x%llx\n", cpu_regs_string[reg_id], (unsigned long long)value);
             break;
         default:
             break;
@@ -145,21 +153,21 @@ void cpu_emulate_i8086(uint8_t debug)
         cpu_state[cpu_ip]++;
         break;
     case 0x83:
-        switch ((opcode[1] & 0x38) >> 3)
+        switch (x80_precalc[opcode[1]])
         {
         case 0x00:
             reg_id = cpu_rm16(cpu_ip);
             value = cpu_imm8(cpu_ip);
-            cpu_state[reg_id] = (uint16_t)(cpu_state[reg_id] + value);
+            cpu_state[reg_id] = (uint32_t)(cpu_state[reg_id] + value);
             if (debug)
-                printf("add %s, %llx\n", cpu_regs_string[reg_id], (unsigned long long)value);
+                printf("add %s, 0x%llx\n", cpu_regs_string[reg_id], (unsigned long long)value);
             break;
         case 0x05:
             reg_id = cpu_rm16(cpu_ip);
             value = cpu_imm8(cpu_ip);
             cpu_state[reg_id] = (uint16_t)(cpu_state[reg_id] - value);
             if (debug)
-                printf("sub %s, %llx\n", cpu_regs_string[reg_id], (unsigned long long)value);
+                printf("sub %s, 0x%llx\n", cpu_regs_string[reg_id], (unsigned long long)value);
             break;
         default:
             break;
@@ -264,7 +272,15 @@ void cpu_emulate_i8086(uint8_t debug)
         }
         else if (value == 0x20)
         {
-            vram[window_framebuffer[0] + cpu_state[cpu_bx]] = cpu_state[cpu_ax];
+            uint32_t pos = window_framebuffer[0] + cpu_state[cpu_dx] * window_framebuffer[3];
+            if (pos > vm_memory_size)
+            {
+                cpu_state[cpu_ip] = 0;
+                break;
+            }
+            vm_memory[pos + 0] = cpu_state[cpu_ax];
+            vm_memory[pos + 1] = cpu_state[cpu_bx];
+            vm_memory[pos + 2] = cpu_state[cpu_cx];
         }
         if (debug)
             printf("int 0x%llx\n", (unsigned long long)value);
