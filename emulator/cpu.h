@@ -150,6 +150,5 @@ extern uint64_t cpu_state[];
 void cpu_setup_precalcs();
 void cpu_dump_state();
 void cpu_emulate_i8086(uint8_t debug);
-void cpu_emulate_i386(uint8_t debug);
 
 #endif

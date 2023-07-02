@@ -126,6 +126,7 @@ void cpu_emulate_i8086(uint8_t debug)
                 printf("sub %s, 0x%llx\n", cpu_regs_string[reg_id], (unsigned long long)value);
             break;
         default:
+            goto unknown;
             break;
         }
         cpu_state[cpu_ip]++;
@@ -148,6 +149,7 @@ void cpu_emulate_i8086(uint8_t debug)
                 printf("sub %s, 0x%llx\n", cpu_regs_string[reg_id], (unsigned long long)value);
             break;
         default:
+            goto unknown;
             break;
         }
         cpu_state[cpu_ip]++;
@@ -170,94 +172,111 @@ void cpu_emulate_i8086(uint8_t debug)
                 printf("sub %s, 0x%llx\n", cpu_regs_string[reg_id], (unsigned long long)value);
             break;
         default:
+            goto unknown;
             break;
         }
         cpu_state[cpu_ip]++;
         break;
     case 0x90:
-        cpu_state[cpu_ip]++;
         if (debug)
             printf("nop\n");
+        cpu_state[cpu_ip]++;
         break;
     case 0xb0:
         cpu_state[cpu_al] = cpu_imm8(cpu_ip);
         if (debug)
             printf("mov al, 0x%llx\n", (unsigned long long)cpu_state[cpu_al]);
+        cpu_state[cpu_ip]++;
         break;
     case 0xb1:
         cpu_state[cpu_cl] = cpu_imm8(cpu_ip);
         if (debug)
             printf("mov cl, 0x%llx\n", (unsigned long long)cpu_state[cpu_cl]);
+        cpu_state[cpu_ip]++;
         break;
     case 0xb2:
         cpu_state[cpu_dl] = cpu_imm8(cpu_ip);
         if (debug)
             printf("mov dl, 0x%llx\n", (unsigned long long)cpu_state[cpu_dl]);
+        cpu_state[cpu_ip]++;
         break;
     case 0xb3:
         cpu_state[cpu_bl] = cpu_imm8(cpu_ip);
         if (debug)
             printf("mov bl, 0x%llx\n", (unsigned long long)cpu_state[cpu_bl]);
+        cpu_state[cpu_ip]++;
         break;
     case 0xb4:
         cpu_state[cpu_ah] = cpu_imm8(cpu_ip);
         if (debug)
             printf("mov ah, 0x%llx\n", (unsigned long long)cpu_state[cpu_ah]);
+        cpu_state[cpu_ip]++;
         break;
     case 0xb5:
         cpu_state[cpu_ch] = cpu_imm8(cpu_ip);
         if (debug)
             printf("mov ch, 0x%llx\n", (unsigned long long)cpu_state[cpu_ch]);
+        cpu_state[cpu_ip]++;
         break;
     case 0xb6:
         cpu_state[cpu_dh] = cpu_imm8(cpu_ip);
         if (debug)
             printf("mov dh, 0x%llx\n", (unsigned long long)cpu_state[cpu_dh]);
+        cpu_state[cpu_ip]++;
         break;
     case 0xb7:
         cpu_state[cpu_bh] = cpu_imm8(cpu_ip);
         if (debug)
             printf("mov bh, 0x%llx\n", (unsigned long long)cpu_state[cpu_bh]);
+        cpu_state[cpu_ip]++;
         break;
     case 0xb8:
         cpu_state[cpu_ax] = cpu_imm16(cpu_ip);
         if (debug)
             printf("mov ax, 0x%llx\n", (unsigned long long)cpu_state[cpu_ax]);
+        cpu_state[cpu_ip]++;
         break;
     case 0xb9:
         cpu_state[cpu_cx] = cpu_imm16(cpu_ip);
         if (debug)
             printf("mov cx, 0x%llx\n", (unsigned long long)cpu_state[cpu_cx]);
+        cpu_state[cpu_ip]++;
         break;
     case 0xba:
         cpu_state[cpu_dx] = cpu_imm16(cpu_ip);
         if (debug)
             printf("mov dx, 0x%llx\n", (unsigned long long)cpu_state[cpu_dx]);
+        cpu_state[cpu_ip]++;
         break;
     case 0xbb:
         cpu_state[cpu_bx] = cpu_imm16(cpu_ip);
         if (debug)
             printf("mov bx, 0x%llx\n", (unsigned long long)cpu_state[cpu_bx]);
+        cpu_state[cpu_ip]++;
         break;
     case 0xbc:
         cpu_state[cpu_sp] = cpu_imm16(cpu_ip);
         if (debug)
             printf("mov sp, 0x%llx\n", (unsigned long long)cpu_state[cpu_sp]);
+        cpu_state[cpu_ip]++;
         break;
     case 0xbd:
         cpu_state[cpu_bp] = cpu_imm16(cpu_ip);
         if (debug)
             printf("mov bp, 0x%llx\n", (unsigned long long)cpu_state[cpu_bp]);
+        cpu_state[cpu_ip]++;
         break;
     case 0xbe:
         cpu_state[cpu_si] = cpu_imm16(cpu_ip);
         if (debug)
             printf("mov si, 0x%llx\n", (unsigned long long)cpu_state[cpu_si]);
+        cpu_state[cpu_ip]++;
         break;
     case 0xbf:
         cpu_state[cpu_di] = cpu_imm16(cpu_ip);
         if (debug)
             printf("mov di, 0x%llx\n", (unsigned long long)cpu_state[cpu_di]);
+        cpu_state[cpu_ip]++;
         break;
     case 0xcd:
         value = cpu_imm8(cpu_ip);
@@ -370,6 +389,7 @@ void cpu_emulate_i8086(uint8_t debug)
             printf("std\n");
         cpu_state[cpu_ip]++;
         break;
+    unknown:
     default:
         if (debug)
             printf("db 0x%hhx\n", *opcode);

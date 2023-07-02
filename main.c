@@ -26,7 +26,7 @@ uint8_t *vm_memory;
 
 void *window_update()
 {
-    uint8_t ready = true;
+    uint8_t ready[4096];
     uint8_t fullscreen = false;
     while (true)
     {
@@ -55,17 +55,25 @@ void *window_update()
             window_framebuffer[3] = window_surface->pitch / window_surface->w;
         }
         if (scancode[SDL_SCANCODE_LCTRL] && scancode[SDL_SCANCODE_LALT] &&
-            scancode[SDL_SCANCODE_LSHIFT] && scancode[SDL_SCANCODE_F] && ready)
+            scancode[SDL_SCANCODE_LSHIFT] && scancode[SDL_SCANCODE_F] && ready[SDL_SCANCODE_F])
         {
             if (!fullscreen)
                 SDL_SetWindowFullscreen(window, SDL_WINDOW_FULLSCREEN), fullscreen = true;
             else
                 SDL_SetWindowFullscreen(window, 0), fullscreen = false;
-            ready = false;
+            ready[SDL_SCANCODE_F] = false;
         }
-        else if (!scancode[SDL_SCANCODE_F] && !ready)
+        else if (scancode[SDL_SCANCODE_LCTRL] && scancode[SDL_SCANCODE_LALT] &&
+                 scancode[SDL_SCANCODE_LSHIFT] && scancode[SDL_SCANCODE_Q] && ready[SDL_SCANCODE_Q])
         {
-            ready = true;
+            exit(0);
+            ready[SDL_SCANCODE_Q] = false;
+        }
+        else
+        {
+            for (uint16_t i = 0; i < 0x1000; i++)
+                if (!scancode[i])
+                    ready[i] = true;
         }
         memcpy(window_surface->pixels, &vm_memory[window_framebuffer[0]], window_surface->pitch * window_surface->h);
         SDL_UpdateWindowSurface(window);
@@ -122,7 +130,7 @@ int32_t main(int32_t argc, char **argv)
         vm_memory_size = 16 * 1024 * 1024,
         printf("Allocated %sMB In RAM\n", "16");
     if (bios_bin)
-        fread((void *)vm_memory, size, 1, bios_bin);
+        fread(vm_memory, size, 1, bios_bin);
     cpu_setup_precalcs();
     cpu_state[cpu_eip] = cpu_state[cpu_ip] = 0;
     SDL_Init(SDL_INIT_VIDEO);
