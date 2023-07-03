@@ -8,11 +8,12 @@ start:
     mov sp, stack_end
 
 loop:
-    add ax, 0x01
-    add bx, 0x02
-    add cx, 0x03
+    add ax, 0x04
+    add bx, 0x08
+    add cx, 0x11
     int 0x20
     add dx, 0x01
+    add ax, bx
     jmp loop
 
 stack_start:

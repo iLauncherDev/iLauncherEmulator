@@ -118,6 +118,20 @@ void cpu_emulate_i8086(uint8_t debug)
             if (debug)
                 printf("add %s, 0x%llx\n", cpu_regs_string[reg_id], (unsigned long long)value);
             break;
+        case 0x01:
+            reg_id = cpu_rm8(cpu_ip);
+            value = cpu_imm8(cpu_ip);
+            cpu_state[reg_id] = (uint8_t)(cpu_state[reg_id] | value);
+            if (debug)
+                printf("or %s, 0x%llx\n", cpu_regs_string[reg_id], (unsigned long long)value);
+            break;
+        case 0x04:
+            reg_id = cpu_rm8(cpu_ip);
+            value = cpu_imm8(cpu_ip);
+            cpu_state[reg_id] = (uint8_t)(cpu_state[reg_id] & value);
+            if (debug)
+                printf("and %s, 0x%llx\n", cpu_regs_string[reg_id], (unsigned long long)value);
+            break;
         case 0x05:
             reg_id = cpu_rm8(cpu_ip);
             value = cpu_imm8(cpu_ip);
@@ -141,6 +155,20 @@ void cpu_emulate_i8086(uint8_t debug)
             if (debug)
                 printf("add %s, 0x%llx\n", cpu_regs_string[reg_id], (unsigned long long)value);
             break;
+        case 0x01:
+            reg_id = cpu_rm16(cpu_ip);
+            value = cpu_imm16(cpu_ip);
+            cpu_state[reg_id] = (uint16_t)(cpu_state[reg_id] | value);
+            if (debug)
+                printf("or %s, 0x%llx\n", cpu_regs_string[reg_id], (unsigned long long)value);
+            break;
+        case 0x04:
+            reg_id = cpu_rm16(cpu_ip);
+            value = cpu_imm16(cpu_ip);
+            cpu_state[reg_id] = (uint16_t)(cpu_state[reg_id] & value);
+            if (debug)
+                printf("and %s, 0x%llx\n", cpu_regs_string[reg_id], (unsigned long long)value);
+            break;
         case 0x05:
             reg_id = cpu_rm16(cpu_ip);
             value = cpu_imm16(cpu_ip);
@@ -163,6 +191,20 @@ void cpu_emulate_i8086(uint8_t debug)
             cpu_state[reg_id] = (uint32_t)(cpu_state[reg_id] + value);
             if (debug)
                 printf("add %s, 0x%llx\n", cpu_regs_string[reg_id], (unsigned long long)value);
+            break;
+        case 0x01:
+            reg_id = cpu_rm16(cpu_ip);
+            value = cpu_imm8(cpu_ip);
+            cpu_state[reg_id] = (uint16_t)(cpu_state[reg_id] | value);
+            if (debug)
+                printf("or %s, 0x%llx\n", cpu_regs_string[reg_id], (unsigned long long)value);
+            break;
+        case 0x04:
+            reg_id = cpu_rm16(cpu_ip);
+            value = cpu_imm8(cpu_ip);
+            cpu_state[reg_id] = (uint16_t)(cpu_state[reg_id] & value);
+            if (debug)
+                printf("and %s, 0x%llx\n", cpu_regs_string[reg_id], (unsigned long long)value);
             break;
         case 0x05:
             reg_id = cpu_rm16(cpu_ip);
@@ -294,6 +336,7 @@ void cpu_emulate_i8086(uint8_t debug)
             uint32_t pos = window_framebuffer[0] + cpu_state[cpu_dx] * window_framebuffer[3];
             if (pos > vm_memory_size)
             {
+                cpu_dump_state();
                 cpu_state[cpu_ip] = 0;
                 break;
             }
