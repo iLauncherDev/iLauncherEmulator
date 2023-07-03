@@ -141,6 +141,6 @@ int32_t main(int32_t argc, char **argv)
     while (!window_framebuffer[0])
         sleep(1);
     while (true)
-        cpu_emulate_i8086(debug_code);
+        cpu_emulate_i8086(debug_code);sleep(1);
     return 0;
 }
