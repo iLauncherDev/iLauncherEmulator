@@ -134,7 +134,7 @@ int32_t main(int32_t argc, char **argv)
     cpu_setup_precalcs();
     cpu_state[cpu_eip] = cpu_state[cpu_ip] = 0;
     SDL_Init(SDL_INIT_VIDEO);
-    window = SDL_CreateWindow("Emulator", 0, 0, 80 * 8, 25 * 16, SDL_WINDOW_SHOWN);
+    window = SDL_CreateWindow("Emulator", 0, 0, 80 * 8, 25 * 16, SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE);
     window_surface = SDL_GetWindowSurface(window);
     pthread_t window_update_thread;
     pthread_create(&window_update_thread, NULL, window_update, NULL);
