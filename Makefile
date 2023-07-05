@@ -10,3 +10,6 @@ run:
 
 run-debug:
 	@./iLEmu-system-x86_64 -bios bios.bin -memory 16 -debug-code
+
+run-debug-single:
+	@./iLEmu-system-x86_64 -bios bios.bin -memory 16 -debug-code -single-step

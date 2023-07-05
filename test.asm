@@ -1,11 +1,11 @@
 bits 16
 
 start:
+    mov sp, stack_end
     mov ax, 0x00
     mov bx, 0x00
     mov cx, 0x00
     mov dx, 0x00
-    mov sp, stack_end
 
 loop:
     add ax, 0x04

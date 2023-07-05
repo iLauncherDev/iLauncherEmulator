@@ -101,13 +101,142 @@ static inline uint8_t cpu_rel8(uint8_t reg)
     return (uint8_t)(cpu_state[reg] + rel + 1);
 }
 
+static inline void cpu_push_reg(uint8_t stack, uint8_t reg, uint8_t size)
+{
+    if (size == 1)
+        *((uint8_t *)&vm_memory[cpu_state[stack]]) = cpu_state[reg];
+    else if (size == 2)
+        *((uint16_t *)&vm_memory[cpu_state[stack]]) = cpu_state[reg];
+    else if (size == 4)
+        *((uint32_t *)&vm_memory[cpu_state[stack]]) = cpu_state[reg];
+    else
+        *((uint64_t *)&vm_memory[cpu_state[stack]]) = cpu_state[reg];
+    cpu_state[stack] -= size;
+}
+
+static inline void cpu_pop_reg(uint8_t stack, uint8_t reg, uint8_t size)
+{
+    if (size == 1)
+        cpu_state[reg] = *((uint8_t *)&vm_memory[cpu_state[stack]]);
+    else if (size == 2)
+        cpu_state[reg] = *((uint16_t *)&vm_memory[cpu_state[stack]]);
+    else if (size == 4)
+        cpu_state[reg] = *((uint32_t *)&vm_memory[cpu_state[stack]]);
+    else
+        cpu_state[reg] = *((uint64_t *)&vm_memory[cpu_state[stack]]);
+    cpu_state[stack] += size;
+}
+
+static inline void cpu_crash(uint8_t reg)
+{
+    cpu_state[reg] = 0;
+    cpu_dump_state();
+}
+
 void cpu_emulate_i8086(uint8_t debug)
 {
-    opcode = &vm_memory[cpu_state[cpu_ip] & 0xffff];
+    cpu_state[cpu_ip] &= 0xffff;
+    opcode = &vm_memory[cpu_state[cpu_ip]];
     uint8_t reg_id;
     uint16_t value;
     switch (*opcode)
     {
+    case 0x50:
+        cpu_push_reg(cpu_sp, cpu_ax, 2);
+        if (debug)
+            printf("push ax\n");
+        cpu_state[cpu_ip]++;
+        break;
+    case 0x51:
+        cpu_push_reg(cpu_sp, cpu_cx, 2);
+        if (debug)
+            printf("push cx\n");
+        cpu_state[cpu_ip]++;
+        break;
+    case 0x52:
+        cpu_push_reg(cpu_sp, cpu_dx, 2);
+        if (debug)
+            printf("push dx\n");
+        cpu_state[cpu_ip]++;
+        break;
+    case 0x53:
+        cpu_push_reg(cpu_sp, cpu_bx, 2);
+        if (debug)
+            printf("push bx\n");
+        cpu_state[cpu_ip]++;
+        break;
+    case 0x54:
+        cpu_push_reg(cpu_sp, cpu_sp, 2);
+        if (debug)
+            printf("push sp\n");
+        cpu_state[cpu_ip]++;
+        break;
+    case 0x55:
+        cpu_push_reg(cpu_sp, cpu_bp, 2);
+        if (debug)
+            printf("push bp\n");
+        cpu_state[cpu_ip]++;
+        break;
+    case 0x56:
+        cpu_push_reg(cpu_sp, cpu_si, 2);
+        if (debug)
+            printf("push si\n");
+        cpu_state[cpu_ip]++;
+        break;
+    case 0x57:
+        cpu_push_reg(cpu_sp, cpu_di, 2);
+        if (debug)
+            printf("push di\n");
+        cpu_state[cpu_ip]++;
+        break;
+    case 0x58:
+        cpu_pop_reg(cpu_sp, cpu_ax, 2);
+        if (debug)
+            printf("pop ax\n");
+        cpu_state[cpu_ip]++;
+        break;
+    case 0x59:
+        cpu_pop_reg(cpu_sp, cpu_cx, 2);
+        if (debug)
+            printf("pop cx\n");
+        cpu_state[cpu_ip]++;
+        break;
+    case 0x5a:
+        cpu_pop_reg(cpu_sp, cpu_dx, 2);
+        if (debug)
+            printf("pop dx\n");
+        cpu_state[cpu_ip]++;
+        break;
+    case 0x5b:
+        cpu_pop_reg(cpu_sp, cpu_bx, 2);
+        if (debug)
+            printf("pop bx\n");
+        cpu_state[cpu_ip]++;
+        break;
+    case 0x5c:
+        cpu_pop_reg(cpu_sp, cpu_sp, 2);
+        if (debug)
+            printf("pop sp\n");
+        cpu_state[cpu_ip]++;
+        break;
+    case 0x5d:
+        cpu_pop_reg(cpu_sp, cpu_bp, 2);
+        if (debug)
+            printf("pop bp\n");
+        cpu_state[cpu_ip]++;
+        break;
+    case 0x5e:
+        cpu_pop_reg(cpu_sp, cpu_si, 2);
+        if (debug)
+            printf("pop si\n");
+        cpu_state[cpu_ip]++;
+        break;
+    case 0x5f:
+        cpu_pop_reg(cpu_sp, cpu_di, 2);
+        if (debug)
+            printf("pop di\n");
+        cpu_state[cpu_ip]++;
+        break;
     case 0x80:
         switch (x80_precalc[opcode[1]])
         {
@@ -336,8 +465,7 @@ void cpu_emulate_i8086(uint8_t debug)
             uint32_t pos = window_framebuffer[0] + cpu_state[cpu_dx] * window_framebuffer[3];
             if (pos > vm_memory_size)
             {
-                cpu_dump_state();
-                cpu_state[cpu_ip] = 0;
+                cpu_crash(cpu_ip);
                 break;
             }
             vm_memory[pos + 0] = cpu_state[cpu_ax];
