@@ -83,7 +83,7 @@ void *window_update()
 
 int32_t main(int32_t argc, char **argv)
 {
-    uint8_t debug_code = false;
+    uint8_t debug_code = false, single_step = false;
     FILE *bios_bin = (FILE *)NULL;
     uint64_t size = 0;
     for (int32_t i = 1; i < argc; i++)
@@ -100,6 +100,10 @@ int32_t main(int32_t argc, char **argv)
                 return 1;
             printf("Allocated %sMB In RAM\n", argv[i]);
             vm_memory_size = atoi(argv[i]) * 1024 * 1024;
+        }
+        else if (!strcmp(argv[i], "-single-step"))
+        {
+            single_step = true;
         }
         else if (!strcmp(argv[i], "-bios"))
         {
@@ -141,6 +145,6 @@ int32_t main(int32_t argc, char **argv)
     while (!window_framebuffer[0])
         sleep(1);
     while (true)
-        cpu_emulate_i8086(debug_code);
+        cpu_emulate_i8086(debug_code), single_step ? sleep(1) : 0;
     return 0;
 }
