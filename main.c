@@ -58,16 +58,18 @@ void *window_update()
             scancode[SDL_SCANCODE_LSHIFT] && scancode[SDL_SCANCODE_F] && ready[SDL_SCANCODE_F])
         {
             if (!fullscreen)
-                SDL_SetWindowFullscreen(window, SDL_WINDOW_FULLSCREEN), fullscreen = true;
+                SDL_SetWindowFullscreen(window, SDL_WINDOW_FULLSCREEN_DESKTOP), fullscreen = true;
             else
                 SDL_SetWindowFullscreen(window, 0), fullscreen = false;
             ready[SDL_SCANCODE_F] = false;
+            continue;
         }
         else if (scancode[SDL_SCANCODE_LCTRL] && scancode[SDL_SCANCODE_LALT] &&
                  scancode[SDL_SCANCODE_LSHIFT] && scancode[SDL_SCANCODE_Q] && ready[SDL_SCANCODE_Q])
         {
             exit(0);
             ready[SDL_SCANCODE_Q] = false;
+            continue;
         }
         else
         {
@@ -83,7 +85,7 @@ void *window_update()
 
 int32_t main(int32_t argc, char **argv)
 {
-    uint8_t debug_code = false, single_step = false;
+    uint8_t debug_code = false, single_step = false, dump_bios = false;
     FILE *bios_bin = (FILE *)NULL;
     uint64_t size = 0;
     for (int32_t i = 1; i < argc; i++)
@@ -100,6 +102,10 @@ int32_t main(int32_t argc, char **argv)
                 return 1;
             printf("Allocated %sMB In RAM\n", argv[i]);
             vm_memory_size = atoi(argv[i]) * 1024 * 1024;
+        }
+        else if (!strcmp(argv[i], "-dump-bios"))
+        {
+            dump_bios = true;
         }
         else if (!strcmp(argv[i], "-single-step"))
         {
@@ -135,6 +141,13 @@ int32_t main(int32_t argc, char **argv)
         printf("Allocated %sMB In RAM\n", "16");
     if (bios_bin)
         fread(vm_memory, size, 1, bios_bin);
+    if (dump_bios)
+    {
+        for (size_t i = 0; i < size; i++)
+            printf("%x ", vm_memory[i]);
+        printf("\n");
+        return 0;
+    }
     cpu_setup_precalcs();
     cpu_state[cpu_eip] = cpu_state[cpu_ip] = 0;
     SDL_Init(SDL_INIT_VIDEO);
@@ -145,6 +158,10 @@ int32_t main(int32_t argc, char **argv)
     while (!window_framebuffer[0])
         sleep(1);
     while (true)
-        cpu_emulate_i8086(debug_code), single_step ? sleep(1) : 0;
+    {
+        cpu_emulate_i8086(debug_code);
+        if (single_step)
+            sleep(1);
+    }
     return 0;
 }

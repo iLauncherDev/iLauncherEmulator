@@ -70,16 +70,6 @@ typedef enum cpu_regs
     cpu_type_int,
     cpu_type_buffer_reg,
     cpu_type_buffer,
-
-    cpu_instruction_add,
-    cpu_instruction_sub,
-    cpu_instruction_mul,
-    cpu_instruction_div,
-    cpu_instruction_and,
-    cpu_instruction_or,
-    cpu_instruction_mov,
-    cpu_instruction_push,
-    cpu_instruction_pop,
 } cpu_regs_t;
 
 static int8_t *cpu_regs_string[] = {
@@ -143,10 +133,18 @@ static int8_t *cpu_regs_string[] = {
     (int8_t *)"useresp",
 };
 
+typedef struct cpu_info
+{
+    uint8_t segmentation;
+    uint8_t reg_type;
+    uint8_t reg_type_buffer[3];
+} cpu_info_t;
+
 extern uint64_t vm_memory_size;
 extern uint8_t *vm_memory;
 extern uint64_t cpu_state[];
 
+void cpu_reset();
 void cpu_setup_precalcs();
 void cpu_dump_state();
 void cpu_emulate_i8086(uint8_t debug);
