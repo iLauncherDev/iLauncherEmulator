@@ -1,3 +1,4 @@
+#include <stdlib.h>
 #include <stdint.h>
 #include <stdbool.h>
 #include <pthread.h>
@@ -85,7 +86,8 @@ void *window_update()
 
 int32_t main(int32_t argc, char **argv)
 {
-    uint8_t debug_code = false, single_step = false, dump_bios = false;
+    uint8_t debug_code = false, dump_bios = false;
+    uint32_t code_delay = 0;
     FILE *bios_bin = (FILE *)NULL;
     uint64_t size = 0;
     for (int32_t i = 1; i < argc; i++)
@@ -107,9 +109,12 @@ int32_t main(int32_t argc, char **argv)
         {
             dump_bios = true;
         }
-        else if (!strcmp(argv[i], "-single-step"))
+        else if (!strcmp(argv[i], "-code-delay"))
         {
-            single_step = true;
+            if (argc - i < 2)
+                continue;
+            i++;
+            code_delay = atoi(argv[i]);
         }
         else if (!strcmp(argv[i], "-bios"))
         {
@@ -160,8 +165,8 @@ int32_t main(int32_t argc, char **argv)
     while (true)
     {
         cpu_emulate_i8086(debug_code);
-        if (single_step)
-            sleep(1);
+        if (code_delay)
+            usleep(code_delay);
     }
     return 0;
 }

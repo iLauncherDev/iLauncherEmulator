@@ -7,10 +7,10 @@ extern uint64_t window_framebuffer[];
 uint8_t x80_precalc[256];
 uint8_t rm_offset[] = {
     0,
+    0,
+    0,
+    0,
     cpu_edi - cpu_di,
-    0,
-    0,
-    0,
     0,
     0,
     0,
@@ -221,7 +221,7 @@ static inline uint8_t cpu_rel8(uint8_t reg)
 
 static inline void cpu_push_reg(uint8_t stack, uint8_t reg, uint8_t size)
 {
-    if ((int64_t)cpu_state[stack] - size < 0)
+    if ((int64_t)cpu_state[stack] - size <= 0)
         cpu_reset();
     cpu_state[stack] -= size;
     switch (size)
@@ -243,7 +243,7 @@ static inline void cpu_push_reg(uint8_t stack, uint8_t reg, uint8_t size)
 
 static inline void cpu_pop_reg(uint8_t stack, uint8_t reg, uint8_t size)
 {
-    if ((int64_t)cpu_state[stack] + size > vm_memory_size)
+    if ((int64_t)cpu_state[stack] + size >= vm_memory_size)
         cpu_reset();
     switch (size)
     {
@@ -271,7 +271,7 @@ void cpu_emulate_i8086(uint8_t debug)
     uint16_t value2;
     char *operation;
     if (debug)
-        printf("0x%x: ", *opcode);
+        printf("IP: 0x%x, OPCODE 0x%x: ", (uint16_t)cpu_state[cpu_ip], *opcode);
     switch (*opcode)
     {
     case 0x00:
