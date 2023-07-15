@@ -2,6 +2,13 @@
     "files.associations": {
         "random": "c",
         "compare": "c",
-        "stdint.h": "c"
+        "stdint.h": "c",
+        "ratio": "cpp",
+        "system_error": "cpp",
+        "array": "cpp",
+        "functional": "cpp",
+        "tuple": "cpp",
+        "type_traits": "cpp",
+        "utility": "cpp"
     }
 }

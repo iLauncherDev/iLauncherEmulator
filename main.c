@@ -10,15 +10,16 @@
 #include "emulator/cpu.h"
 
 SDL_Window *window;
+SDL_Renderer *window_renderer;
 SDL_Surface *window_surface;
 SDL_Event event;
 uint8_t scancode[4096] = {0};
 
 uint64_t window_framebuffer[] = {
-    0,
-    0,
-    0,
-    0,
+    0xb8000,
+    80 * 8,
+    25 * 16,
+    4,
     0,
 };
 
@@ -27,11 +28,12 @@ uint8_t *vm_memory;
 
 void *window_update()
 {
+    SDL_Texture *texture;
     uint8_t ready[4096];
     uint8_t fullscreen = false;
     while (true)
     {
-        window_surface = SDL_GetWindowSurface(window);
+        SDL_RenderClear(window_renderer);
         while (SDL_PollEvent(&event) != 0)
         {
             if (event.type == SDL_QUIT)
@@ -46,14 +48,6 @@ void *window_update()
             {
                 scancode[event.key.keysym.scancode] = true;
             }
-        }
-        if (window_surface->w != window_framebuffer[1] ||
-            window_surface->h != window_framebuffer[2])
-        {
-            window_framebuffer[0] = 0xb8000;
-            window_framebuffer[1] = window_surface->w;
-            window_framebuffer[2] = window_surface->h;
-            window_framebuffer[3] = window_surface->pitch / window_surface->w;
         }
         if (scancode[SDL_SCANCODE_LCTRL] && scancode[SDL_SCANCODE_LALT] &&
             scancode[SDL_SCANCODE_LSHIFT] && scancode[SDL_SCANCODE_F] && ready[SDL_SCANCODE_F])
@@ -79,7 +73,10 @@ void *window_update()
                     ready[i] = true;
         }
         memcpy(window_surface->pixels, &vm_memory[window_framebuffer[0]], window_surface->pitch * window_surface->h);
-        SDL_UpdateWindowSurface(window);
+        texture = SDL_CreateTextureFromSurface(window_renderer, window_surface);
+        SDL_RenderCopy(window_renderer, texture, NULL, NULL);
+        SDL_DestroyTexture(texture);
+        SDL_RenderPresent(window_renderer);
     }
     return (void *)NULL;
 }
@@ -154,10 +151,11 @@ int32_t main(int32_t argc, char **argv)
         return 0;
     }
     cpu_setup_precalcs();
-    cpu_state[cpu_eip] = cpu_state[cpu_ip] = 0;
+    cpu_state[cpu_reg_eip] = cpu_state[cpu_reg_ip] = 0;
     SDL_Init(SDL_INIT_VIDEO);
     window = SDL_CreateWindow("Emulator", 0, 0, 80 * 8, 25 * 16, SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE);
-    window_surface = SDL_GetWindowSurface(window);
+    window_renderer = SDL_CreateRenderer(window, -1, 0);
+    window_surface = SDL_CreateRGBSurface(0, 80 * 8, 25 * 16, 32, 0xff0000, 0x00ff00, 0x0000ff, 0x000000);
     pthread_t window_update_thread;
     pthread_create(&window_update_thread, NULL, window_update, NULL);
     while (!window_framebuffer[0])

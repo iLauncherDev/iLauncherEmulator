@@ -8,6 +8,7 @@ stack_end:
 section .text
 
 start:
+    mov sp, ax
     mov sp, stack_end
     mov ax, 0x00
     mov bx, 0x00
