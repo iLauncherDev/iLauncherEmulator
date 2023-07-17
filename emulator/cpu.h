@@ -1,6 +1,6 @@
 #ifndef CPU_H
 #define CPU_H
-#include "_memory.h"
+#include "memory.h"
 #include <stdint.h>
 #include <stdbool.h>
 #include <stdio.h>
@@ -69,8 +69,8 @@ typedef enum cpu_regs
 
     cpu_type_reg,
     cpu_type_int,
-    cpu_type_buffer_reg,
-    cpu_type_buffer,
+    cpu_type_memory_reg,
+    cpu_type_memory,
 } cpu_regs_t;
 
 static int8_t *cpu_regs_string[] = {

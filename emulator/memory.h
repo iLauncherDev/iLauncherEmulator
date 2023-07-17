@@ -1,5 +1,5 @@
-#ifndef _MEMORY_H
-#define _MEMORY_H
+#ifndef MEMORY_H
+#define MEMORY_H
 #include <stdint.h>
 #include <stdbool.h>
 

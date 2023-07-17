@@ -8,20 +8,24 @@ stack_end:
 section .text
 
 start:
-    mov sp, ax
-    mov sp, stack_end
-    mov ax, 0x00
-    mov bx, 0x00
-    mov cx, 0x00
-    mov dx, 0x00
+    mov word sp, stack_end
+    push word ax
+    mov word ax, sp
+    mov word sp, 0x00
+    mov word sp, ax
+    pop word ax
+    mov word bp, 0x00
+    mov word bx, 0x00
+    mov word cx, 0x00
+    mov word dx, 0x00
 
 loop:
-    int 0x20
-    add ax, 0x02
-    add bx, 0x04
-    add cx, 0x08
-    add dx, 0x01
-    jmp loop
+    int byte 0x20
+    add word ax, 0x02
+    add word bx, 0x04
+    add word cx, 0x08
+    add word dx, 0x01
+    jmp word loop
 
 bits 32
 

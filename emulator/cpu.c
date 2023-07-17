@@ -90,7 +90,7 @@ static inline uint64_t cpu_rm(uint8_t reg, uint8_t size)
             opcode++, cpu_state[reg]++;
             uint8_t b2 = *opcode;
             uint16_t value = (b2 << 8) | b1;
-            cpu_info[cpu_info_index].reg_type = cpu_type_buffer;
+            cpu_info[cpu_info_index].reg_type = cpu_type_memory;
             cpu_info_index = (cpu_info_index + 1) & 1;
             return value;
         }
@@ -112,53 +112,53 @@ static inline uint64_t cpu_rm(uint8_t reg, uint8_t size)
     switch (rm8)
     {
     case 0x00:
-        cpu_info[cpu_info_index].reg_type = cpu_type_buffer_reg;
+        cpu_info[cpu_info_index].reg_type = cpu_type_memory_reg;
         cpu_info[cpu_info_index].reg_type_buffer[0] = 2;
         cpu_info[cpu_info_index].reg_type_buffer[1] = cpu_reg_bx + rm_offset[size];
         cpu_info[cpu_info_index].reg_type_buffer[2] = cpu_reg_si + rm_offset[size];
         cpu_info_index = (cpu_info_index + 1) & 1;
         break;
     case 0x01:
-        cpu_info[cpu_info_index].reg_type = cpu_type_buffer_reg;
+        cpu_info[cpu_info_index].reg_type = cpu_type_memory_reg;
         cpu_info[cpu_info_index].reg_type_buffer[0] = 2;
         cpu_info[cpu_info_index].reg_type_buffer[1] = cpu_reg_bx + rm_offset[size];
         cpu_info[cpu_info_index].reg_type_buffer[2] = cpu_reg_di + rm_offset[size];
         cpu_info_index = (cpu_info_index + 1) & 1;
         break;
     case 0x02:
-        cpu_info[cpu_info_index].reg_type = cpu_type_buffer_reg;
+        cpu_info[cpu_info_index].reg_type = cpu_type_memory_reg;
         cpu_info[cpu_info_index].reg_type_buffer[0] = 2;
         cpu_info[cpu_info_index].reg_type_buffer[1] = cpu_reg_bp + rm_offset[size];
         cpu_info[cpu_info_index].reg_type_buffer[2] = cpu_reg_si + rm_offset[size];
         cpu_info_index = (cpu_info_index + 1) & 1;
         break;
     case 0x03:
-        cpu_info[cpu_info_index].reg_type = cpu_type_buffer_reg;
+        cpu_info[cpu_info_index].reg_type = cpu_type_memory_reg;
         cpu_info[cpu_info_index].reg_type_buffer[0] = 2;
         cpu_info[cpu_info_index].reg_type_buffer[1] = cpu_reg_bp + rm_offset[size];
         cpu_info[cpu_info_index].reg_type_buffer[2] = cpu_reg_di + rm_offset[size];
         cpu_info_index = (cpu_info_index + 1) & 1;
         break;
     case 0x04:
-        cpu_info[cpu_info_index].reg_type = cpu_type_buffer_reg;
+        cpu_info[cpu_info_index].reg_type = cpu_type_memory_reg;
         cpu_info[cpu_info_index].reg_type_buffer[0] = 1;
         cpu_info[cpu_info_index].reg_type_buffer[1] = cpu_reg_si + rm_offset[size];
         cpu_info_index = (cpu_info_index + 1) & 1;
         break;
     case 0x05:
-        cpu_info[cpu_info_index].reg_type = cpu_type_buffer_reg;
+        cpu_info[cpu_info_index].reg_type = cpu_type_memory_reg;
         cpu_info[cpu_info_index].reg_type_buffer[0] = 1;
         cpu_info[cpu_info_index].reg_type_buffer[1] = cpu_reg_di + rm_offset[size];
         cpu_info_index = (cpu_info_index + 1) & 1;
         break;
     case 0x06:
-        cpu_info[cpu_info_index].reg_type = cpu_type_buffer_reg;
+        cpu_info[cpu_info_index].reg_type = cpu_type_memory_reg;
         cpu_info[cpu_info_index].reg_type_buffer[0] = 1;
         cpu_info[cpu_info_index].reg_type_buffer[1] = cpu_reg_bp + rm_offset[size];
         cpu_info_index = (cpu_info_index + 1) & 1;
         break;
     case 0x07:
-        cpu_info[cpu_info_index].reg_type = cpu_type_buffer_reg;
+        cpu_info[cpu_info_index].reg_type = cpu_type_memory_reg;
         cpu_info[cpu_info_index].reg_type_buffer[0] = 1;
         cpu_info[cpu_info_index].reg_type_buffer[1] = cpu_reg_bx + rm_offset[size];
         cpu_info_index = (cpu_info_index + 1) & 1;
@@ -235,6 +235,45 @@ static inline uint8_t cpu_rel8(uint8_t reg)
     return (uint8_t)(cpu_state[reg] + rel + 1);
 }
 
+static inline uint64_t cpu_resolve_value(uint64_t value, uint8_t index, uint8_t size)
+{
+    switch (cpu_info[index].reg_type)
+    {
+    case cpu_type_memory:
+        return memory_read(&vm_memory[value], size);
+    case cpu_type_memory_reg:
+        return memory_read(&vm_memory[value], size);
+    case cpu_type_reg:
+        return cpu_state[value];
+    };
+    return value;
+}
+
+static inline void cpu_exec_mov(uint64_t value1, uint64_t value2, uint8_t size)
+{
+    if (cpu_info[0].reg_type == cpu_type_memory_reg)
+        value1 = cpu_info[0].reg_type_buffer[0] == 1 ? (cpu_state[cpu_info[0].reg_type_buffer[1]])
+                                                     : (cpu_state[cpu_info[0].reg_type_buffer[1]] +
+                                                        (cpu_state[cpu_info[0].reg_type_buffer[2]]));
+    if (cpu_info[1].reg_type == cpu_type_memory_reg)
+        value2 = cpu_info[1].reg_type_buffer[0] == 1 ? (cpu_state[cpu_info[1].reg_type_buffer[1]])
+                                                     : (cpu_state[cpu_info[1].reg_type_buffer[1]] +
+                                                        (cpu_state[cpu_info[1].reg_type_buffer[2]]));
+    value2 = cpu_resolve_value(value2, 1, size);
+    switch (cpu_info[0].reg_type)
+    {
+    case cpu_type_memory:
+        memory_write(&vm_memory[value1], value2, size);
+        break;
+    case cpu_type_memory_reg:
+        memory_write(&vm_memory[value1], value2, size);
+        break;
+    default:
+        memory_write(&cpu_state[value1], value2, size);
+        break;
+    };
+}
+
 static inline void cpu_push_reg(uint8_t stack, uint8_t reg, uint8_t size)
 {
     if ((int64_t)cpu_state[stack] - size <= 0)
@@ -290,155 +329,148 @@ void cpu_emulate_i8086(uint8_t debug)
         printf("IP: 0x%x, OPCODE 0x%x: ", (uint16_t)cpu_state[cpu_reg_ip], *opcode);
     switch (*opcode)
     {
-    case 0x00:
-        value1 = cpu_rm8(cpu_reg_ip);
-        value2 = cpu_rel8(cpu_reg_ip);
-        if (debug)
-            printf("add %s, 0x%x\n", cpu_regs_string[value1], value2);
-        cpu_state[cpu_reg_ip]++;
-        break;
     case 0x06:
         cpu_push_reg(cpu_reg_sp, cpu_reg_es, 2);
         if (debug)
-            printf("push es\n");
+            printf("push word es\n");
         cpu_state[cpu_reg_ip]++;
         break;
     case 0x07:
         cpu_pop_reg(cpu_reg_sp, cpu_reg_es, 2);
         if (debug)
-            printf("pop es\n");
+            printf("pop word es\n");
         cpu_state[cpu_reg_ip]++;
         break;
     case 0x0e:
         cpu_push_reg(cpu_reg_sp, cpu_reg_cs, 2);
         if (debug)
-            printf("push cs\n");
+            printf("push word cs\n");
         cpu_state[cpu_reg_ip]++;
         break;
     case 0x0f:
         cpu_pop_reg(cpu_reg_sp, cpu_reg_cs, 2);
         if (debug)
-            printf("pop cs\n");
+            printf("pop word cs\n");
         cpu_state[cpu_reg_ip]++;
         break;
     case 0x16:
         cpu_push_reg(cpu_reg_sp, cpu_reg_ss, 2);
         if (debug)
-            printf("push ss\n");
+            printf("push word ss\n");
         cpu_state[cpu_reg_ip]++;
         break;
     case 0x17:
         cpu_pop_reg(cpu_reg_sp, cpu_reg_ss, 2);
         if (debug)
-            printf("pop ss\n");
+            printf("pop word ss\n");
         cpu_state[cpu_reg_ip]++;
         break;
     case 0x1e:
         cpu_push_reg(cpu_reg_sp, cpu_reg_ds, 2);
         if (debug)
-            printf("push ds\n");
+            printf("push word ds\n");
         cpu_state[cpu_reg_ip]++;
         break;
     case 0x1f:
         cpu_pop_reg(cpu_reg_sp, cpu_reg_ds, 2);
         if (debug)
-            printf("pop ds\n");
+            printf("pop word ds\n");
         cpu_state[cpu_reg_ip]++;
         break;
     case 0x50:
         cpu_push_reg(cpu_reg_sp, cpu_reg_ax, 2);
         if (debug)
-            printf("push ax\n");
+            printf("push word ax\n");
         cpu_state[cpu_reg_ip]++;
         break;
     case 0x51:
         cpu_push_reg(cpu_reg_sp, cpu_reg_cx, 2);
         if (debug)
-            printf("push cx\n");
+            printf("push word cx\n");
         cpu_state[cpu_reg_ip]++;
         break;
     case 0x52:
         cpu_push_reg(cpu_reg_sp, cpu_reg_dx, 2);
         if (debug)
-            printf("push dx\n");
+            printf("push word dx\n");
         cpu_state[cpu_reg_ip]++;
         break;
     case 0x53:
         cpu_push_reg(cpu_reg_sp, cpu_reg_bx, 2);
         if (debug)
-            printf("push bx\n");
+            printf("push word bx\n");
         cpu_state[cpu_reg_ip]++;
         break;
     case 0x54:
         cpu_push_reg(cpu_reg_sp, cpu_reg_sp, 2);
         if (debug)
-            printf("push sp\n");
+            printf("push word sp\n");
         cpu_state[cpu_reg_ip]++;
         break;
     case 0x55:
         cpu_push_reg(cpu_reg_sp, cpu_reg_bp, 2);
         if (debug)
-            printf("push bp\n");
+            printf("push word bp\n");
         cpu_state[cpu_reg_ip]++;
         break;
     case 0x56:
         cpu_push_reg(cpu_reg_sp, cpu_reg_si, 2);
         if (debug)
-            printf("push si\n");
+            printf("push word si\n");
         cpu_state[cpu_reg_ip]++;
         break;
     case 0x57:
         cpu_push_reg(cpu_reg_sp, cpu_reg_di, 2);
         if (debug)
-            printf("push di\n");
+            printf("push word di\n");
         cpu_state[cpu_reg_ip]++;
         break;
     case 0x58:
         cpu_pop_reg(cpu_reg_sp, cpu_reg_ax, 2);
         if (debug)
-            printf("pop ax\n");
+            printf("pop word ax\n");
         cpu_state[cpu_reg_ip]++;
         break;
     case 0x59:
         cpu_pop_reg(cpu_reg_sp, cpu_reg_cx, 2);
         if (debug)
-            printf("pop cx\n");
+            printf("pop word cx\n");
         cpu_state[cpu_reg_ip]++;
         break;
     case 0x5a:
         cpu_pop_reg(cpu_reg_sp, cpu_reg_dx, 2);
         if (debug)
-            printf("pop dx\n");
+            printf("pop word dx\n");
         cpu_state[cpu_reg_ip]++;
         break;
     case 0x5b:
         cpu_pop_reg(cpu_reg_sp, cpu_reg_bx, 2);
         if (debug)
-            printf("pop bx\n");
+            printf("pop word bx\n");
         cpu_state[cpu_reg_ip]++;
         break;
     case 0x5c:
         cpu_pop_reg(cpu_reg_sp, cpu_reg_sp, 2);
         if (debug)
-            printf("pop sp\n");
+            printf("pop word sp\n");
         cpu_state[cpu_reg_ip]++;
         break;
     case 0x5d:
         cpu_pop_reg(cpu_reg_sp, cpu_reg_bp, 2);
         if (debug)
-            printf("pop bp\n");
+            printf("pop word bp\n");
         cpu_state[cpu_reg_ip]++;
         break;
     case 0x5e:
         cpu_pop_reg(cpu_reg_sp, cpu_reg_si, 2);
         if (debug)
-            printf("pop si\n");
+            printf("pop word si\n");
         cpu_state[cpu_reg_ip]++;
         break;
     case 0x5f:
         cpu_pop_reg(cpu_reg_sp, cpu_reg_di, 2);
         if (debug)
-            printf("pop di\n");
+            printf("pop word di\n");
         cpu_state[cpu_reg_ip]++;
         break;
     case 0x60:
@@ -458,13 +490,13 @@ void cpu_emulate_i8086(uint8_t debug)
     case 0x6a:
         value2 = cpu_imm8(cpu_reg_ip);
         if (debug)
-            printf("push 0x%x\n", value2);
+            printf("push byte 0x%x\n", value2);
         cpu_state[cpu_reg_ip]++;
         break;
     case 0x68:
         value2 = cpu_imm16(cpu_reg_ip);
         if (debug)
-            printf("push 0x%x\n", value2);
+            printf("push word 0x%x\n", value2);
         cpu_state[cpu_reg_ip]++;
         break;
     case 0x80:
@@ -474,9 +506,9 @@ void cpu_emulate_i8086(uint8_t debug)
             operation = "add";
             value1 = cpu_rm8(cpu_reg_ip);
             value2 = cpu_imm8(cpu_reg_ip);
-            if (cpu_info[0].reg_type == cpu_type_buffer)
+            if (cpu_info[0].reg_type == cpu_type_memory)
                 vm_memory[value1] = (uint8_t)(vm_memory[value1] + value2);
-            else if (cpu_info[0].reg_type == cpu_type_buffer_reg)
+            else if (cpu_info[0].reg_type == cpu_type_memory_reg)
                 vm_memory[cpu_info[0].reg_type_buffer[0] == 1 ? (cpu_state[cpu_info[0].reg_type_buffer[1]])
                                                               : (cpu_state[cpu_info[0].reg_type_buffer[1]] +
                                                                  (cpu_state[cpu_info[0].reg_type_buffer[2]]))] =
@@ -490,9 +522,9 @@ void cpu_emulate_i8086(uint8_t debug)
                 cpu_state[value1] = (uint8_t)(cpu_state[value1] + value2);
             if (debug)
             {
-                if (cpu_info[0].reg_type == cpu_type_buffer)
+                if (cpu_info[0].reg_type == cpu_type_memory)
                     printf("%s byte [0x%x], 0x%llx\n", operation, value1, (unsigned long long)value2);
-                else if (cpu_info[0].reg_type == cpu_type_buffer_reg)
+                else if (cpu_info[0].reg_type == cpu_type_memory_reg)
                     cpu_info[0].reg_type_buffer[0] == 1 ? printf("%s byte [%s], 0x%llx\n",
                                                                  operation,
                                                                  cpu_regs_string[cpu_info[0].reg_type_buffer[1]],
@@ -503,16 +535,16 @@ void cpu_emulate_i8086(uint8_t debug)
                                                                  cpu_regs_string[cpu_info[0].reg_type_buffer[2]],
                                                                  (unsigned long long)value2);
                 else
-                    printf("%s %s, 0x%llx\n", operation, cpu_regs_string[value1], (unsigned long long)value2);
+                    printf("%s byte %s, 0x%llx\n", operation, cpu_regs_string[value1], (unsigned long long)value2);
             }
             break;
         case 0x01:
             operation = "or";
             value1 = cpu_rm8(cpu_reg_ip);
             value2 = cpu_imm8(cpu_reg_ip);
-            if (cpu_info[0].reg_type == cpu_type_buffer)
+            if (cpu_info[0].reg_type == cpu_type_memory)
                 vm_memory[value1] = (uint8_t)(vm_memory[value1] | value2);
-            else if (cpu_info[0].reg_type == cpu_type_buffer_reg)
+            else if (cpu_info[0].reg_type == cpu_type_memory_reg)
                 vm_memory[cpu_info[0].reg_type_buffer[0] == 1 ? (cpu_state[cpu_info[0].reg_type_buffer[1]])
                                                               : (cpu_state[cpu_info[0].reg_type_buffer[1]] +
                                                                  (cpu_state[cpu_info[0].reg_type_buffer[2]]))] =
@@ -526,9 +558,9 @@ void cpu_emulate_i8086(uint8_t debug)
                 cpu_state[value1] = (uint8_t)(cpu_state[value1] | value2);
             if (debug)
             {
-                if (cpu_info[0].reg_type == cpu_type_buffer)
+                if (cpu_info[0].reg_type == cpu_type_memory)
                     printf("%s byte [0x%x], 0x%llx\n", operation, value1, (unsigned long long)value2);
-                else if (cpu_info[0].reg_type == cpu_type_buffer_reg)
+                else if (cpu_info[0].reg_type == cpu_type_memory_reg)
                     cpu_info[0].reg_type_buffer[0] == 1 ? printf("%s byte [%s], 0x%llx\n",
                                                                  operation,
                                                                  cpu_regs_string[cpu_info[0].reg_type_buffer[1]],
@@ -539,16 +571,16 @@ void cpu_emulate_i8086(uint8_t debug)
                                                                  cpu_regs_string[cpu_info[0].reg_type_buffer[2]],
                                                                  (unsigned long long)value2);
                 else
-                    printf("%s %s, 0x%llx\n", operation, cpu_regs_string[value1], (unsigned long long)value2);
+                    printf("%s byte %s, 0x%llx\n", operation, cpu_regs_string[value1], (unsigned long long)value2);
             }
             break;
         case 0x04:
             operation = "and";
             value1 = cpu_rm8(cpu_reg_ip);
             value2 = cpu_imm8(cpu_reg_ip);
-            if (cpu_info[0].reg_type == cpu_type_buffer)
+            if (cpu_info[0].reg_type == cpu_type_memory)
                 vm_memory[value1] = (uint8_t)(vm_memory[value1] & value2);
-            else if (cpu_info[0].reg_type == cpu_type_buffer_reg)
+            else if (cpu_info[0].reg_type == cpu_type_memory_reg)
                 vm_memory[cpu_info[0].reg_type_buffer[0] == 1 ? (cpu_state[cpu_info[0].reg_type_buffer[1]])
                                                               : (cpu_state[cpu_info[0].reg_type_buffer[1]] +
                                                                  (cpu_state[cpu_info[0].reg_type_buffer[2]]))] =
@@ -562,9 +594,9 @@ void cpu_emulate_i8086(uint8_t debug)
                 cpu_state[value1] = (uint8_t)(cpu_state[value1] & value2);
             if (debug)
             {
-                if (cpu_info[0].reg_type == cpu_type_buffer)
+                if (cpu_info[0].reg_type == cpu_type_memory)
                     printf("%s byte [0x%x], 0x%llx\n", operation, value1, (unsigned long long)value2);
-                else if (cpu_info[0].reg_type == cpu_type_buffer_reg)
+                else if (cpu_info[0].reg_type == cpu_type_memory_reg)
                     cpu_info[0].reg_type_buffer[0] == 1 ? printf("%s byte [%s], 0x%llx\n",
                                                                  operation,
                                                                  cpu_regs_string[cpu_info[0].reg_type_buffer[1]],
@@ -575,16 +607,16 @@ void cpu_emulate_i8086(uint8_t debug)
                                                                  cpu_regs_string[cpu_info[0].reg_type_buffer[2]],
                                                                  (unsigned long long)value2);
                 else
-                    printf("%s %s, 0x%llx\n", operation, cpu_regs_string[value1], (unsigned long long)value2);
+                    printf("%s byte %s, 0x%llx\n", operation, cpu_regs_string[value1], (unsigned long long)value2);
             }
             break;
         case 0x05:
             operation = "sub";
             value1 = cpu_rm8(cpu_reg_ip);
             value2 = cpu_imm8(cpu_reg_ip);
-            if (cpu_info[0].reg_type == cpu_type_buffer)
+            if (cpu_info[0].reg_type == cpu_type_memory)
                 vm_memory[value1] = (uint8_t)(vm_memory[value1] - value2);
-            else if (cpu_info[0].reg_type == cpu_type_buffer_reg)
+            else if (cpu_info[0].reg_type == cpu_type_memory_reg)
                 vm_memory[cpu_info[0].reg_type_buffer[0] == 1 ? (cpu_state[cpu_info[0].reg_type_buffer[1]])
                                                               : (cpu_state[cpu_info[0].reg_type_buffer[1]] +
                                                                  (cpu_state[cpu_info[0].reg_type_buffer[2]]))] =
@@ -598,9 +630,9 @@ void cpu_emulate_i8086(uint8_t debug)
                 cpu_state[value1] = (uint8_t)(cpu_state[value1] - value2);
             if (debug)
             {
-                if (cpu_info[0].reg_type == cpu_type_buffer)
+                if (cpu_info[0].reg_type == cpu_type_memory)
                     printf("%s byte [0x%x], 0x%llx\n", operation, value1, (unsigned long long)value2);
-                else if (cpu_info[0].reg_type == cpu_type_buffer_reg)
+                else if (cpu_info[0].reg_type == cpu_type_memory_reg)
                     cpu_info[0].reg_type_buffer[0] == 1 ? printf("%s byte [%s], 0x%llx\n",
                                                                  operation,
                                                                  cpu_regs_string[cpu_info[0].reg_type_buffer[1]],
@@ -611,7 +643,7 @@ void cpu_emulate_i8086(uint8_t debug)
                                                                  cpu_regs_string[cpu_info[0].reg_type_buffer[2]],
                                                                  (unsigned long long)value2);
                 else
-                    printf("%s %s, 0x%llx\n", operation, cpu_regs_string[value1], (unsigned long long)value2);
+                    printf("%s byte %s, 0x%llx\n", operation, cpu_regs_string[value1], (unsigned long long)value2);
             }
             break;
         default:
@@ -627,9 +659,9 @@ void cpu_emulate_i8086(uint8_t debug)
             operation = "add";
             value1 = cpu_rm16(cpu_reg_ip);
             value2 = cpu_imm16(cpu_reg_ip);
-            if (cpu_info[0].reg_type == cpu_type_buffer)
+            if (cpu_info[0].reg_type == cpu_type_memory)
                 vm_memory[value1] = (uint16_t)(vm_memory[value1] + value2);
-            else if (cpu_info[0].reg_type == cpu_type_buffer_reg)
+            else if (cpu_info[0].reg_type == cpu_type_memory_reg)
                 vm_memory[cpu_info[0].reg_type_buffer[0] == 1 ? (cpu_state[cpu_info[0].reg_type_buffer[1]])
                                                               : (cpu_state[cpu_info[0].reg_type_buffer[1]] +
                                                                  (cpu_state[cpu_info[0].reg_type_buffer[2]]))] =
@@ -643,9 +675,9 @@ void cpu_emulate_i8086(uint8_t debug)
                 cpu_state[value1] = (uint16_t)(cpu_state[value1] + value2);
             if (debug)
             {
-                if (cpu_info[0].reg_type == cpu_type_buffer)
+                if (cpu_info[0].reg_type == cpu_type_memory)
                     printf("%s word [0x%x], 0x%llx\n", operation, value1, (unsigned long long)value2);
-                else if (cpu_info[0].reg_type == cpu_type_buffer_reg)
+                else if (cpu_info[0].reg_type == cpu_type_memory_reg)
                     cpu_info[0].reg_type_buffer[0] == 1 ? printf("%s word [%s], 0x%llx\n",
                                                                  operation,
                                                                  cpu_regs_string[cpu_info[0].reg_type_buffer[1]],
@@ -656,16 +688,16 @@ void cpu_emulate_i8086(uint8_t debug)
                                                                  cpu_regs_string[cpu_info[0].reg_type_buffer[2]],
                                                                  (unsigned long long)value2);
                 else
-                    printf("%s %s, 0x%llx\n", operation, cpu_regs_string[value1], (unsigned long long)value2);
+                    printf("%s word %s, 0x%llx\n", operation, cpu_regs_string[value1], (unsigned long long)value2);
             }
             break;
         case 0x01:
             operation = "or";
             value1 = cpu_rm16(cpu_reg_ip);
             value2 = cpu_imm16(cpu_reg_ip);
-            if (cpu_info[0].reg_type == cpu_type_buffer)
+            if (cpu_info[0].reg_type == cpu_type_memory)
                 vm_memory[value1] = (uint16_t)(vm_memory[value1] | value2);
-            else if (cpu_info[0].reg_type == cpu_type_buffer_reg)
+            else if (cpu_info[0].reg_type == cpu_type_memory_reg)
                 vm_memory[cpu_info[0].reg_type_buffer[0] == 1 ? (cpu_state[cpu_info[0].reg_type_buffer[1]])
                                                               : (cpu_state[cpu_info[0].reg_type_buffer[1]] +
                                                                  (cpu_state[cpu_info[0].reg_type_buffer[2]]))] =
@@ -679,9 +711,9 @@ void cpu_emulate_i8086(uint8_t debug)
                 cpu_state[value1] = (uint16_t)(cpu_state[value1] | value2);
             if (debug)
             {
-                if (cpu_info[0].reg_type == cpu_type_buffer)
+                if (cpu_info[0].reg_type == cpu_type_memory)
                     printf("%s word [0x%x], 0x%llx\n", operation, value1, (unsigned long long)value2);
-                else if (cpu_info[0].reg_type == cpu_type_buffer_reg)
+                else if (cpu_info[0].reg_type == cpu_type_memory_reg)
                     cpu_info[0].reg_type_buffer[0] == 1 ? printf("%s word [%s], 0x%llx\n",
                                                                  operation,
                                                                  cpu_regs_string[cpu_info[0].reg_type_buffer[1]],
@@ -692,16 +724,16 @@ void cpu_emulate_i8086(uint8_t debug)
                                                                  cpu_regs_string[cpu_info[0].reg_type_buffer[2]],
                                                                  (unsigned long long)value2);
                 else
-                    printf("%s %s, 0x%llx\n", operation, cpu_regs_string[value1], (unsigned long long)value2);
+                    printf("%s word %s, 0x%llx\n", operation, cpu_regs_string[value1], (unsigned long long)value2);
             }
             break;
         case 0x04:
             operation = "and";
             value1 = cpu_rm16(cpu_reg_ip);
             value2 = cpu_imm16(cpu_reg_ip);
-            if (cpu_info[0].reg_type == cpu_type_buffer)
+            if (cpu_info[0].reg_type == cpu_type_memory)
                 vm_memory[value1] = (uint16_t)(vm_memory[value1] & value2);
-            else if (cpu_info[0].reg_type == cpu_type_buffer_reg)
+            else if (cpu_info[0].reg_type == cpu_type_memory_reg)
                 vm_memory[cpu_info[0].reg_type_buffer[0] == 1 ? (cpu_state[cpu_info[0].reg_type_buffer[1]])
                                                               : (cpu_state[cpu_info[0].reg_type_buffer[1]] +
                                                                  (cpu_state[cpu_info[0].reg_type_buffer[2]]))] =
@@ -715,9 +747,9 @@ void cpu_emulate_i8086(uint8_t debug)
                 cpu_state[value1] = (uint16_t)(cpu_state[value1] & value2);
             if (debug)
             {
-                if (cpu_info[0].reg_type == cpu_type_buffer)
+                if (cpu_info[0].reg_type == cpu_type_memory)
                     printf("%s word [0x%x], 0x%llx\n", operation, value1, (unsigned long long)value2);
-                else if (cpu_info[0].reg_type == cpu_type_buffer_reg)
+                else if (cpu_info[0].reg_type == cpu_type_memory_reg)
                     cpu_info[0].reg_type_buffer[0] == 1 ? printf("%s word [%s], 0x%llx\n",
                                                                  operation,
                                                                  cpu_regs_string[cpu_info[0].reg_type_buffer[1]],
@@ -728,16 +760,16 @@ void cpu_emulate_i8086(uint8_t debug)
                                                                  cpu_regs_string[cpu_info[0].reg_type_buffer[2]],
                                                                  (unsigned long long)value2);
                 else
-                    printf("%s %s, 0x%llx\n", operation, cpu_regs_string[value1], (unsigned long long)value2);
+                    printf("%s word %s, 0x%llx\n", operation, cpu_regs_string[value1], (unsigned long long)value2);
             }
             break;
         case 0x05:
             operation = "sub";
             value1 = cpu_rm16(cpu_reg_ip);
             value2 = cpu_imm16(cpu_reg_ip);
-            if (cpu_info[0].reg_type == cpu_type_buffer)
+            if (cpu_info[0].reg_type == cpu_type_memory)
                 vm_memory[value1] = (uint16_t)(vm_memory[value1] - value2);
-            else if (cpu_info[0].reg_type == cpu_type_buffer_reg)
+            else if (cpu_info[0].reg_type == cpu_type_memory_reg)
                 vm_memory[cpu_info[0].reg_type_buffer[0] == 1 ? (cpu_state[cpu_info[0].reg_type_buffer[1]])
                                                               : (cpu_state[cpu_info[0].reg_type_buffer[1]] +
                                                                  (cpu_state[cpu_info[0].reg_type_buffer[2]]))] =
@@ -751,9 +783,9 @@ void cpu_emulate_i8086(uint8_t debug)
                 cpu_state[value1] = (uint16_t)(cpu_state[value1] - value2);
             if (debug)
             {
-                if (cpu_info[0].reg_type == cpu_type_buffer)
+                if (cpu_info[0].reg_type == cpu_type_memory)
                     printf("%s word [0x%x], 0x%llx\n", operation, value1, (unsigned long long)value2);
-                else if (cpu_info[0].reg_type == cpu_type_buffer_reg)
+                else if (cpu_info[0].reg_type == cpu_type_memory_reg)
                     cpu_info[0].reg_type_buffer[0] == 1 ? printf("%s word [%s], 0x%llx\n",
                                                                  operation,
                                                                  cpu_regs_string[cpu_info[0].reg_type_buffer[1]],
@@ -764,7 +796,7 @@ void cpu_emulate_i8086(uint8_t debug)
                                                                  cpu_regs_string[cpu_info[0].reg_type_buffer[2]],
                                                                  (unsigned long long)value2);
                 else
-                    printf("%s %s, 0x%llx\n", operation, cpu_regs_string[value1], (unsigned long long)value2);
+                    printf("%s word %s, 0x%llx\n", operation, cpu_regs_string[value1], (unsigned long long)value2);
             }
             break;
         default:
@@ -780,9 +812,9 @@ void cpu_emulate_i8086(uint8_t debug)
             operation = "add";
             value1 = cpu_rm16(cpu_reg_ip);
             value2 = cpu_imm8(cpu_reg_ip);
-            if (cpu_info[0].reg_type == cpu_type_buffer)
+            if (cpu_info[0].reg_type == cpu_type_memory)
                 vm_memory[value1] = (uint16_t)(vm_memory[value1] + value2);
-            else if (cpu_info[0].reg_type == cpu_type_buffer_reg)
+            else if (cpu_info[0].reg_type == cpu_type_memory_reg)
                 vm_memory[cpu_info[0].reg_type_buffer[0] == 1 ? (cpu_state[cpu_info[0].reg_type_buffer[1]])
                                                               : (cpu_state[cpu_info[0].reg_type_buffer[1]] +
                                                                  (cpu_state[cpu_info[0].reg_type_buffer[2]]))] =
@@ -796,9 +828,9 @@ void cpu_emulate_i8086(uint8_t debug)
                 cpu_state[value1] = (uint16_t)(cpu_state[value1] + value2);
             if (debug)
             {
-                if (cpu_info[0].reg_type == cpu_type_buffer)
+                if (cpu_info[0].reg_type == cpu_type_memory)
                     printf("%s word [0x%x], 0x%llx\n", operation, value1, (unsigned long long)value2);
-                else if (cpu_info[0].reg_type == cpu_type_buffer_reg)
+                else if (cpu_info[0].reg_type == cpu_type_memory_reg)
                     cpu_info[0].reg_type_buffer[0] == 1 ? printf("%s word [%s], 0x%llx\n",
                                                                  operation,
                                                                  cpu_regs_string[cpu_info[0].reg_type_buffer[1]],
@@ -809,16 +841,16 @@ void cpu_emulate_i8086(uint8_t debug)
                                                                  cpu_regs_string[cpu_info[0].reg_type_buffer[2]],
                                                                  (unsigned long long)value2);
                 else
-                    printf("%s %s, 0x%llx\n", operation, cpu_regs_string[value1], (unsigned long long)value2);
+                    printf("%s word %s, 0x%llx\n", operation, cpu_regs_string[value1], (unsigned long long)value2);
             }
             break;
         case 0x01:
             operation = "or";
             value1 = cpu_rm16(cpu_reg_ip);
             value2 = cpu_imm8(cpu_reg_ip);
-            if (cpu_info[0].reg_type == cpu_type_buffer)
+            if (cpu_info[0].reg_type == cpu_type_memory)
                 vm_memory[value1] = (uint16_t)(vm_memory[value1] | value2);
-            else if (cpu_info[0].reg_type == cpu_type_buffer_reg)
+            else if (cpu_info[0].reg_type == cpu_type_memory_reg)
                 vm_memory[cpu_info[0].reg_type_buffer[0] == 1 ? (cpu_state[cpu_info[0].reg_type_buffer[1]])
                                                               : (cpu_state[cpu_info[0].reg_type_buffer[1]] +
                                                                  (cpu_state[cpu_info[0].reg_type_buffer[2]]))] =
@@ -832,9 +864,9 @@ void cpu_emulate_i8086(uint8_t debug)
                 cpu_state[value1] = (uint16_t)(cpu_state[value1] | value2);
             if (debug)
             {
-                if (cpu_info[0].reg_type == cpu_type_buffer)
+                if (cpu_info[0].reg_type == cpu_type_memory)
                     printf("%s word [0x%x], 0x%llx\n", operation, value1, (unsigned long long)value2);
-                else if (cpu_info[0].reg_type == cpu_type_buffer_reg)
+                else if (cpu_info[0].reg_type == cpu_type_memory_reg)
                     cpu_info[0].reg_type_buffer[0] == 1 ? printf("%s word [%s], 0x%llx\n",
                                                                  operation,
                                                                  cpu_regs_string[cpu_info[0].reg_type_buffer[1]],
@@ -845,16 +877,16 @@ void cpu_emulate_i8086(uint8_t debug)
                                                                  cpu_regs_string[cpu_info[0].reg_type_buffer[2]],
                                                                  (unsigned long long)value2);
                 else
-                    printf("%s %s, 0x%llx\n", operation, cpu_regs_string[value1], (unsigned long long)value2);
+                    printf("%s word %s, 0x%llx\n", operation, cpu_regs_string[value1], (unsigned long long)value2);
             }
             break;
         case 0x04:
             operation = "and";
             value1 = cpu_rm16(cpu_reg_ip);
             value2 = cpu_imm8(cpu_reg_ip);
-            if (cpu_info[0].reg_type == cpu_type_buffer)
+            if (cpu_info[0].reg_type == cpu_type_memory)
                 vm_memory[value1] = (uint16_t)(vm_memory[value1] & value2);
-            else if (cpu_info[0].reg_type == cpu_type_buffer_reg)
+            else if (cpu_info[0].reg_type == cpu_type_memory_reg)
                 vm_memory[cpu_info[0].reg_type_buffer[0] == 1 ? (cpu_state[cpu_info[0].reg_type_buffer[1]])
                                                               : (cpu_state[cpu_info[0].reg_type_buffer[1]] +
                                                                  (cpu_state[cpu_info[0].reg_type_buffer[2]]))] =
@@ -868,9 +900,9 @@ void cpu_emulate_i8086(uint8_t debug)
                 cpu_state[value1] = (uint16_t)(cpu_state[value1] & value2);
             if (debug)
             {
-                if (cpu_info[0].reg_type == cpu_type_buffer)
+                if (cpu_info[0].reg_type == cpu_type_memory)
                     printf("%s word [0x%x], 0x%llx\n", operation, value1, (unsigned long long)value2);
-                else if (cpu_info[0].reg_type == cpu_type_buffer_reg)
+                else if (cpu_info[0].reg_type == cpu_type_memory_reg)
                     cpu_info[0].reg_type_buffer[0] == 1 ? printf("%s word [%s], 0x%llx\n",
                                                                  operation,
                                                                  cpu_regs_string[cpu_info[0].reg_type_buffer[1]],
@@ -881,16 +913,16 @@ void cpu_emulate_i8086(uint8_t debug)
                                                                  cpu_regs_string[cpu_info[0].reg_type_buffer[2]],
                                                                  (unsigned long long)value2);
                 else
-                    printf("%s %s, 0x%llx\n", operation, cpu_regs_string[value1], (unsigned long long)value2);
+                    printf("%s word %s, 0x%llx\n", operation, cpu_regs_string[value1], (unsigned long long)value2);
             }
             break;
         case 0x05:
             operation = "sub";
             value1 = cpu_rm16(cpu_reg_ip);
             value2 = cpu_imm8(cpu_reg_ip);
-            if (cpu_info[0].reg_type == cpu_type_buffer)
+            if (cpu_info[0].reg_type == cpu_type_memory)
                 vm_memory[value1] = (uint16_t)(vm_memory[value1] - value2);
-            else if (cpu_info[0].reg_type == cpu_type_buffer_reg)
+            else if (cpu_info[0].reg_type == cpu_type_memory_reg)
                 vm_memory[cpu_info[0].reg_type_buffer[0] == 1 ? (cpu_state[cpu_info[0].reg_type_buffer[1]])
                                                               : (cpu_state[cpu_info[0].reg_type_buffer[1]] +
                                                                  (cpu_state[cpu_info[0].reg_type_buffer[2]]))] =
@@ -904,9 +936,9 @@ void cpu_emulate_i8086(uint8_t debug)
                 cpu_state[value1] = (uint16_t)(cpu_state[value1] - value2);
             if (debug)
             {
-                if (cpu_info[0].reg_type == cpu_type_buffer)
+                if (cpu_info[0].reg_type == cpu_type_memory)
                     printf("%s word [0x%x], 0x%llx\n", operation, value1, (unsigned long long)value2);
-                else if (cpu_info[0].reg_type == cpu_type_buffer_reg)
+                else if (cpu_info[0].reg_type == cpu_type_memory_reg)
                     cpu_info[0].reg_type_buffer[0] == 1 ? printf("%s word [%s], 0x%llx\n",
                                                                  operation,
                                                                  cpu_regs_string[cpu_info[0].reg_type_buffer[1]],
@@ -917,7 +949,7 @@ void cpu_emulate_i8086(uint8_t debug)
                                                                  cpu_regs_string[cpu_info[0].reg_type_buffer[2]],
                                                                  (unsigned long long)value2);
                 else
-                    printf("%s %s, 0x%llx\n", operation, cpu_regs_string[value1], (unsigned long long)value2);
+                    printf("%s word %s, 0x%llx\n", operation, cpu_regs_string[value1], (unsigned long long)value2);
             }
             break;
         default:
@@ -926,29 +958,108 @@ void cpu_emulate_i8086(uint8_t debug)
         }
         cpu_state[cpu_reg_ip]++;
         break;
-    case 0x89:
-        value1 = cpu_rm16(cpu_reg_ip);
+    case 0x88:
+        value1 = cpu_rm8(cpu_reg_ip);
         opcode--, cpu_state[cpu_reg_ip]--;
-        value2 = cpu_r16(cpu_reg_ip);
+        value2 = cpu_r8(cpu_reg_ip);
         opcode++, cpu_state[cpu_reg_ip]++;
+        cpu_exec_mov(value1, value2, 1);
         if (debug)
         {
-            if (cpu_info[0].reg_type == cpu_type_buffer)
-                printf("mov [0x%x], %s\n", value1, cpu_regs_string[value2]);
-            else if (cpu_info[0].reg_type == cpu_type_buffer_reg)
+            if (cpu_info[0].reg_type == cpu_type_memory)
+                printf("mov byte [0x%x], %s\n", value1, cpu_regs_string[value2]);
+            else if (cpu_info[0].reg_type == cpu_type_memory_reg)
             {
                 if (cpu_info[0].reg_type_buffer[0] == 1)
-                    printf("mov [%s], %s\n",
+                    printf("mov byte [%s], %s\n",
                            cpu_regs_string[cpu_info[0].reg_type_buffer[1]],
                            cpu_regs_string[value2]);
                 else if (cpu_info[0].reg_type_buffer[0] == 2)
-                    printf("mov [%s + %s], %s\n",
+                    printf("mov byte [%s + %s], %s\n",
                            cpu_regs_string[cpu_info[0].reg_type_buffer[1]],
                            cpu_regs_string[cpu_info[0].reg_type_buffer[2]],
                            cpu_regs_string[value2]);
             }
             else
-                printf("mov %s, %s\n", cpu_regs_string[value1], cpu_regs_string[value2]);
+                printf("mov byte %s, %s\n", cpu_regs_string[value1], cpu_regs_string[value2]);
+        }
+        break;
+    case 0x89:
+        value1 = cpu_rm16(cpu_reg_ip);
+        opcode--, cpu_state[cpu_reg_ip]--;
+        value2 = cpu_r16(cpu_reg_ip);
+        opcode++, cpu_state[cpu_reg_ip]++;
+        cpu_exec_mov(value1, value2, 2);
+        if (debug)
+        {
+            if (cpu_info[0].reg_type == cpu_type_memory)
+                printf("mov word [0x%x], %s\n", value1, cpu_regs_string[value2]);
+            else if (cpu_info[0].reg_type == cpu_type_memory_reg)
+            {
+                if (cpu_info[0].reg_type_buffer[0] == 1)
+                    printf("mov word [%s], %s\n",
+                           cpu_regs_string[cpu_info[0].reg_type_buffer[1]],
+                           cpu_regs_string[value2]);
+                else if (cpu_info[0].reg_type_buffer[0] == 2)
+                    printf("mov word [%s + %s], %s\n",
+                           cpu_regs_string[cpu_info[0].reg_type_buffer[1]],
+                           cpu_regs_string[cpu_info[0].reg_type_buffer[2]],
+                           cpu_regs_string[value2]);
+            }
+            else
+                printf("mov word %s, %s\n", cpu_regs_string[value1], cpu_regs_string[value2]);
+        }
+        break;
+    case 0x8a:
+        value1 = cpu_r8(cpu_reg_ip);
+        opcode--, cpu_state[cpu_reg_ip]--;
+        value2 = cpu_rm8(cpu_reg_ip);
+        opcode++, cpu_state[cpu_reg_ip]++;
+        cpu_exec_mov(value1, value2, 1);
+        if (debug)
+        {
+            if (cpu_info[1].reg_type == cpu_type_memory)
+                printf("mov byte %s, [0x%x]\n", cpu_regs_string[value1], value2);
+            else if (cpu_info[1].reg_type == cpu_type_memory_reg)
+            {
+                if (cpu_info[1].reg_type_buffer[0] == 1)
+                    printf("mov byte %s, [%s]\n",
+                           cpu_regs_string[value1],
+                           cpu_regs_string[cpu_info[1].reg_type_buffer[1]]);
+                else if (cpu_info[1].reg_type_buffer[0] == 2)
+                    printf("mov byte %s, [%s + %s]\n",
+                           cpu_regs_string[value1],
+                           cpu_regs_string[cpu_info[1].reg_type_buffer[1]],
+                           cpu_regs_string[cpu_info[1].reg_type_buffer[2]]);
+            }
+            else
+                printf("mov byte %s, %s\n", cpu_regs_string[value1], cpu_regs_string[value2]);
+        }
+        break;
+    case 0x8b:
+        value1 = cpu_r16(cpu_reg_ip);
+        opcode--, cpu_state[cpu_reg_ip]--;
+        value2 = cpu_rm16(cpu_reg_ip);
+        opcode++, cpu_state[cpu_reg_ip]++;
+        cpu_exec_mov(value1, value2, 2);
+        if (debug)
+        {
+            if (cpu_info[1].reg_type == cpu_type_memory)
+                printf("mov word %s, [0x%x]\n", cpu_regs_string[value1], value2);
+            else if (cpu_info[1].reg_type == cpu_type_memory_reg)
+            {
+                if (cpu_info[1].reg_type_buffer[0] == 1)
+                    printf("mov word %s, [%s]\n",
+                           cpu_regs_string[value1],
+                           cpu_regs_string[cpu_info[1].reg_type_buffer[1]]);
+                else if (cpu_info[1].reg_type_buffer[0] == 2)
+                    printf("mov word %s, [%s + %s]\n",
+                           cpu_regs_string[value1],
+                           cpu_regs_string[cpu_info[1].reg_type_buffer[1]],
+                           cpu_regs_string[cpu_info[1].reg_type_buffer[2]]);
+            }
+            else
+                printf("mov word %s, %s\n", cpu_regs_string[value1], cpu_regs_string[value2]);
         }
         break;
     case 0x90:
@@ -959,97 +1070,97 @@ void cpu_emulate_i8086(uint8_t debug)
     case 0xb0:
         cpu_state[cpu_reg_al] = cpu_imm8(cpu_reg_ip);
         if (debug)
-            printf("mov al, 0x%llx\n", (unsigned long long)cpu_state[cpu_reg_al]);
+            printf("mov byte al, 0x%llx\n", (unsigned long long)cpu_state[cpu_reg_al]);
         cpu_state[cpu_reg_ip]++;
         break;
     case 0xb1:
         cpu_state[cpu_reg_cl] = cpu_imm8(cpu_reg_ip);
         if (debug)
-            printf("mov cl, 0x%llx\n", (unsigned long long)cpu_state[cpu_reg_cl]);
+            printf("mov byte cl, 0x%llx\n", (unsigned long long)cpu_state[cpu_reg_cl]);
         cpu_state[cpu_reg_ip]++;
         break;
     case 0xb2:
         cpu_state[cpu_reg_dl] = cpu_imm8(cpu_reg_ip);
         if (debug)
-            printf("mov dl, 0x%llx\n", (unsigned long long)cpu_state[cpu_reg_dl]);
+            printf("mov byte dl, 0x%llx\n", (unsigned long long)cpu_state[cpu_reg_dl]);
         cpu_state[cpu_reg_ip]++;
         break;
     case 0xb3:
         cpu_state[cpu_reg_bl] = cpu_imm8(cpu_reg_ip);
         if (debug)
-            printf("mov bl, 0x%llx\n", (unsigned long long)cpu_state[cpu_reg_bl]);
+            printf("mov byte bl, 0x%llx\n", (unsigned long long)cpu_state[cpu_reg_bl]);
         cpu_state[cpu_reg_ip]++;
         break;
     case 0xb4:
         cpu_state[cpu_reg_ah] = cpu_imm8(cpu_reg_ip);
         if (debug)
-            printf("mov ah, 0x%llx\n", (unsigned long long)cpu_state[cpu_reg_ah]);
+            printf("mov byte ah, 0x%llx\n", (unsigned long long)cpu_state[cpu_reg_ah]);
         cpu_state[cpu_reg_ip]++;
         break;
     case 0xb5:
         cpu_state[cpu_reg_ch] = cpu_imm8(cpu_reg_ip);
         if (debug)
-            printf("mov ch, 0x%llx\n", (unsigned long long)cpu_state[cpu_reg_ch]);
+            printf("mov byte ch, 0x%llx\n", (unsigned long long)cpu_state[cpu_reg_ch]);
         cpu_state[cpu_reg_ip]++;
         break;
     case 0xb6:
         cpu_state[cpu_reg_dh] = cpu_imm8(cpu_reg_ip);
         if (debug)
-            printf("mov dh, 0x%llx\n", (unsigned long long)cpu_state[cpu_reg_dh]);
+            printf("mov byte dh, 0x%llx\n", (unsigned long long)cpu_state[cpu_reg_dh]);
         cpu_state[cpu_reg_ip]++;
         break;
     case 0xb7:
         cpu_state[cpu_reg_bh] = cpu_imm8(cpu_reg_ip);
         if (debug)
-            printf("mov bh, 0x%llx\n", (unsigned long long)cpu_state[cpu_reg_bh]);
+            printf("mov byte bh, 0x%llx\n", (unsigned long long)cpu_state[cpu_reg_bh]);
         cpu_state[cpu_reg_ip]++;
         break;
     case 0xb8:
         cpu_state[cpu_reg_ax] = cpu_imm16(cpu_reg_ip);
         if (debug)
-            printf("mov ax, 0x%llx\n", (unsigned long long)cpu_state[cpu_reg_ax]);
+            printf("mov word ax, 0x%llx\n", (unsigned long long)cpu_state[cpu_reg_ax]);
         cpu_state[cpu_reg_ip]++;
         break;
     case 0xb9:
         cpu_state[cpu_reg_cx] = cpu_imm16(cpu_reg_ip);
         if (debug)
-            printf("mov cx, 0x%llx\n", (unsigned long long)cpu_state[cpu_reg_cx]);
+            printf("mov word cx, 0x%llx\n", (unsigned long long)cpu_state[cpu_reg_cx]);
         cpu_state[cpu_reg_ip]++;
         break;
     case 0xba:
         cpu_state[cpu_reg_dx] = cpu_imm16(cpu_reg_ip);
         if (debug)
-            printf("mov dx, 0x%llx\n", (unsigned long long)cpu_state[cpu_reg_dx]);
+            printf("mov word dx, 0x%llx\n", (unsigned long long)cpu_state[cpu_reg_dx]);
         cpu_state[cpu_reg_ip]++;
         break;
     case 0xbb:
         cpu_state[cpu_reg_bx] = cpu_imm16(cpu_reg_ip);
         if (debug)
-            printf("mov bx, 0x%llx\n", (unsigned long long)cpu_state[cpu_reg_bx]);
+            printf("mov word bx, 0x%llx\n", (unsigned long long)cpu_state[cpu_reg_bx]);
         cpu_state[cpu_reg_ip]++;
         break;
     case 0xbc:
         cpu_state[cpu_reg_sp] = cpu_imm16(cpu_reg_ip);
         if (debug)
-            printf("mov sp, 0x%llx\n", (unsigned long long)cpu_state[cpu_reg_sp]);
+            printf("mov word sp, 0x%llx\n", (unsigned long long)cpu_state[cpu_reg_sp]);
         cpu_state[cpu_reg_ip]++;
         break;
     case 0xbd:
         cpu_state[cpu_reg_bp] = cpu_imm16(cpu_reg_ip);
         if (debug)
-            printf("mov bp, 0x%llx\n", (unsigned long long)cpu_state[cpu_reg_bp]);
+            printf("mov word bp, 0x%llx\n", (unsigned long long)cpu_state[cpu_reg_bp]);
         cpu_state[cpu_reg_ip]++;
         break;
     case 0xbe:
         cpu_state[cpu_reg_si] = cpu_imm16(cpu_reg_ip);
         if (debug)
-            printf("mov si, 0x%llx\n", (unsigned long long)cpu_state[cpu_reg_si]);
+            printf("mov word si, 0x%llx\n", (unsigned long long)cpu_state[cpu_reg_si]);
         cpu_state[cpu_reg_ip]++;
         break;
     case 0xbf:
         cpu_state[cpu_reg_di] = cpu_imm16(cpu_reg_ip);
         if (debug)
-            printf("mov di, 0x%llx\n", (unsigned long long)cpu_state[cpu_reg_di]);
+            printf("mov word di, 0x%llx\n", (unsigned long long)cpu_state[cpu_reg_di]);
         cpu_state[cpu_reg_ip]++;
         break;
     case 0xcd:
@@ -1076,17 +1187,18 @@ void cpu_emulate_i8086(uint8_t debug)
             vm_memory[pos + 2] = cpu_state[cpu_reg_cx];
         }
         if (debug)
-            printf("int 0x%llx\n", (unsigned long long)value2);
+            printf("int byte 0x%llx\n", (unsigned long long)value2);
         cpu_state[cpu_reg_ip]++;
         break;
     case 0xe9:
         cpu_state[cpu_reg_ip] = cpu_rel16(cpu_reg_ip);
         if (debug)
-            printf("jmp 0x%llx\n", (unsigned long long)cpu_state[cpu_reg_ip]);
+            printf("jmp word 0x%llx\n", (unsigned long long)cpu_state[cpu_reg_ip]);
+        break;
     case 0xeb:
         cpu_state[cpu_reg_ip] = cpu_rel8(cpu_reg_ip);
         if (debug)
-            printf("jmp 0x%llx\n", (unsigned long long)cpu_state[cpu_reg_ip]);
+            printf("jmp byte 0x%llx\n", (unsigned long long)cpu_state[cpu_reg_ip]);
         break;
     case 0xec:
         if (debug)
@@ -1095,7 +1207,7 @@ void cpu_emulate_i8086(uint8_t debug)
         break;
     case 0xed:
         if (debug)
-            printf("in ax, dx\n");
+            printf("in  ax, dx\n");
         cpu_state[cpu_reg_ip]++;
         break;
     case 0xee:
