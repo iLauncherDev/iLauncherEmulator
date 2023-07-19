@@ -21,6 +21,7 @@ uint64_t window_framebuffer[] = {
     25 * 16,
     4,
     0,
+    80 * 8 * 25 * 16 * 4,
 };
 
 uint64_t vm_memory_size;
@@ -72,7 +73,7 @@ void *window_update()
                 if (!scancode[i])
                     ready[i] = true;
         }
-        memcpy(window_surface->pixels, &vm_memory[window_framebuffer[0]], window_surface->pitch * window_surface->h);
+        memcpy(window_surface->pixels, &vm_memory[window_framebuffer[0]], window_framebuffer[5]);
         texture = SDL_CreateTextureFromSurface(window_renderer, window_surface);
         SDL_RenderCopy(window_renderer, texture, NULL, NULL);
         SDL_DestroyTexture(texture);

@@ -1176,15 +1176,11 @@ void cpu_emulate_i8086(uint8_t debug)
         }
         else if (value2 == 0x20)
         {
-            uint32_t pos = window_framebuffer[0] + cpu_state[cpu_reg_dx] * window_framebuffer[3];
-            if (pos > vm_memory_size)
-            {
-                cpu_reset();
-                break;
-            }
-            vm_memory[pos + 0] = cpu_state[cpu_reg_ax];
-            vm_memory[pos + 1] = cpu_state[cpu_reg_bx];
-            vm_memory[pos + 2] = cpu_state[cpu_reg_cx];
+            for (uint32_t i = window_framebuffer[0];
+                 i < window_framebuffer[0] +
+                         window_framebuffer[1] * window_framebuffer[2] * window_framebuffer[3];
+                 i++)
+                vm_memory[i] = cpu_state[cpu_reg_ax];
         }
         if (debug)
             printf("int byte 0x%llx\n", (unsigned long long)value2);

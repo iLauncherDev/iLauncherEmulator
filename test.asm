@@ -21,10 +21,7 @@ start:
 
 loop:
     int byte 0x20
-    add word ax, 0x02
-    add word bx, 0x04
-    add word cx, 0x08
-    add word dx, 0x01
+    add word ax, 0x01
     jmp word loop
 
 bits 32
