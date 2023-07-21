@@ -237,6 +237,10 @@ static inline uint8_t cpu_rel8(uint8_t reg)
 
 static inline uint64_t cpu_resolve_value(uint64_t value, uint8_t index, uint8_t size)
 {
+    if (cpu_info[index].reg_type == cpu_type_memory_reg)
+        value = cpu_info[index].reg_type_buffer[0] == 1 ? (cpu_state[cpu_info[index].reg_type_buffer[1]])
+                                                        : (cpu_state[cpu_info[index].reg_type_buffer[1]] +
+                                                           (cpu_state[cpu_info[index].reg_type_buffer[2]]));
     switch (cpu_info[index].reg_type)
     {
     case cpu_type_memory:
@@ -272,6 +276,57 @@ static inline void cpu_exec_mov(uint64_t value1, uint64_t value2, uint8_t size)
         memory_write(&cpu_state[value1], value2, size);
         break;
     };
+}
+
+static inline void cpu_exec_add(uint64_t value1, uint64_t value2, uint8_t size)
+{
+    uint64_t resolved_value1 = cpu_resolve_value(value1, 0, size);
+    value2 = cpu_resolve_value(value2, 1, size);
+    cpu_info[1].reg_type = cpu_type_int;
+    cpu_exec_mov(value1, resolved_value1 + value2, size);
+}
+
+static inline void cpu_exec_sub(uint64_t value1, uint64_t value2, uint8_t size)
+{
+    uint64_t resolved_value1 = cpu_resolve_value(value1, 0, size);
+    value2 = cpu_resolve_value(value2, 1, size);
+    cpu_info[1].reg_type = cpu_type_int;
+    cpu_exec_mov(value1, resolved_value1 - value2, size);
+}
+
+static inline void cpu_exec_mul(uint64_t value1, uint64_t value2, uint8_t size)
+{
+    uint64_t resolved_value1 = cpu_resolve_value(value1, 0, size);
+    value2 = cpu_resolve_value(value2, 1, size);
+    cpu_info[1].reg_type = cpu_type_int;
+    cpu_exec_mov(value1, resolved_value1 * value2, size);
+}
+
+static inline void cpu_exec_div(uint64_t value1, uint64_t value2, uint8_t size)
+{
+    uint64_t resolved_value1 = cpu_resolve_value(value1, 0, size);
+    value2 = cpu_resolve_value(value2, 1, size);
+    cpu_info[1].reg_type = cpu_type_int;
+    if (value2 != 0)
+        cpu_exec_mov(value1, resolved_value1 / value2, size);
+    else
+        cpu_exec_mov(value1, 0, size);
+}
+
+static inline void cpu_exec_and(uint64_t value1, uint64_t value2, uint8_t size)
+{
+    uint64_t resolved_value1 = cpu_resolve_value(value1, 0, size);
+    value2 = cpu_resolve_value(value2, 1, size);
+    cpu_info[1].reg_type = cpu_type_int;
+    cpu_exec_mov(value1, resolved_value1 & value2, size);
+}
+
+static inline void cpu_exec_or(uint64_t value1, uint64_t value2, uint8_t size)
+{
+    uint64_t resolved_value1 = cpu_resolve_value(value1, 0, size);
+    value2 = cpu_resolve_value(value2, 1, size);
+    cpu_info[1].reg_type = cpu_type_int;
+    cpu_exec_mov(value1, resolved_value1 | value2, size);
 }
 
 static inline void cpu_push_reg(uint8_t stack, uint8_t reg, uint8_t size)
@@ -506,20 +561,7 @@ void cpu_emulate_i8086(uint8_t debug)
             operation = "add";
             value1 = cpu_rm8(cpu_reg_ip);
             value2 = cpu_imm8(cpu_reg_ip);
-            if (cpu_info[0].reg_type == cpu_type_memory)
-                vm_memory[value1] = (uint8_t)(vm_memory[value1] + value2);
-            else if (cpu_info[0].reg_type == cpu_type_memory_reg)
-                vm_memory[cpu_info[0].reg_type_buffer[0] == 1 ? (cpu_state[cpu_info[0].reg_type_buffer[1]])
-                                                              : (cpu_state[cpu_info[0].reg_type_buffer[1]] +
-                                                                 (cpu_state[cpu_info[0].reg_type_buffer[2]]))] =
-                    (uint8_t)(vm_memory[cpu_info[0].reg_type_buffer[0] ==
-                                                1
-                                            ? (cpu_state[cpu_info[0].reg_type_buffer[1]])
-                                            : (cpu_state[cpu_info[0].reg_type_buffer[1]] +
-                                               (cpu_state[cpu_info[0].reg_type_buffer[2]]))] +
-                              value2);
-            else
-                cpu_state[value1] = (uint8_t)(cpu_state[value1] + value2);
+            cpu_exec_add(value1, value2, 1);
             if (debug)
             {
                 if (cpu_info[0].reg_type == cpu_type_memory)
@@ -542,20 +584,7 @@ void cpu_emulate_i8086(uint8_t debug)
             operation = "or";
             value1 = cpu_rm8(cpu_reg_ip);
             value2 = cpu_imm8(cpu_reg_ip);
-            if (cpu_info[0].reg_type == cpu_type_memory)
-                vm_memory[value1] = (uint8_t)(vm_memory[value1] | value2);
-            else if (cpu_info[0].reg_type == cpu_type_memory_reg)
-                vm_memory[cpu_info[0].reg_type_buffer[0] == 1 ? (cpu_state[cpu_info[0].reg_type_buffer[1]])
-                                                              : (cpu_state[cpu_info[0].reg_type_buffer[1]] +
-                                                                 (cpu_state[cpu_info[0].reg_type_buffer[2]]))] =
-                    (uint8_t)(vm_memory[cpu_info[0].reg_type_buffer[0] ==
-                                                1
-                                            ? (cpu_state[cpu_info[0].reg_type_buffer[1]])
-                                            : (cpu_state[cpu_info[0].reg_type_buffer[1]] +
-                                               (cpu_state[cpu_info[0].reg_type_buffer[2]]))] |
-                              value2);
-            else
-                cpu_state[value1] = (uint8_t)(cpu_state[value1] | value2);
+            cpu_exec_or(value1, value2, 1);
             if (debug)
             {
                 if (cpu_info[0].reg_type == cpu_type_memory)
@@ -578,20 +607,7 @@ void cpu_emulate_i8086(uint8_t debug)
             operation = "and";
             value1 = cpu_rm8(cpu_reg_ip);
             value2 = cpu_imm8(cpu_reg_ip);
-            if (cpu_info[0].reg_type == cpu_type_memory)
-                vm_memory[value1] = (uint8_t)(vm_memory[value1] & value2);
-            else if (cpu_info[0].reg_type == cpu_type_memory_reg)
-                vm_memory[cpu_info[0].reg_type_buffer[0] == 1 ? (cpu_state[cpu_info[0].reg_type_buffer[1]])
-                                                              : (cpu_state[cpu_info[0].reg_type_buffer[1]] +
-                                                                 (cpu_state[cpu_info[0].reg_type_buffer[2]]))] =
-                    (uint8_t)(vm_memory[cpu_info[0].reg_type_buffer[0] ==
-                                                1
-                                            ? (cpu_state[cpu_info[0].reg_type_buffer[1]])
-                                            : (cpu_state[cpu_info[0].reg_type_buffer[1]] +
-                                               (cpu_state[cpu_info[0].reg_type_buffer[2]]))] &
-                              value2);
-            else
-                cpu_state[value1] = (uint8_t)(cpu_state[value1] & value2);
+            cpu_exec_and(value1, value2, 1);
             if (debug)
             {
                 if (cpu_info[0].reg_type == cpu_type_memory)
@@ -614,20 +630,7 @@ void cpu_emulate_i8086(uint8_t debug)
             operation = "sub";
             value1 = cpu_rm8(cpu_reg_ip);
             value2 = cpu_imm8(cpu_reg_ip);
-            if (cpu_info[0].reg_type == cpu_type_memory)
-                vm_memory[value1] = (uint8_t)(vm_memory[value1] - value2);
-            else if (cpu_info[0].reg_type == cpu_type_memory_reg)
-                vm_memory[cpu_info[0].reg_type_buffer[0] == 1 ? (cpu_state[cpu_info[0].reg_type_buffer[1]])
-                                                              : (cpu_state[cpu_info[0].reg_type_buffer[1]] +
-                                                                 (cpu_state[cpu_info[0].reg_type_buffer[2]]))] =
-                    (uint8_t)(vm_memory[cpu_info[0].reg_type_buffer[0] ==
-                                                1
-                                            ? (cpu_state[cpu_info[0].reg_type_buffer[1]])
-                                            : (cpu_state[cpu_info[0].reg_type_buffer[1]] +
-                                               (cpu_state[cpu_info[0].reg_type_buffer[2]]))] -
-                              value2);
-            else
-                cpu_state[value1] = (uint8_t)(cpu_state[value1] - value2);
+            cpu_exec_sub(value1, value2, 1);
             if (debug)
             {
                 if (cpu_info[0].reg_type == cpu_type_memory)
@@ -659,20 +662,7 @@ void cpu_emulate_i8086(uint8_t debug)
             operation = "add";
             value1 = cpu_rm16(cpu_reg_ip);
             value2 = cpu_imm16(cpu_reg_ip);
-            if (cpu_info[0].reg_type == cpu_type_memory)
-                vm_memory[value1] = (uint16_t)(vm_memory[value1] + value2);
-            else if (cpu_info[0].reg_type == cpu_type_memory_reg)
-                vm_memory[cpu_info[0].reg_type_buffer[0] == 1 ? (cpu_state[cpu_info[0].reg_type_buffer[1]])
-                                                              : (cpu_state[cpu_info[0].reg_type_buffer[1]] +
-                                                                 (cpu_state[cpu_info[0].reg_type_buffer[2]]))] =
-                    (uint16_t)(vm_memory[cpu_info[0].reg_type_buffer[0] ==
-                                                 1
-                                             ? (cpu_state[cpu_info[0].reg_type_buffer[1]])
-                                             : (cpu_state[cpu_info[0].reg_type_buffer[1]] +
-                                                (cpu_state[cpu_info[0].reg_type_buffer[2]]))] +
-                               value2);
-            else
-                cpu_state[value1] = (uint16_t)(cpu_state[value1] + value2);
+            cpu_exec_add(value1, value2, 2);
             if (debug)
             {
                 if (cpu_info[0].reg_type == cpu_type_memory)
@@ -695,20 +685,7 @@ void cpu_emulate_i8086(uint8_t debug)
             operation = "or";
             value1 = cpu_rm16(cpu_reg_ip);
             value2 = cpu_imm16(cpu_reg_ip);
-            if (cpu_info[0].reg_type == cpu_type_memory)
-                vm_memory[value1] = (uint16_t)(vm_memory[value1] | value2);
-            else if (cpu_info[0].reg_type == cpu_type_memory_reg)
-                vm_memory[cpu_info[0].reg_type_buffer[0] == 1 ? (cpu_state[cpu_info[0].reg_type_buffer[1]])
-                                                              : (cpu_state[cpu_info[0].reg_type_buffer[1]] +
-                                                                 (cpu_state[cpu_info[0].reg_type_buffer[2]]))] =
-                    (uint16_t)(vm_memory[cpu_info[0].reg_type_buffer[0] ==
-                                                 1
-                                             ? (cpu_state[cpu_info[0].reg_type_buffer[1]])
-                                             : (cpu_state[cpu_info[0].reg_type_buffer[1]] +
-                                                (cpu_state[cpu_info[0].reg_type_buffer[2]]))] |
-                               value2);
-            else
-                cpu_state[value1] = (uint16_t)(cpu_state[value1] | value2);
+            cpu_exec_or(value1, value2, 2);
             if (debug)
             {
                 if (cpu_info[0].reg_type == cpu_type_memory)
@@ -731,20 +708,7 @@ void cpu_emulate_i8086(uint8_t debug)
             operation = "and";
             value1 = cpu_rm16(cpu_reg_ip);
             value2 = cpu_imm16(cpu_reg_ip);
-            if (cpu_info[0].reg_type == cpu_type_memory)
-                vm_memory[value1] = (uint16_t)(vm_memory[value1] & value2);
-            else if (cpu_info[0].reg_type == cpu_type_memory_reg)
-                vm_memory[cpu_info[0].reg_type_buffer[0] == 1 ? (cpu_state[cpu_info[0].reg_type_buffer[1]])
-                                                              : (cpu_state[cpu_info[0].reg_type_buffer[1]] +
-                                                                 (cpu_state[cpu_info[0].reg_type_buffer[2]]))] =
-                    (uint16_t)(vm_memory[cpu_info[0].reg_type_buffer[0] ==
-                                                 1
-                                             ? (cpu_state[cpu_info[0].reg_type_buffer[1]])
-                                             : (cpu_state[cpu_info[0].reg_type_buffer[1]] +
-                                                (cpu_state[cpu_info[0].reg_type_buffer[2]]))] &
-                               value2);
-            else
-                cpu_state[value1] = (uint16_t)(cpu_state[value1] & value2);
+            cpu_exec_and(value1, value2, 2);
             if (debug)
             {
                 if (cpu_info[0].reg_type == cpu_type_memory)
@@ -767,20 +731,7 @@ void cpu_emulate_i8086(uint8_t debug)
             operation = "sub";
             value1 = cpu_rm16(cpu_reg_ip);
             value2 = cpu_imm16(cpu_reg_ip);
-            if (cpu_info[0].reg_type == cpu_type_memory)
-                vm_memory[value1] = (uint16_t)(vm_memory[value1] - value2);
-            else if (cpu_info[0].reg_type == cpu_type_memory_reg)
-                vm_memory[cpu_info[0].reg_type_buffer[0] == 1 ? (cpu_state[cpu_info[0].reg_type_buffer[1]])
-                                                              : (cpu_state[cpu_info[0].reg_type_buffer[1]] +
-                                                                 (cpu_state[cpu_info[0].reg_type_buffer[2]]))] =
-                    (uint16_t)(vm_memory[cpu_info[0].reg_type_buffer[0] ==
-                                                 1
-                                             ? (cpu_state[cpu_info[0].reg_type_buffer[1]])
-                                             : (cpu_state[cpu_info[0].reg_type_buffer[1]] +
-                                                (cpu_state[cpu_info[0].reg_type_buffer[2]]))] -
-                               value2);
-            else
-                cpu_state[value1] = (uint16_t)(cpu_state[value1] - value2);
+            cpu_exec_sub(value1, value2, 2);
             if (debug)
             {
                 if (cpu_info[0].reg_type == cpu_type_memory)
@@ -812,20 +763,7 @@ void cpu_emulate_i8086(uint8_t debug)
             operation = "add";
             value1 = cpu_rm16(cpu_reg_ip);
             value2 = cpu_imm8(cpu_reg_ip);
-            if (cpu_info[0].reg_type == cpu_type_memory)
-                vm_memory[value1] = (uint16_t)(vm_memory[value1] + value2);
-            else if (cpu_info[0].reg_type == cpu_type_memory_reg)
-                vm_memory[cpu_info[0].reg_type_buffer[0] == 1 ? (cpu_state[cpu_info[0].reg_type_buffer[1]])
-                                                              : (cpu_state[cpu_info[0].reg_type_buffer[1]] +
-                                                                 (cpu_state[cpu_info[0].reg_type_buffer[2]]))] =
-                    (uint16_t)(vm_memory[cpu_info[0].reg_type_buffer[0] ==
-                                                 1
-                                             ? (cpu_state[cpu_info[0].reg_type_buffer[1]])
-                                             : (cpu_state[cpu_info[0].reg_type_buffer[1]] +
-                                                (cpu_state[cpu_info[0].reg_type_buffer[2]]))] +
-                               value2);
-            else
-                cpu_state[value1] = (uint16_t)(cpu_state[value1] + value2);
+            cpu_exec_add(value1, value2, 2);
             if (debug)
             {
                 if (cpu_info[0].reg_type == cpu_type_memory)
@@ -848,20 +786,7 @@ void cpu_emulate_i8086(uint8_t debug)
             operation = "or";
             value1 = cpu_rm16(cpu_reg_ip);
             value2 = cpu_imm8(cpu_reg_ip);
-            if (cpu_info[0].reg_type == cpu_type_memory)
-                vm_memory[value1] = (uint16_t)(vm_memory[value1] | value2);
-            else if (cpu_info[0].reg_type == cpu_type_memory_reg)
-                vm_memory[cpu_info[0].reg_type_buffer[0] == 1 ? (cpu_state[cpu_info[0].reg_type_buffer[1]])
-                                                              : (cpu_state[cpu_info[0].reg_type_buffer[1]] +
-                                                                 (cpu_state[cpu_info[0].reg_type_buffer[2]]))] =
-                    (uint16_t)(vm_memory[cpu_info[0].reg_type_buffer[0] ==
-                                                 1
-                                             ? (cpu_state[cpu_info[0].reg_type_buffer[1]])
-                                             : (cpu_state[cpu_info[0].reg_type_buffer[1]] +
-                                                (cpu_state[cpu_info[0].reg_type_buffer[2]]))] |
-                               value2);
-            else
-                cpu_state[value1] = (uint16_t)(cpu_state[value1] | value2);
+            cpu_exec_or(value1, value2, 2);
             if (debug)
             {
                 if (cpu_info[0].reg_type == cpu_type_memory)
@@ -884,20 +809,7 @@ void cpu_emulate_i8086(uint8_t debug)
             operation = "and";
             value1 = cpu_rm16(cpu_reg_ip);
             value2 = cpu_imm8(cpu_reg_ip);
-            if (cpu_info[0].reg_type == cpu_type_memory)
-                vm_memory[value1] = (uint16_t)(vm_memory[value1] & value2);
-            else if (cpu_info[0].reg_type == cpu_type_memory_reg)
-                vm_memory[cpu_info[0].reg_type_buffer[0] == 1 ? (cpu_state[cpu_info[0].reg_type_buffer[1]])
-                                                              : (cpu_state[cpu_info[0].reg_type_buffer[1]] +
-                                                                 (cpu_state[cpu_info[0].reg_type_buffer[2]]))] =
-                    (uint16_t)(vm_memory[cpu_info[0].reg_type_buffer[0] ==
-                                                 1
-                                             ? (cpu_state[cpu_info[0].reg_type_buffer[1]])
-                                             : (cpu_state[cpu_info[0].reg_type_buffer[1]] +
-                                                (cpu_state[cpu_info[0].reg_type_buffer[2]]))] &
-                               value2);
-            else
-                cpu_state[value1] = (uint16_t)(cpu_state[value1] & value2);
+            cpu_exec_and(value1, value2, 2);
             if (debug)
             {
                 if (cpu_info[0].reg_type == cpu_type_memory)
@@ -920,20 +832,7 @@ void cpu_emulate_i8086(uint8_t debug)
             operation = "sub";
             value1 = cpu_rm16(cpu_reg_ip);
             value2 = cpu_imm8(cpu_reg_ip);
-            if (cpu_info[0].reg_type == cpu_type_memory)
-                vm_memory[value1] = (uint16_t)(vm_memory[value1] - value2);
-            else if (cpu_info[0].reg_type == cpu_type_memory_reg)
-                vm_memory[cpu_info[0].reg_type_buffer[0] == 1 ? (cpu_state[cpu_info[0].reg_type_buffer[1]])
-                                                              : (cpu_state[cpu_info[0].reg_type_buffer[1]] +
-                                                                 (cpu_state[cpu_info[0].reg_type_buffer[2]]))] =
-                    (uint16_t)(vm_memory[cpu_info[0].reg_type_buffer[0] ==
-                                                 1
-                                             ? (cpu_state[cpu_info[0].reg_type_buffer[1]])
-                                             : (cpu_state[cpu_info[0].reg_type_buffer[1]] +
-                                                (cpu_state[cpu_info[0].reg_type_buffer[2]]))] -
-                               value2);
-            else
-                cpu_state[value1] = (uint16_t)(cpu_state[value1] - value2);
+            cpu_exec_sub(value1, value2, 2);
             if (debug)
             {
                 if (cpu_info[0].reg_type == cpu_type_memory)
