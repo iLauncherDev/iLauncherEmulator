@@ -95,6 +95,20 @@ static inline uint64_t cpu_rm(uint8_t reg, uint8_t size)
             return value;
         }
         break;
+    case 0x01:
+        opcode++, cpu_state[reg]++;
+        cpu_info[cpu_info_index].reg_type = cpu_type_memory;
+        cpu_info_index = (cpu_info_index + 1) & 1;
+        return *opcode;
+    case 0x02:
+        opcode++, cpu_state[reg]++;
+        uint8_t b1 = *opcode;
+        opcode++, cpu_state[reg]++;
+        uint8_t b2 = *opcode;
+        uint16_t value = (b2 << 8) | b1;
+        cpu_info[cpu_info_index].reg_type = cpu_type_memory;
+        cpu_info_index = (cpu_info_index + 1) & 1;
+        return value;
     case 0x03:
         switch (size)
         {
@@ -107,7 +121,7 @@ static inline uint64_t cpu_rm(uint8_t reg, uint8_t size)
             cpu_info_index = (cpu_info_index + 1) & 1;
             return regs16[rm8];
         }
-        return 0x00;
+        return 0xff;
     }
     switch (rm8)
     {
