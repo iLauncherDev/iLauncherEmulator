@@ -7,6 +7,14 @@ stack_end:
 
 section .text
 
+test:
+    jmp start
+    mov word sp, stack_end
+    lgdt [bp]
+    nop
+    lgdt [0x10]
+    jmp test
+
 start:
     mov word sp, stack_end
     push word ax

@@ -95,11 +95,11 @@ static inline uint64_t cpu_rm(uint8_t reg, uint8_t size)
             return value;
         }
         break;
-    case 0x01:
+    /*case 0x01:
         opcode++, cpu_state[reg]++;
         cpu_info[cpu_info_index].reg_type = cpu_type_memory;
         cpu_info_index = (cpu_info_index + 1) & 1;
-        return *opcode;
+        return *opcode;*/
     case 0x02:
         opcode++, cpu_state[reg]++;
         uint8_t b1 = *opcode;
@@ -121,7 +121,7 @@ static inline uint64_t cpu_rm(uint8_t reg, uint8_t size)
             cpu_info_index = (cpu_info_index + 1) & 1;
             return regs16[rm8];
         }
-        return 0xff;
+        break;
     }
     switch (rm8)
     {
@@ -417,6 +417,39 @@ void cpu_emulate_i8086(uint8_t debug)
         cpu_state[cpu_reg_ip]++;
         break;
     case 0x0f:
+        if (opcode[1] == 0x01)
+        {
+            opcode++, cpu_state[cpu_reg_ip]++;
+            switch (x80_precalc[opcode[1]])
+            {
+            case 0x02:
+                value1 = cpu_rm16(cpu_reg_ip);
+                if (debug)
+                {
+                    if (cpu_info[0].reg_type == cpu_type_memory)
+                        printf("lgdt [0x%x]\n", value1);
+                    else if (cpu_info[0].reg_type == cpu_type_memory_reg)
+                    {
+                        if (cpu_info[0].reg_type_buffer[0] == 1)
+                            printf("lgdt [%s]\n",
+                                   cpu_regs_string[cpu_info[0].reg_type_buffer[1]]);
+                        else if (cpu_info[0].reg_type_buffer[0] == 2)
+                            printf("lgdt [%s + %s]\n",
+                                   cpu_regs_string[cpu_info[0].reg_type_buffer[1]],
+                                   cpu_regs_string[cpu_info[0].reg_type_buffer[2]]);
+                        cpu_state[cpu_reg_ip]++;
+                    }
+                    else
+                        printf("lgdt %s\n", cpu_regs_string[value1]);
+                }
+                break;
+            default:
+                goto unknown;
+                break;
+            }
+            cpu_state[cpu_reg_ip]++;
+            return;
+        }
         cpu_pop_reg(cpu_reg_sp, cpu_reg_cs, 2);
         if (debug)
             printf("pop word cs\n");
