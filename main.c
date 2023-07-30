@@ -7,6 +7,7 @@
 #include <strings.h>
 #include <unistd.h>
 #include <SDL2/SDL.h>
+#include <rfb/rfb.h>
 #include "emulator/cpu.h"
 
 SDL_Window *window;
