@@ -13,11 +13,13 @@ test:
     lgdt [bp]
     nop
     lgdt [0x10]
+    lidt [0x10]
     jmp test
 
 start:
     mov word sp, stack_end
     push word ax
+    mov word dx, [bp+si]
     mov word ax, sp
     mov word sp, 0x00
     mov word sp, ax

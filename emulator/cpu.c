@@ -424,6 +424,8 @@ void cpu_emulate_i8086(uint8_t debug)
             {
             case 0x02:
                 value1 = cpu_rm16(cpu_reg_ip);
+                if (cpu_info[0].reg_type == cpu_type_memory_reg)
+                    cpu_state[cpu_reg_ip]++;
                 if (debug)
                 {
                     if (cpu_info[0].reg_type == cpu_type_memory)
@@ -437,10 +439,31 @@ void cpu_emulate_i8086(uint8_t debug)
                             printf("lgdt [%s + %s]\n",
                                    cpu_regs_string[cpu_info[0].reg_type_buffer[1]],
                                    cpu_regs_string[cpu_info[0].reg_type_buffer[2]]);
-                        cpu_state[cpu_reg_ip]++;
                     }
                     else
                         printf("lgdt %s\n", cpu_regs_string[value1]);
+                }
+                break;
+            case 0x03:
+                value1 = cpu_rm16(cpu_reg_ip);
+                if (cpu_info[0].reg_type == cpu_type_memory_reg)
+                    cpu_state[cpu_reg_ip]++;
+                if (debug)
+                {
+                    if (cpu_info[0].reg_type == cpu_type_memory)
+                        printf("lidt [0x%x]\n", value1);
+                    else if (cpu_info[0].reg_type == cpu_type_memory_reg)
+                    {
+                        if (cpu_info[0].reg_type_buffer[0] == 1)
+                            printf("lidt [%s]\n",
+                                   cpu_regs_string[cpu_info[0].reg_type_buffer[1]]);
+                        else if (cpu_info[0].reg_type_buffer[0] == 2)
+                            printf("lidt [%s + %s]\n",
+                                   cpu_regs_string[cpu_info[0].reg_type_buffer[1]],
+                                   cpu_regs_string[cpu_info[0].reg_type_buffer[2]]);
+                    }
+                    else
+                        printf("lidt %s\n", cpu_regs_string[value1]);
                 }
                 break;
             default:
