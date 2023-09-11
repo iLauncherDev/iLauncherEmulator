@@ -52,6 +52,12 @@ uint8_t regs8[] = {
     cpu_reg_dh,
     cpu_reg_bh,
 };
+uint8_t segregs[] = {
+    cpu_reg_es,
+    cpu_reg_cs,
+    cpu_reg_ss,
+    cpu_reg_ds,
+};
 
 void cpu_reset()
 {
@@ -247,6 +253,14 @@ static inline uint8_t cpu_rel8(uint8_t reg)
     cpu_info[cpu_info_index].reg_type = cpu_type_int;
     cpu_info_index = (cpu_info_index + 1) & 1;
     return (uint8_t)(cpu_state[reg] + rel + 1);
+}
+
+static inline uint8_t cpu_sreg(uint8_t reg)
+{
+    opcode++, cpu_state[reg]++;
+    cpu_info[cpu_info_index].reg_type = cpu_type_reg;
+    cpu_info_index = (cpu_info_index + 1) & 1;
+    return x80_precalc[*opcode];
 }
 
 static inline uint64_t cpu_resolve_value(uint64_t value, uint8_t index, uint8_t size)

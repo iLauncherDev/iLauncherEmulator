@@ -35,7 +35,8 @@ void *window_update()
     uint8_t fullscreen = false;
     while (true)
     {
-        SDL_RenderClear(window_renderer);
+        window_surface = SDL_GetWindowSurface(window);
+        // SDL_RenderClear(window_renderer);
         while (SDL_PollEvent(&event) != 0)
         {
             if (event.type == SDL_QUIT)
@@ -75,10 +76,11 @@ void *window_update()
                     ready[i] = true;
         }
         memcpy(window_surface->pixels, &vm_memory[window_framebuffer[0]], window_framebuffer[5]);
-        texture = SDL_CreateTextureFromSurface(window_renderer, window_surface);
-        SDL_RenderCopy(window_renderer, texture, NULL, NULL);
-        SDL_DestroyTexture(texture);
-        SDL_RenderPresent(window_renderer);
+        SDL_UpdateWindowSurface(window);
+        // texture = SDL_CreateTextureFromSurface(window_renderer, window_surface);
+        // SDL_RenderCopy(window_renderer, texture, NULL, NULL);
+        // SDL_DestroyTexture(texture);
+        // SDL_RenderPresent(window_renderer);
     }
     return (void *)NULL;
 }
@@ -156,8 +158,6 @@ int32_t main(int32_t argc, char **argv)
     cpu_state[cpu_reg_eip] = cpu_state[cpu_reg_ip] = 0;
     SDL_Init(SDL_INIT_VIDEO);
     window = SDL_CreateWindow("Emulator", 0, 0, 80 * 8, 25 * 16, SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE);
-    window_renderer = SDL_CreateRenderer(window, -1, 0);
-    window_surface = SDL_CreateRGBSurface(0, 80 * 8, 25 * 16, 32, 0xff0000, 0x00ff00, 0x0000ff, 0x000000);
     pthread_t window_update_thread;
     pthread_create(&window_update_thread, NULL, window_update, NULL);
     while (!window_framebuffer[0])

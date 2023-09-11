@@ -18,6 +18,7 @@ test:
     mov ss, ax
 	jmp	0x08:.flush
 .flush:use32
+    mov dword eax, eax
 	jmp dword .flush
 
 start:use16
