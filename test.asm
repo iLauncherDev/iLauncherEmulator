@@ -7,7 +7,7 @@ stack_end:
 
 section .text
 
-test:
+test:use16
     jmp start
     lgdt [gdtr]
     mov ax, 0x10

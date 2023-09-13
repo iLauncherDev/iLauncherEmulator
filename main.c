@@ -11,7 +11,6 @@
 #include "emulator/cpu.h"
 
 SDL_Window *window;
-SDL_Renderer *window_renderer;
 SDL_Surface *window_surface;
 SDL_Event event;
 uint8_t scancode[4096] = {0};
@@ -36,7 +35,6 @@ void *window_update()
     while (true)
     {
         window_surface = SDL_GetWindowSurface(window);
-        // SDL_RenderClear(window_renderer);
         while (SDL_PollEvent(&event) != 0)
         {
             if (event.type == SDL_QUIT)
@@ -77,10 +75,6 @@ void *window_update()
         }
         memcpy(window_surface->pixels, &vm_memory[window_framebuffer[0]], window_framebuffer[5]);
         SDL_UpdateWindowSurface(window);
-        // texture = SDL_CreateTextureFromSurface(window_renderer, window_surface);
-        // SDL_RenderCopy(window_renderer, texture, NULL, NULL);
-        // SDL_DestroyTexture(texture);
-        // SDL_RenderPresent(window_renderer);
     }
     return (void *)NULL;
 }
@@ -155,7 +149,6 @@ int32_t main(int32_t argc, char **argv)
         return 0;
     }
     cpu_setup_precalcs();
-    cpu_state[cpu_reg_eip] = cpu_state[cpu_reg_ip] = 0;
     SDL_Init(SDL_INIT_VIDEO);
     window = SDL_CreateWindow("Emulator", 0, 0, 80 * 8, 25 * 16, SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE);
     pthread_t window_update_thread;
