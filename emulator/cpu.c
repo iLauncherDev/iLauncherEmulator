@@ -12,7 +12,7 @@ cpu_info_t cpu_info[2];
 uint8_t cpu_info_index = 0;
 
 uint8_t *opcode;
-uint64_t cpu_state[53];
+uint64_t cpu_state[128];
 uint8_t regs16[] = {
     cpu_reg_ax,
     cpu_reg_cx,
@@ -42,53 +42,48 @@ uint8_t segregs[] = {
 
 static inline uint64_t cpu_read_reg(uint8_t reg)
 {
-    if (reg >= cpu_reg_gs && reg <= cpu_reg_dh)
+    uint8_t position[8];
+    if (reg >= cpu_reg_gs && reg <= cpu_reg_r15b)
     {
         return *(uint8_t *)&cpu_state[reg];
     }
-    if (reg >= cpu_reg_bpl && reg <= cpu_reg_spl)
+    if (reg >= cpu_reg_ax && reg <= cpu_reg_r15w)
     {
-        return *(uint16_t *)&cpu_state[reg];
+        position[0] = (reg - cpu_reg_ax) * 2 + cpu_reg_al;
+        return (*(uint8_t *)&cpu_state[position[0] + 1] << 8) |
+               *(uint8_t *)&cpu_state[position[0]];
     }
-    if (reg >= cpu_reg_ax && reg <= cpu_reg_dx)
+    if (reg >= cpu_reg_eax && reg <= cpu_reg_r15d)
     {
-        return (*(uint8_t *)&cpu_state[(reg - cpu_reg_ax) * 2 + 1] << 16) |
-               *(uint8_t *)&cpu_state[(reg - cpu_reg_ax) * 2];
-    }
-    if (reg >= cpu_reg_bp && reg <= cpu_reg_ip)
-    {
-        if (reg != cpu_reg_ip)
-            return *(uint16_t *)&cpu_state[(reg - cpu_reg_ax) + cpu_reg_bpl];
-        else
-            return *(uint16_t *)&cpu_state[cpu_reg_ip];
+        position[0] = (reg - cpu_reg_eax) * 2 + cpu_reg_al;
+        return (*(uint16_t *)&cpu_state[reg - cpu_reg_spl] << 16) |
+               (*(uint8_t *)&cpu_state[position[0] + 1] << 8) |
+               *(uint8_t *)&cpu_state[position[0]];
     }
     return 0;
 }
 
 static inline void cpu_write_reg(uint8_t reg, uint64_t value)
 {
-    if (reg >= cpu_reg_gs && reg <= cpu_reg_dh)
+    uint8_t position[8];
+    if (reg >= cpu_reg_gs && reg <= cpu_reg_r15b)
     {
         *(uint8_t *)&cpu_state[reg] = value & 0xff;
         return;
     }
-    if (reg >= cpu_reg_bpl && reg <= cpu_reg_spl)
+    if (reg >= cpu_reg_ax && reg <= cpu_reg_r15w)
     {
-        *(uint16_t *)&cpu_state[reg] = value & 0xffff;
+        position[0] = (reg - cpu_reg_ax) * 2 + cpu_reg_al;
+        *(uint8_t *)&cpu_state[position[0]] = value & 0xff;
+        *(uint8_t *)&cpu_state[position[0] + 1] = (value >> 8) & 0xff;
         return;
     }
-    if (reg >= cpu_reg_ax && reg <= cpu_reg_dx)
+    if (reg >= cpu_reg_eax && reg <= cpu_reg_r15d)
     {
-        *(uint8_t *)&cpu_state[(reg - cpu_reg_ax) * 2] = value & 0xff;
-        *(uint8_t *)&cpu_state[(reg - cpu_reg_ax) * 2 + 1] = (value >> 8) & 0xff;
-        return;
-    }
-    if (reg >= cpu_reg_bp && reg <= cpu_reg_ip)
-    {
-        if (reg != cpu_reg_ip)
-            *(uint16_t *)&cpu_state[(reg - cpu_reg_ax) + cpu_reg_bpl] = value & 0xffff;
-        else
-            *(uint16_t *)&cpu_state[cpu_reg_ip] = value & 0xffff;
+        position[0] = (reg - cpu_reg_eax) * 2 + cpu_reg_al;
+        *(uint8_t *)&cpu_state[position[0]] = value & 0xff;
+        *(uint8_t *)&cpu_state[position[0] + 1] = (value >> 8) & 0xff;
+        *(uint16_t *)&cpu_state[reg - cpu_reg_spl] = (value >> 16) & 0xffff;
         return;
     }
 }
@@ -232,7 +227,7 @@ void cpu_setup_precalcs()
 void cpu_dump_state()
 {
     printf("cpu debug : {\n");
-    for (size_t i = 0; i < sizeof(cpu_state) / sizeof(uint64_t); i++)
+    for (size_t i = 0; i < sizeof(cpu_regs_string) / sizeof(void *); i++)
         printf("\t%s: 0x%llx;\n", cpu_regs_string[i], (unsigned long long)cpu_read_reg(i));
     printf("};\n");
 }
