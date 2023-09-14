@@ -7,6 +7,7 @@
 #include <strings.h>
 #include <unistd.h>
 #include <SDL2/SDL.h>
+#include <rfb/rfb.h>
 #include "emulator/cpu.h"
 
 SDL_Window *window;
@@ -15,11 +16,12 @@ SDL_Event event;
 uint8_t scancode[4096] = {0};
 
 uint64_t window_framebuffer[] = {
+    0xb8000,
+    80 * 8,
+    25 * 16,
+    4,
     0,
-    0,
-    0,
-    0,
-    0,
+    80 * 8 * 25 * 16 * 4,
 };
 
 uint64_t vm_memory_size;
@@ -27,6 +29,7 @@ uint8_t *vm_memory;
 
 void *window_update()
 {
+    SDL_Texture *texture;
     uint8_t ready[4096];
     uint8_t fullscreen = false;
     while (true)
@@ -46,14 +49,6 @@ void *window_update()
             {
                 scancode[event.key.keysym.scancode] = true;
             }
-        }
-        if (window_surface->w != window_framebuffer[1] ||
-            window_surface->h != window_framebuffer[2])
-        {
-            window_framebuffer[0] = 0xb8000;
-            window_framebuffer[1] = window_surface->w;
-            window_framebuffer[2] = window_surface->h;
-            window_framebuffer[3] = window_surface->pitch / window_surface->w;
         }
         if (scancode[SDL_SCANCODE_LCTRL] && scancode[SDL_SCANCODE_LALT] &&
             scancode[SDL_SCANCODE_LSHIFT] && scancode[SDL_SCANCODE_F] && ready[SDL_SCANCODE_F])
@@ -78,7 +73,7 @@ void *window_update()
                 if (!scancode[i])
                     ready[i] = true;
         }
-        memcpy(window_surface->pixels, &vm_memory[window_framebuffer[0]], window_surface->pitch * window_surface->h);
+        memcpy(window_surface->pixels, &vm_memory[window_framebuffer[0]], window_framebuffer[5]);
         SDL_UpdateWindowSurface(window);
     }
     return (void *)NULL;
@@ -154,10 +149,8 @@ int32_t main(int32_t argc, char **argv)
         return 0;
     }
     cpu_setup_precalcs();
-    cpu_state[cpu_eip] = cpu_state[cpu_ip] = 0;
     SDL_Init(SDL_INIT_VIDEO);
     window = SDL_CreateWindow("Emulator", 0, 0, 80 * 8, 25 * 16, SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE);
-    window_surface = SDL_GetWindowSurface(window);
     pthread_t window_update_thread;
     pthread_create(&window_update_thread, NULL, window_update, NULL);
     while (!window_framebuffer[0])

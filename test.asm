@@ -7,22 +7,58 @@ stack_end:
 
 section .text
 
-start:
-    mov sp, stack_end
-    mov ax, 0x00
-    mov bx, 0x00
-    mov cx, 0x00
-    mov dx, 0x00
+test:use16
+    jmp start
+    lgdt [gdtr]
+    mov ax, 0x10
+    mov ds, ax
+    mov es, ax
+    mov fs, ax
+    mov gs, ax
+    mov ss, ax
+	jmp	0x08:.flush
+.flush:use32
+    mov dword eax, eax
+	jmp dword .flush
 
-loop:
-    int 0x20
-    add ax, 0x02
-    add bx, 0x04
-    add cx, 0x08
-    add dx, 0x01
-    jmp loop
+start:use16
+    mov word sp, stack_end
+    push word ax
+    mov word dx, [0x00]
+    mov word ax, sp
+    mov word sp, 0x00
+    mov word sp, ax
+    pop word ax
+    mov word bp, 0x00
+    mov word bx, 0x00
+    mov word cx, 0x00
+    mov word dx, 0x00
 
-bits 32
+loop:use16
+    int byte 0x20
+    add word ax, 0x01
+    jmp word loop
 
-PMODE:
-    jmp PMODE
+gdt:
+    .start:
+    .null:
+        dq 0
+    .code:
+        dw 0FFFFh
+	    dw 0
+	    db 0
+	    db 10011010b
+	    db 11001111b
+	    db 0
+    .data:
+	    dw 0FFFFh
+	    dw 0
+	    db 0
+	    db 10010010b
+	    db 11001111b
+	    db 0
+    .end:
+    
+gdtr:
+    dw gdt.end - gdt.start
+    dd gdt.start
