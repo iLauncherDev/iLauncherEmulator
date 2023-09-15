@@ -7,8 +7,9 @@ stack_end:
 
 section .text
 
-test:use16
-    jmp start
+pmode:use16
+    mov word sp, stack_end
+    call start
     lgdt [gdtr]
     mov ax, 0x10
     mov ds, ax
@@ -22,9 +23,8 @@ test:use16
 	jmp dword .flush
 
 start:use16
-    mov word sp, stack_end
     push word ax
-    mov word dx, [0x00]
+    mov word dx, [0xf4f5]
     mov word ax, sp
     mov word sp, 0x00
     mov word sp, ax
@@ -33,11 +33,29 @@ start:use16
     mov word bx, 0x00
     mov word cx, 0x00
     mov word dx, 0x00
+    cmp word ax, 0x00
+    je loop
+    jmp start
 
 loop:use16
+    mov cx, 0x0000
+    mov dx, 0x0000
+.l1:
+    cmp cx, 480
+    je .end
+.l2:
     int byte 0x20
-    add word ax, 0x01
-    jmp word loop
+    add dx, 1
+    cmp dx, 640
+    je .l3
+    jmp .l2
+.l3:
+    add cx, 1
+    jmp .l1
+.end:
+    add ax, 0x3f
+    add bx, 0x3f
+    jmp loop
 
 gdt:
     .start:

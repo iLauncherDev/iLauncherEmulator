@@ -13,25 +13,51 @@
 SDL_Window *window;
 SDL_Surface *window_surface;
 SDL_Event event;
-uint8_t scancode[4096] = {0};
+uint8_t scancode[4096] = {false};
+uint8_t scancode_ready[4096] = {false};
 
 uint64_t window_framebuffer[] = {
     0xb8000,
-    80 * 8,
-    25 * 16,
+    640,
+    480,
     4,
     0,
-    80 * 8 * 25 * 16 * 4,
 };
 
 uint64_t vm_memory_size;
 uint8_t *vm_memory;
 
+void framebuffer_draw(void *input, void *output,
+                      uint16_t input_width, uint16_t input_height,
+                      uint16_t output_width, uint16_t output_height,
+                      uint8_t bpp)
+{
+    if (!input || !output || !bpp)
+        return;
+    double scale_x = (double)output_width / (double)input_width;
+    double scale_y = (double)output_height / (double)input_height;
+    switch (bpp)
+    {
+    case 4:
+        for (uint16_t y = 0; y < output_height; y++)
+        {
+            uint16_t round_y = (uint16_t)round((double)y / scale_y);
+            for (uint16_t x = 0; x < output_width; x++)
+            {
+                uint16_t round_x = (uint16_t)round((double)x / scale_x);
+                ((uint32_t *)output)[y * output_width + x] =
+                    ((uint32_t *)input)[round_y * input_width + round_x];
+            }
+        }
+        break;
+    }
+}
+
 void *window_update()
 {
-    SDL_Texture *texture;
-    uint8_t ready[4096];
     uint8_t fullscreen = false;
+    memset(scancode, false, 4096);
+    memset(scancode_ready, true, 4096);
     while (true)
     {
         window_surface = SDL_GetWindowSurface(window);
@@ -44,6 +70,7 @@ void *window_update()
             else if (event.type == SDL_KEYUP)
             {
                 scancode[event.key.keysym.scancode] = false;
+                scancode_ready[event.key.keysym.scancode] = true;
             }
             else if (event.type == SDL_KEYDOWN)
             {
@@ -51,29 +78,26 @@ void *window_update()
             }
         }
         if (scancode[SDL_SCANCODE_LCTRL] && scancode[SDL_SCANCODE_LALT] &&
-            scancode[SDL_SCANCODE_LSHIFT] && scancode[SDL_SCANCODE_F] && ready[SDL_SCANCODE_F])
+            scancode[SDL_SCANCODE_LSHIFT] && scancode[SDL_SCANCODE_F] && scancode_ready[SDL_SCANCODE_F])
         {
             if (!fullscreen)
                 SDL_SetWindowFullscreen(window, SDL_WINDOW_FULLSCREEN_DESKTOP), fullscreen = true;
             else
                 SDL_SetWindowFullscreen(window, 0), fullscreen = false;
-            ready[SDL_SCANCODE_F] = false;
+            scancode_ready[SDL_SCANCODE_F] = false;
             continue;
         }
         else if (scancode[SDL_SCANCODE_LCTRL] && scancode[SDL_SCANCODE_LALT] &&
-                 scancode[SDL_SCANCODE_LSHIFT] && scancode[SDL_SCANCODE_Q] && ready[SDL_SCANCODE_Q])
+                 scancode[SDL_SCANCODE_LSHIFT] && scancode[SDL_SCANCODE_Q] && scancode_ready[SDL_SCANCODE_Q])
         {
             exit(0);
-            ready[SDL_SCANCODE_Q] = false;
+            scancode_ready[SDL_SCANCODE_Q] = false;
             continue;
         }
-        else
-        {
-            for (uint16_t i = 0; i < 0x1000; i++)
-                if (!scancode[i])
-                    ready[i] = true;
-        }
-        memcpy(window_surface->pixels, &vm_memory[window_framebuffer[0]], window_framebuffer[5]);
+        framebuffer_draw(&vm_memory[window_framebuffer[0]], window_surface->pixels,
+                         window_framebuffer[1], window_framebuffer[2],
+                         window_surface->w, window_surface->h,
+                         4);
         SDL_UpdateWindowSurface(window);
     }
     return (void *)NULL;
@@ -150,7 +174,9 @@ int32_t main(int32_t argc, char **argv)
     }
     cpu_setup_precalcs();
     SDL_Init(SDL_INIT_VIDEO);
-    window = SDL_CreateWindow("Emulator", 0, 0, 80 * 8, 25 * 16, SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE);
+    window = SDL_CreateWindow("Emulator", 0, 0,
+                              window_framebuffer[1], window_framebuffer[2],
+                              SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE);
     pthread_t window_update_thread;
     pthread_create(&window_update_thread, NULL, window_update, NULL);
     while (!window_framebuffer[0])
