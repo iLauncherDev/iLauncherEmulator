@@ -15,6 +15,7 @@ SDL_Surface *window_surface;
 SDL_Event event;
 uint8_t scancode[4096] = {false};
 uint8_t scancode_ready[4096] = {false};
+uint8_t debug_code = false, dump_bios = false;
 
 uint64_t window_framebuffer[] = {
     0xb8000,
@@ -105,7 +106,6 @@ void *window_update()
 
 int32_t main(int32_t argc, char **argv)
 {
-    uint8_t debug_code = false, dump_bios = false;
     uint32_t code_delay = 0;
     FILE *bios_bin = (FILE *)NULL;
     uint64_t size = 0;

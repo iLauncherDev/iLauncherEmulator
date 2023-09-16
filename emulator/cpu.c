@@ -9,11 +9,11 @@ uint8_t rm_offset[16] = {
     0,
     0,
 };
-cpu_info_t cpu_info[2];
+cpu_info_t cpu_info[8];
 uint8_t cpu_info_index = 0;
 
 uint8_t *opcode;
-uint64_t cpu_state[cpu_cc_end];
+uint8_t cpu_state[cpu_cc_end];
 uint8_t regs16[] = {
     cpu_reg_ax,
     cpu_reg_cx,
@@ -57,25 +57,23 @@ static inline uint64_t cpu_read_reg(uint8_t reg)
         }
         else
         {
-            position[0] = (reg - cpu_reg_ax) * 2 + cpu_reg_al;
-            return (*(uint8_t *)&cpu_state[position[0] + 1] << 8) |
-                   *(uint8_t *)&cpu_state[position[0]];
+            position[0] = (reg - cpu_reg_ax) + cpu_reg_al;
+            return *(uint16_t *)&cpu_state[position[0]];
         }
     }
     if (reg >= cpu_reg_eax && reg <= cpu_reg_r15d)
     {
         if (reg > cpu_reg_edx)
         {
-            position[0] = (reg - cpu_reg_ebp) + cpu_reg_bpl;
-            return (*(uint16_t *)&cpu_state[(reg - cpu_reg_eax) + cpu_reg_ax] << 16) |
+            position[0] = ((reg - cpu_reg_ebp) >> 1) + cpu_reg_bpl;
+            return (*(uint16_t *)&cpu_state[((reg - cpu_reg_eax) >> 1) + cpu_reg_ax] << 16) |
                    *(uint16_t *)&cpu_state[position[0]];
         }
         else
         {
-            position[0] = (reg - cpu_reg_eax) * 2 + cpu_reg_al;
-            return (*(uint16_t *)&cpu_state[(reg - cpu_reg_eax) + cpu_reg_ax] << 16) |
-                   (*(uint8_t *)&cpu_state[position[0] + 1] << 8) |
-                   *(uint8_t *)&cpu_state[position[0]];
+            position[0] = ((reg - cpu_reg_eax) >> 1) + cpu_reg_al;
+            return (*(uint16_t *)&cpu_state[((reg - cpu_reg_eax) >> 1) + cpu_reg_ax] << 16) |
+                   *(uint16_t *)&cpu_state[position[0]];
         }
     }
     return 0;
@@ -99,9 +97,8 @@ static inline void cpu_write_reg(uint8_t reg, uint64_t value)
         }
         else
         {
-            position[0] = (reg - cpu_reg_ax) * 2 + cpu_reg_al;
-            *(uint8_t *)&cpu_state[position[0]] = value & 0xff;
-            *(uint8_t *)&cpu_state[position[0] + 1] = (value >> 8) & 0xff;
+            position[0] = (reg - cpu_reg_ax) + cpu_reg_al;
+            *(uint16_t *)&cpu_state[position[0]] = value & 0xffff;
             return;
         }
         return;
@@ -110,17 +107,16 @@ static inline void cpu_write_reg(uint8_t reg, uint64_t value)
     {
         if (reg > cpu_reg_edx)
         {
-            position[0] = (reg - cpu_reg_ebp) + cpu_reg_bpl;
+            position[0] = ((reg - cpu_reg_eax) >> 1) + cpu_reg_bpl;
             *(uint16_t *)&cpu_state[position[0]] = value & 0xffff;
-            *(uint16_t *)&cpu_state[(reg - cpu_reg_eax) + cpu_reg_ax] = (value >> 16) & 0xffff;
+            *(uint16_t *)&cpu_state[((reg - cpu_reg_eax) >> 1) + cpu_reg_ax] = (value >> 16) & 0xffff;
             return;
         }
         else
         {
-            position[0] = (reg - cpu_reg_eax) * 2 + cpu_reg_al;
-            *(uint8_t *)&cpu_state[position[0]] = value & 0xff;
-            *(uint8_t *)&cpu_state[position[0] + 1] = (value >> 8) & 0xff;
-            *(uint16_t *)&cpu_state[(reg - cpu_reg_eax) + cpu_reg_ax] = (value >> 16) & 0xffff;
+            position[0] = ((reg - cpu_reg_eax) >> 1) + cpu_reg_al;
+            *(uint16_t *)&cpu_state[position[0]] = value & 0xffff;
+            *(uint16_t *)&cpu_state[((reg - cpu_reg_eax) >> 1) + cpu_reg_ax] = (value >> 16) & 0xffff;
             return;
         }
     }
@@ -273,7 +269,8 @@ void cpu_dump_state()
 {
     printf("cpu debug : {\n");
     for (size_t i = 0; i < cpu_reg_end; i++)
-        printf("\t%s: 0x%lx;\n", cpu_regs_string[i], cpu_read_reg(i));
+        if (cpu_regs_string[i])
+            printf("\t%s: 0x%lx;\n", cpu_regs_string[i], cpu_read_reg(i));
     printf("};\n");
 }
 
@@ -294,11 +291,15 @@ static inline uint64_t cpu_rm(uint8_t reg, uint8_t size)
             return value;
         }
         break;
-    /*case 0x01:
-        opcode += 2, cpu_write_reg(reg, cpu_read_reg(reg) + 2);
-        cpu_info[cpu_info_index].reg_type = cpu_type_memory;
-        cpu_info_index = (cpu_info_index + 1) & 1;
-        return *opcode;*/
+    case 0x01:
+        if (!rm8)
+        {
+            opcode += 2, cpu_write_reg(reg, cpu_read_reg(reg) + 2);
+            cpu_info[cpu_info_index].reg_type = cpu_type_memory;
+            cpu_info_index = (cpu_info_index + 1) & 1;
+            return *opcode;
+        }
+        break;
     case 0x02:
         value = (opcode[3] << 8) | opcode[2];
         cpu_info[cpu_info_index].reg_type = cpu_type_memory;
@@ -407,51 +408,45 @@ static inline uint8_t cpu_rm8(uint8_t reg)
 
 static inline uint16_t cpu_imm16(uint8_t reg)
 {
-    opcode++, cpu_write_reg(reg, cpu_read_reg(reg) + 1);
-    uint8_t b1 = *opcode;
-    opcode++, cpu_write_reg(reg, cpu_read_reg(reg) + 1);
-    uint8_t b2 = *opcode;
-    uint16_t imm = (b2 << 8) | b1;
+    uint16_t imm = (opcode[2] << 8) | opcode[1];
     cpu_info[cpu_info_index].reg_type = cpu_type_int;
     cpu_info_index = (cpu_info_index + 1) & 1;
+    opcode += 2, cpu_write_reg(reg, cpu_read_reg(reg) + 2);
     return (uint16_t)imm;
 }
 
 static inline uint8_t cpu_imm8(uint8_t reg)
 {
-    opcode++, cpu_write_reg(reg, cpu_read_reg(reg) + 1);
-    uint8_t imm = *opcode;
+    uint8_t imm = opcode[1];
     cpu_info[cpu_info_index].reg_type = cpu_type_int;
     cpu_info_index = (cpu_info_index + 1) & 1;
+    opcode++, cpu_write_reg(reg, cpu_read_reg(reg) + 1);
     return (uint8_t)imm;
 }
 
 static inline uint16_t cpu_rel16(uint8_t reg)
 {
-    opcode++, cpu_write_reg(reg, cpu_read_reg(reg) + 1);
-    uint8_t b1 = *opcode;
-    opcode++, cpu_write_reg(reg, cpu_read_reg(reg) + 1);
-    uint8_t b2 = *opcode;
-    uint16_t rel = (b2 << 8) | b1;
+    uint16_t rel = (opcode[2] << 8) | opcode[1];
     cpu_info[cpu_info_index].reg_type = cpu_type_int;
     cpu_info_index = (cpu_info_index + 1) & 1;
+    opcode += 2, cpu_write_reg(reg, cpu_read_reg(reg) + 2);
     return (uint16_t)(cpu_read_reg(reg) + rel + 1);
 }
 
 static inline uint8_t cpu_rel8(uint8_t reg)
 {
-    opcode++, cpu_write_reg(reg, cpu_read_reg(reg) + 1);
-    uint8_t rel = *opcode;
+    uint8_t rel = opcode[1];
     cpu_info[cpu_info_index].reg_type = cpu_type_int;
     cpu_info_index = (cpu_info_index + 1) & 1;
+    opcode++, cpu_write_reg(reg, cpu_read_reg(reg) + 1);
     return (uint8_t)(cpu_read_reg(reg) + rel + 1);
 }
 
 static inline uint8_t cpu_sreg(uint8_t reg)
 {
-    opcode++, cpu_write_reg(reg, cpu_read_reg(reg) + 1);
     cpu_info[cpu_info_index].reg_type = cpu_type_reg;
     cpu_info_index = (cpu_info_index + 1) & 1;
+    opcode++, cpu_write_reg(reg, cpu_read_reg(reg) + 1);
     return x80_precalc[*opcode];
 }
 
@@ -888,23 +883,23 @@ void cpu_emulate_i8086(uint8_t debug)
             operation = "cmp";
             value1 = cpu_rm16(cpu_reg_ip);
             value2 = cpu_imm16(cpu_reg_ip);
-            cpu_exec_cmp(value1, value2, 1);
+            cpu_exec_cmp(value1, value2, 2);
             if (debug)
             {
                 if (cpu_info[0].reg_type == cpu_type_memory)
-                    printf("%s byte [0x%x], 0x%llx\n", operation, value1, (unsigned long long)value2);
+                    printf("%s word [0x%x], 0x%llx\n", operation, value1, (unsigned long long)value2);
                 else if (cpu_info[0].reg_type == cpu_type_memory_reg)
-                    cpu_info[0].reg_type_buffer[0] == 1 ? printf("%s byte [%s], 0x%llx\n",
+                    cpu_info[0].reg_type_buffer[0] == 1 ? printf("%s word [%s], 0x%llx\n",
                                                                  operation,
                                                                  cpu_regs_string[cpu_info[0].reg_type_buffer[1]],
                                                                  (unsigned long long)value2)
-                                                        : printf("%s byte [%s + %s], 0x%llx\n",
+                                                        : printf("%s word [%s + %s], 0x%llx\n",
                                                                  operation,
                                                                  cpu_regs_string[cpu_info[0].reg_type_buffer[1]],
                                                                  cpu_regs_string[cpu_info[0].reg_type_buffer[2]],
                                                                  (unsigned long long)value2);
                 else
-                    printf("%s byte %s, 0x%llx\n", operation, cpu_regs_string[value1], (unsigned long long)value2);
+                    printf("%s word %s, 0x%llx\n", operation, cpu_regs_string[value1], (unsigned long long)value2);
             }
             break;
         default:
@@ -1012,23 +1007,23 @@ void cpu_emulate_i8086(uint8_t debug)
             operation = "cmp";
             value1 = cpu_rm16(cpu_reg_ip);
             value2 = cpu_imm8(cpu_reg_ip);
-            cpu_exec_cmp(value1, value2, 1);
+            cpu_exec_cmp(value1, value2, 2);
             if (debug)
             {
                 if (cpu_info[0].reg_type == cpu_type_memory)
-                    printf("%s byte [0x%x], 0x%llx\n", operation, value1, (unsigned long long)value2);
+                    printf("%s word [0x%x], 0x%llx\n", operation, value1, (unsigned long long)value2);
                 else if (cpu_info[0].reg_type == cpu_type_memory_reg)
-                    cpu_info[0].reg_type_buffer[0] == 1 ? printf("%s byte [%s], 0x%llx\n",
+                    cpu_info[0].reg_type_buffer[0] == 1 ? printf("%s word [%s], 0x%llx\n",
                                                                  operation,
                                                                  cpu_regs_string[cpu_info[0].reg_type_buffer[1]],
                                                                  (unsigned long long)value2)
-                                                        : printf("%s byte [%s + %s], 0x%llx\n",
+                                                        : printf("%s word [%s + %s], 0x%llx\n",
                                                                  operation,
                                                                  cpu_regs_string[cpu_info[0].reg_type_buffer[1]],
                                                                  cpu_regs_string[cpu_info[0].reg_type_buffer[2]],
                                                                  (unsigned long long)value2);
                 else
-                    printf("%s byte %s, 0x%llx\n", operation, cpu_regs_string[value1], (unsigned long long)value2);
+                    printf("%s word %s, 0x%llx\n", operation, cpu_regs_string[value1], (unsigned long long)value2);
             }
             break;
         default:
@@ -1249,20 +1244,15 @@ void cpu_emulate_i8086(uint8_t debug)
         break;
     case 0xcd:
         value2 = cpu_imm8(cpu_reg_ip);
-        if (value2 == 0xff)
-        {
-            exit(0);
-        }
-        else if (value2 == 0xfe)
-        {
-            memset(cpu_state, 0, sizeof(cpu_state));
-            return;
-        }
-        else if (value2 == 0x20)
+        if (value2 == 0x20)
         {
             uint32_t *framebuffer = (uint32_t *)&vm_memory[window_framebuffer[0]];
-            framebuffer[cpu_read_reg(cpu_reg_cx) * window_framebuffer[1] + cpu_read_reg(cpu_reg_dx)] =
-                (cpu_read_reg(cpu_reg_bx) << 16) | cpu_read_reg(cpu_reg_ax);
+            uint16_t ax = cpu_read_reg(cpu_reg_ax),
+                     bx = cpu_read_reg(cpu_reg_bx),
+                     cx = cpu_read_reg(cpu_reg_cx),
+                     dx = cpu_read_reg(cpu_reg_dx);
+            framebuffer[cx * window_framebuffer[1] + dx] =
+                (bx << 16) | ax;
         }
         if (debug)
             printf("int byte 0x%llx\n", (unsigned long long)value2);
