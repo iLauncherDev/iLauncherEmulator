@@ -819,6 +819,95 @@ static inline uint8_t cpu_sreg(uint8_t reg)
     return (opcode[0] & 0x38) >> 3;
 }
 
+static inline void cpu_print_instruction(char *instruction, char *type,
+                                         uint8_t values, uint8_t regs,
+                                         uint64_t value1, uint64_t value2)
+{
+    if (regs)
+    {
+        printf("%s ", instruction);
+    }
+    else
+    {
+        printf("%s", instruction);
+        goto end;
+    }
+    if (type)
+        printf("%s ", type);
+    if (regs == 1)
+    {
+        switch (cpu_info[0].reg_type)
+        {
+        case cpu_type_reg:
+            printf("%s", cpu_regs_string[value1]);
+            break;
+        case cpu_type_int:
+            printf("%lu", value1);
+            break;
+        case cpu_type_memory:
+            printf("[0x%lx]", value1);
+            break;
+        case cpu_type_memory_reg:
+            cpu_info[0].reg_type_buffer[0] == 1 ? printf("[%s]\n",
+                                                         cpu_regs_string[cpu_info[0].reg_type_buffer[1]])
+                                                : printf("[%s + %s]",
+                                                         cpu_regs_string[cpu_info[0].reg_type_buffer[1]],
+                                                         cpu_regs_string[cpu_info[0].reg_type_buffer[2]]);
+            break;
+        default:
+            break;
+        }
+    }
+    switch (cpu_info[1].reg_type)
+    {
+    case cpu_type_reg:
+        printf("%s", cpu_regs_string[value2]);
+        break;
+    case cpu_type_int:
+        printf("%lu", value2);
+        break;
+    case cpu_type_memory:
+        printf("[0x%lx]", value2);
+        break;
+    case cpu_type_memory_reg:
+        cpu_info[1].reg_type_buffer[0] == 1 ? printf("[%s]",
+                                                     cpu_regs_string[cpu_info[1].reg_type_buffer[1]])
+                                            : printf("[%s + %s]",
+                                                     cpu_regs_string[cpu_info[1].reg_type_buffer[1]],
+                                                     cpu_regs_string[cpu_info[1].reg_type_buffer[2]]);
+        break;
+    default:
+        break;
+    }
+    if (regs > 1)
+        printf(", ");
+    else
+        goto end;
+    switch (cpu_info[0].reg_type)
+    {
+    case cpu_type_reg:
+        printf("%s", cpu_regs_string[value1]);
+        break;
+    case cpu_type_int:
+        printf("%lu", value1);
+        break;
+    case cpu_type_memory:
+        printf("[0x%lx]", value1);
+        break;
+    case cpu_type_memory_reg:
+        cpu_info[0].reg_type_buffer[0] == 1 ? printf("[%s]\n",
+                                                     cpu_regs_string[cpu_info[0].reg_type_buffer[1]])
+                                            : printf("[%s + %s]",
+                                                     cpu_regs_string[cpu_info[0].reg_type_buffer[1]],
+                                                     cpu_regs_string[cpu_info[0].reg_type_buffer[2]]);
+        break;
+    default:
+        break;
+    }
+end:
+    printf("\n");
+}
+
 void cpu_emulate_i8086(uint8_t debug)
 {
     opcode = &vm_memory[cpu_read_reg(cpu_reg_ip)];
@@ -900,16 +989,30 @@ void cpu_emulate_i8086(uint8_t debug)
         break;
     case 0x38:
         value1 = cpu_rm8_r8(cpu_reg_ip, &value2);
-        cpu_state[cpu_cc_a] = cpu_read_reg(value1) == cpu_read_reg(value2) ? 1 : 0;
+        cpu_exec_cmp(value1, value2, 1);
         if (debug)
-            printf("cmp word %s, %s\n", cpu_regs_string[value1], cpu_regs_string[value2]);
+            cpu_print_instruction("cmp", "byte", 2, 2, value1, value2);
         cpu_write_reg(cpu_reg_ip, cpu_read_reg(cpu_reg_ip) + 1);
         break;
     case 0x39:
         value1 = cpu_rm16_r16(cpu_reg_ip, &value2);
-        cpu_state[cpu_cc_a] = cpu_read_reg(value1) == cpu_read_reg(value2) ? 1 : 0;
+        cpu_exec_cmp(value1, value2, 2);
         if (debug)
-            printf("cmp word %s, %s\n", cpu_regs_string[value1], cpu_regs_string[value2]);
+            cpu_print_instruction("cmp", "word", 2, 2, value1, value2);
+        cpu_write_reg(cpu_reg_ip, cpu_read_reg(cpu_reg_ip) + 1);
+        break;
+    case 0x3a:
+        value1 = cpu_r8_rm8(cpu_reg_ip, &value2);
+        cpu_exec_cmp(value1, value2, 1);
+        if (debug)
+            cpu_print_instruction("cmp", "byte", 2, 2, value1, value2);
+        cpu_write_reg(cpu_reg_ip, cpu_read_reg(cpu_reg_ip) + 1);
+        break;
+    case 0x3b:
+        value1 = cpu_r16_rm16(cpu_reg_ip, &value2);
+        cpu_exec_cmp(value1, value2, 2);
+        if (debug)
+            cpu_print_instruction("cmp", "word", 2, 2, value1, value2);
         cpu_write_reg(cpu_reg_ip, cpu_read_reg(cpu_reg_ip) + 1);
         break;
     case 0x50:
@@ -1629,14 +1732,24 @@ void cpu_emulate_i8086(uint8_t debug)
         break;
     case 0xcd:
         value2 = cpu_imm8(cpu_reg_ip);
-        if (value2 == 0x20)
+        uint16_t ax, bx, cx, dx;
+        switch (value2)
         {
-            uint32_t *framebuffer = (uint32_t *)&vm_memory[window_framebuffer[0]];
-            uint16_t ax = cpu_read_reg(cpu_reg_ax),
-                     bx = cpu_read_reg(cpu_reg_bx),
-                     cx = cpu_read_reg(cpu_reg_cx),
-                     dx = cpu_read_reg(cpu_reg_dx);
-            framebuffer[cx * window_framebuffer[1] + dx] = (bx << 16) | ax;
+        case 0x20:
+            ax = cpu_read_reg(cpu_reg_ax),
+            bx = cpu_read_reg(cpu_reg_bx),
+            cx = cpu_read_reg(cpu_reg_cx),
+            dx = cpu_read_reg(cpu_reg_dx);
+            *(uint32_t *)&vm_memory[window_framebuffer[0] + (cx * window_framebuffer[1] + dx) * sizeof(uint32_t)] = (bx << 16) | ax;
+            break;
+        case 0x21:
+            memory_write(&vm_memory[0xfff0], window_framebuffer[0], 2);
+            memory_write(&vm_memory[0xfff2], window_framebuffer[1], 2);
+            memory_write(&vm_memory[0xfff4], window_framebuffer[2], 2);
+            memory_write(&vm_memory[0xfff6], window_framebuffer[3], 2);
+            break;
+        default:
+            break;
         }
         if (debug)
             printf("int byte 0x%llx\n", (unsigned long long)value2);

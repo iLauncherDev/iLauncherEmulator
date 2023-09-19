@@ -18,7 +18,7 @@ uint8_t scancode_ready[4096] = {false};
 uint8_t debug_code = false, dump_bios = false;
 
 uint64_t window_framebuffer[] = {
-    0xb8000,
+    0xfffff,
     640,
     480,
     4,

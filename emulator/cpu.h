@@ -77,7 +77,7 @@ typedef enum cpu_regs
     cpu_reg_r14d = 148,
     cpu_reg_r15d = 152,
 
-    cpu_reg_end,
+    cpu_reg_end = 154,
 
     cpu_cc_a,
     cpu_cc_b,
