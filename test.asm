@@ -31,13 +31,14 @@ start:use16
     mov word sp, 0x0000
     mov word sp, ax
     pop word ax
+    int 0x21
     cmp word ax, bx
     je call_loop
     jmp word start
 
 call_loop:use16
-    mov word ax, 0xffff
-    mov word bx, 0xffff
+    mov word ax, 0x0000
+    mov word bx, 0x00ff
     call loop
     mov word ax, 0x0000
     mov word bx, 0x0000
@@ -46,15 +47,15 @@ call_loop:use16
 
 loop:use16
     mov word cx, 0x0000
-    mov word dx, 0x0000
 .l1:
-    cmp word cx, 480
+    cmp word cx, [0xfff4]
     je .end
+    mov dx, 0x0000
 .l2:
-    add word dx, 1
-    cmp word dx, 640
-    je .l3
     int byte 0x20
+    add word dx, 1
+    cmp word dx, [0xfff2]
+    je .l3
     jmp word .l2
 .l3:
     add word cx, 1
