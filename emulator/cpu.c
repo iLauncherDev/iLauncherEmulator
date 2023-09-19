@@ -834,31 +834,30 @@ static inline void cpu_print_instruction(char *instruction, char *type,
     }
     if (type)
         printf("%s ", type);
-    switch (cpu_info[0].reg_type)
+    if (regs == 1)
     {
-    case cpu_type_reg:
-        printf("%s", cpu_regs_string[value1]);
-        break;
-    case cpu_type_int:
-        printf("%lu", value1);
-        break;
-    case cpu_type_memory:
-        printf("[0x%lx]", value1);
-        break;
-    case cpu_type_memory_reg:
-        cpu_info[0].reg_type_buffer[0] == 1 ? printf("[%s]\n",
-                                                     cpu_regs_string[cpu_info[0].reg_type_buffer[1]])
-                                            : printf("[%s + %s]",
-                                                     cpu_regs_string[cpu_info[0].reg_type_buffer[1]],
-                                                     cpu_regs_string[cpu_info[0].reg_type_buffer[2]]);
-        break;
-    default:
-        break;
+        switch (cpu_info[0].reg_type)
+        {
+        case cpu_type_reg:
+            printf("%s", cpu_regs_string[value1]);
+            break;
+        case cpu_type_int:
+            printf("%lu", value1);
+            break;
+        case cpu_type_memory:
+            printf("[0x%lx]", value1);
+            break;
+        case cpu_type_memory_reg:
+            cpu_info[0].reg_type_buffer[0] == 1 ? printf("[%s]\n",
+                                                         cpu_regs_string[cpu_info[0].reg_type_buffer[1]])
+                                                : printf("[%s + %s]",
+                                                         cpu_regs_string[cpu_info[0].reg_type_buffer[1]],
+                                                         cpu_regs_string[cpu_info[0].reg_type_buffer[2]]);
+            break;
+        default:
+            break;
+        }
     }
-    if (regs > 1)
-        printf(", ");
-    else
-        goto end;
     switch (cpu_info[1].reg_type)
     {
     case cpu_type_reg:
@@ -876,6 +875,31 @@ static inline void cpu_print_instruction(char *instruction, char *type,
                                             : printf("[%s + %s]",
                                                      cpu_regs_string[cpu_info[1].reg_type_buffer[1]],
                                                      cpu_regs_string[cpu_info[1].reg_type_buffer[2]]);
+        break;
+    default:
+        break;
+    }
+    if (regs > 1)
+        printf(", ");
+    else
+        goto end;
+    switch (cpu_info[0].reg_type)
+    {
+    case cpu_type_reg:
+        printf("%s", cpu_regs_string[value1]);
+        break;
+    case cpu_type_int:
+        printf("%lu", value1);
+        break;
+    case cpu_type_memory:
+        printf("[0x%lx]", value1);
+        break;
+    case cpu_type_memory_reg:
+        cpu_info[0].reg_type_buffer[0] == 1 ? printf("[%s]\n",
+                                                     cpu_regs_string[cpu_info[0].reg_type_buffer[1]])
+                                            : printf("[%s + %s]",
+                                                     cpu_regs_string[cpu_info[0].reg_type_buffer[1]],
+                                                     cpu_regs_string[cpu_info[0].reg_type_buffer[2]]);
         break;
     default:
         break;
@@ -1716,7 +1740,7 @@ void cpu_emulate_i8086(uint8_t debug)
             bx = cpu_read_reg(cpu_reg_bx),
             cx = cpu_read_reg(cpu_reg_cx),
             dx = cpu_read_reg(cpu_reg_dx);
-            *(uint32_t *)&vm_memory[window_framebuffer[0] + (cx * window_framebuffer[1] + dx)] = (bx << 16) | ax;
+            *(uint32_t *)&vm_memory[window_framebuffer[0] + (cx * window_framebuffer[1] + dx) * sizeof(uint32_t)] = (bx << 16) | ax;
             break;
         case 0x21:
             memory_write(&vm_memory[0xfff0], window_framebuffer[0], 2);

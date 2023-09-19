@@ -37,8 +37,8 @@ start:use16
     jmp word start
 
 call_loop:use16
-    mov word ax, 0x0000
-    mov word bx, 0x00ff
+    mov word ax, 0xffff
+    mov word bx, 0xffff
     call loop
     mov word ax, 0x0000
     mov word bx, 0x0000
