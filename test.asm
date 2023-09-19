@@ -23,34 +23,44 @@ pmode:use16
 	jmp dword .flush
 
 start:use16
-    mov ax, 0xffff
-    mov bx, 0xffff
+    mov word ax, 0xffff
+    mov word bx, 0xffff
     push word ax
     mov word dx, [0xf4f5]
     mov word ax, sp
     mov word sp, 0x0000
     mov word sp, ax
     pop word ax
-    jmp loop
-    jmp start
+    cmp word ax, bx
+    je call_loop
+    jmp word start
+
+call_loop:use16
+    mov word ax, 0xffff
+    mov word bx, 0xffff
+    call loop
+    mov word ax, 0x0000
+    mov word bx, 0x0000
+    call loop
+    jmp call_loop
 
 loop:use16
-    mov cx, 0x0000
-    mov dx, 0x0000
+    mov word cx, 0x0000
+    mov word dx, 0x0000
 .l1:
-    cmp cx, 480
+    cmp word cx, 480
     je .end
 .l2:
-    int byte 0x20
-    add dx, 1
-    cmp dx, 640
+    add word dx, 1
+    cmp word dx, 640
     je .l3
-    jmp .l2
+    int byte 0x20
+    jmp word .l2
 .l3:
-    add cx, 1
-    jmp .l1
+    add word cx, 1
+    jmp word .l1
 .end:
-    jmp loop
+    ret
 
 gdt:
     .start:

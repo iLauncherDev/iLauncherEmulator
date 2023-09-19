@@ -1,5 +1,5 @@
 CC := clang
-CC_FLAGS := `sdl2-config --cflags --libs` -Werror -Ofast -lm
+CC_FLAGS := `sdl2-config --cflags --libs` -Ofast -ffast-math -Werror -lm
 
 build:
 	@nasm -fbin test.asm -o bios.bin

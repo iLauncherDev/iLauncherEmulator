@@ -86,14 +86,12 @@ void *window_update()
             else
                 SDL_SetWindowFullscreen(window, 0), fullscreen = false;
             scancode_ready[SDL_SCANCODE_F] = false;
-            continue;
         }
         else if (scancode[SDL_SCANCODE_LCTRL] && scancode[SDL_SCANCODE_LALT] &&
                  scancode[SDL_SCANCODE_LSHIFT] && scancode[SDL_SCANCODE_Q] && scancode_ready[SDL_SCANCODE_Q])
         {
             exit(0);
             scancode_ready[SDL_SCANCODE_Q] = false;
-            continue;
         }
         framebuffer_draw(&vm_memory[window_framebuffer[0]], window_surface->pixels,
                          window_framebuffer[1], window_framebuffer[2],
