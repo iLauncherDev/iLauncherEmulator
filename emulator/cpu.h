@@ -2,6 +2,7 @@
 #ifndef CPU_H
 #define CPU_H
 #include "memory.h"
+#include "io.h"
 #include <stdint.h>
 #include <stdbool.h>
 #include <stdio.h>

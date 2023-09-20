@@ -9,6 +9,7 @@
 #include <SDL2/SDL.h>
 #include <rfb/rfb.h>
 #include "emulator/cpu.h"
+#include "emulator/io.h"
 
 SDL_Window *window;
 SDL_Surface *window_surface;
@@ -20,7 +21,7 @@ uint8_t debug_code = false, dump_bios = false;
 uint64_t window_framebuffer[] = {
     0xfffff,
     640,
-    480,
+    400,
     4,
     0,
 };
