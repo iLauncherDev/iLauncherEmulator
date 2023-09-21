@@ -80,19 +80,20 @@ typedef enum cpu_regs
 
     cpu_reg_end = 154,
 
-    cpu_cc_a,
-    cpu_cc_b,
-    cpu_cc_c,
-    cpu_cc_d,
-    cpu_cc_e,
-    cpu_cc_f,
-
-    cpu_cc_end,
-
     cpu_type_reg,
     cpu_type_int,
     cpu_type_memory_reg,
     cpu_type_memory,
+
+    cpu_flags_CF = 1 << 0,
+    cpu_flags_PF = 1 << 2,
+    cpu_flags_AF = 1 << 4,
+    cpu_flags_ZF = 1 << 6,
+    cpu_flags_SF = 1 << 7,
+    cpu_flags_TF = 1 << 8,
+    cpu_flags_IF = 1 << 9,
+    cpu_flags_DF = 1 << 10,
+    cpu_flags_OF = 1 << 11,
 } cpu_regs_t;
 
 static int8_t *cpu_regs_string[] = {
