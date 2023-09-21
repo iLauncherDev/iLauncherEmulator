@@ -21,7 +21,7 @@ uint8_t debug_code = false, dump_bios = false;
 uint64_t window_framebuffer[] = {
     0xfffff,
     640,
-    400,
+    480,
     4,
     0,
 };

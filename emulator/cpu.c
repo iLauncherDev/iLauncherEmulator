@@ -12,7 +12,7 @@ cpu_info_t cpu_info[8];
 uint8_t cpu_info_index = 0;
 
 uint8_t *opcode;
-uint8_t cpu_state[cpu_cc_end];
+uint8_t cpu_state[cpu_reg_end];
 uint8_t regs16[] = {
     cpu_reg_ax,
     cpu_reg_cx,
@@ -318,11 +318,84 @@ static inline void cpu_exec_or(uint64_t value1, uint64_t value2, uint8_t size)
     cpu_exec_mov(value1, resolved_value1 | value2, size);
 }
 
+static inline uint8_t cpu_resolve_flags(uint8_t size)
+{
+    uint8_t flags;
+    switch (size)
+    {
+    case 1:
+        return cpu_reg_flagsl;
+    case 2:
+        return cpu_reg_flags;
+    case 4:
+        return cpu_reg_eflags;
+    }
+    return 0xff;
+}
+
 static inline void cpu_exec_cmp(uint64_t value1, uint64_t value2, uint8_t size)
 {
+    uint8_t flags = cpu_resolve_flags(size);
     value1 = cpu_resolve_value(value1, 0, size);
     value2 = cpu_resolve_value(value2, 1, size);
-    cpu_state[cpu_cc_a] = value1 == value2 ? true : false;
+    if (value1 == value2)
+        cpu_or_reg(flags, cpu_flags_ZF);
+    else
+        cpu_and_reg(flags, ~cpu_flags_ZF);
+    if (value1 < value2)
+        cpu_or_reg(flags, cpu_flags_CF);
+    else
+        cpu_and_reg(flags, ~cpu_flags_CF);
+}
+
+static inline void cpu_exec_je(uint8_t reg, uint64_t value1, uint8_t size)
+{
+    uint8_t flags = cpu_resolve_flags(size);
+    value1 = cpu_resolve_value(value1, 0, size);
+    if (cpu_read_reg(flags) & cpu_flags_ZF)
+        cpu_write_reg(reg, value1);
+    else
+        cpu_add_reg(reg, 1);
+}
+
+static inline void cpu_exec_jne(uint8_t reg, uint64_t value1, uint8_t size)
+{
+    uint8_t flags = cpu_resolve_flags(size);
+    value1 = cpu_resolve_value(value1, 0, size);
+    if (~cpu_read_reg(flags) & cpu_flags_ZF)
+        cpu_write_reg(reg, value1);
+    else
+        cpu_add_reg(reg, 1);
+}
+
+static inline void cpu_exec_jc(uint8_t reg, uint64_t value1, uint8_t size)
+{
+    uint8_t flags = cpu_resolve_flags(size);
+    value1 = cpu_resolve_value(value1, 0, size);
+    if (cpu_read_reg(flags) & cpu_flags_CF)
+        cpu_write_reg(reg, value1);
+    else
+        cpu_add_reg(reg, 1);
+}
+
+static inline void cpu_exec_jnc(uint8_t reg, uint64_t value1, uint8_t size)
+{
+    uint8_t flags = cpu_resolve_flags(size);
+    value1 = cpu_resolve_value(value1, 0, size);
+    if (~cpu_read_reg(flags) & cpu_flags_CF)
+        cpu_write_reg(reg, value1);
+    else
+        cpu_add_reg(reg, 1);
+}
+
+static inline void cpu_exec_jz(uint8_t reg, uint64_t value1, uint8_t size)
+{
+    return cpu_exec_je(reg, value1, size);
+}
+
+static inline void cpu_exec_jnz(uint8_t reg, uint64_t value1, uint8_t size)
+{
+    return cpu_exec_jne(reg, value1, size);
 }
 
 static inline void cpu_push_reg(uint8_t stack, uint8_t reg, uint8_t size)
@@ -830,7 +903,7 @@ static inline void cpu_print_instruction(char *instruction, char *type,
         printf("%s", cpu_regs_string[value1]);
         break;
     case cpu_type_int:
-        printf("%lu", value1);
+        printf("0x%lx", value1);
         break;
     case cpu_type_memory:
         printf("[0x%lx]", value1);
@@ -855,7 +928,7 @@ static inline void cpu_print_instruction(char *instruction, char *type,
         printf("%s", cpu_regs_string[value2]);
         break;
     case cpu_type_int:
-        printf("%lu", value2);
+        printf("0x%lx", value2);
         break;
     case cpu_type_memory:
         printf("[0x%lx]", value2);
@@ -910,15 +983,45 @@ void cpu_emulate_i8086(uint8_t debug)
         switch ((opcode[0] & 0x38) >> 3)
         {
         case 0x00:
-            if (!opcode[0])
-                goto is_pop_cs;
-            value1 = cpu_rel16(cpu_reg_ip);
-            if (cpu_state[cpu_cc_a])
-                cpu_write_reg(cpu_reg_ip, value1), cpu_state[cpu_cc_a] = false;
-            else
-                cpu_add_reg(cpu_reg_ip, 1);
-            if (debug)
-                printf("je 0x%hx\n", value1);
+            switch (opcode[1] >> 2 & 0x07)
+            {
+            case 1:
+                value1 = cpu_rel16(cpu_reg_ip);
+                cpu_exec_jnc(cpu_reg_ip, value1, 2);
+                if (debug)
+                    printf("jnc 0x%hx\n", value1);
+                break;
+            case 2:
+                value1 = cpu_rel16(cpu_reg_ip);
+                cpu_exec_jc(cpu_reg_ip, value1, 2);
+                if (debug)
+                    printf("jc 0x%hx\n", value1);
+                break;
+            case 3:
+                value1 = cpu_rel16(cpu_reg_ip);
+                cpu_exec_jnz(cpu_reg_ip, value1, 2);
+                if (debug)
+                    printf("jnz 0x%hx\n", value1);
+                break;
+            case 4:
+                value1 = cpu_rel16(cpu_reg_ip);
+                cpu_exec_jz(cpu_reg_ip, value1, 2);
+                if (debug)
+                    printf("jz 0x%hx\n", value1);
+                break;
+            case 5:
+                value1 = cpu_rel16(cpu_reg_ip);
+                cpu_exec_jne(cpu_reg_ip, value1, 2);
+                if (debug)
+                    printf("jne 0x%hx\n", value1);
+                break;
+            case 6:
+                value1 = cpu_rel16(cpu_reg_ip);
+                cpu_exec_je(cpu_reg_ip, value1, 2);
+                if (debug)
+                    printf("je 0x%hx\n", value1);
+                break;
+            }
             break;
         is_pop_cs:
         default:
@@ -1107,10 +1210,7 @@ void cpu_emulate_i8086(uint8_t debug)
         break;
     case 0x74:
         value1 = cpu_rel8(cpu_reg_ip);
-        if (cpu_state[cpu_cc_a])
-            cpu_write_reg(cpu_reg_ip, value1), cpu_state[cpu_cc_a] = false;
-        else
-            cpu_add_reg(cpu_reg_ip, 1);
+        cpu_exec_je(cpu_reg_ip, value1, 2);
         if (debug)
             printf("je 0x%hx\n", value1);
         break;
