@@ -1,11 +1,9 @@
 bits 16
 org 0xf0000
 
-section .text
-
 pmode:use16
+    jmp start
     mov word sp, 0x3000
-    call word start
     lgdt [gdtr]
     mov ax, 0x10
     mov ds, ax
@@ -13,7 +11,7 @@ pmode:use16
     mov fs, ax
     mov gs, ax
     mov ss, ax
-	jmp	0x08:.flush
+	jmp 0x08:.flush
 .flush:use32
     mov dword eax, eax
 	jmp dword .flush
