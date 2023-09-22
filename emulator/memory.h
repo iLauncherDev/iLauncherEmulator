@@ -4,6 +4,9 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+extern uint64_t vm_memory_size, bios_size;
+extern uint8_t *vm_memory;
+
 static inline uint64_t memory_read(void *address, uint8_t size)
 {
     switch (size)

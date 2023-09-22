@@ -26,7 +26,7 @@ uint64_t window_framebuffer[] = {
     0,
 };
 
-uint64_t vm_memory_size;
+uint64_t vm_memory_size, bios_size;
 uint8_t *vm_memory;
 
 void framebuffer_draw(void *input, void *output,
@@ -107,7 +107,7 @@ int32_t main(int32_t argc, char **argv)
 {
     uint32_t code_delay = 0;
     FILE *bios_bin = (FILE *)NULL;
-    uint64_t size = 0;
+    bios_size = 0;
     for (int32_t i = 1; i < argc; i++)
     {
         if (!strcmp(argv[i], "-memory"))
@@ -115,12 +115,6 @@ int32_t main(int32_t argc, char **argv)
             if (argc - i < 2)
                 continue;
             i++;
-            if (vm_memory)
-                continue;
-            vm_memory = malloc(atoi(argv[i]) * 1024 * 1024);
-            if (!vm_memory)
-                return 1;
-            printf("Allocated %sMB In RAM\n", argv[i]);
             vm_memory_size = atoi(argv[i]) * 1024 * 1024;
         }
         else if (!strcmp(argv[i], "-dump-bios"))
@@ -145,7 +139,7 @@ int32_t main(int32_t argc, char **argv)
             if (!bios_bin)
                 continue;
             fseek(bios_bin, 0L, SEEK_END);
-            size = ftell(bios_bin);
+            bios_size = ftell(bios_bin);
             fseek(bios_bin, 0L, SEEK_SET);
         }
         else if (!strcmp(argv[i], "-debug-code"))
@@ -158,20 +152,20 @@ int32_t main(int32_t argc, char **argv)
             return 1;
         }
     }
-    if (!vm_memory)
-        vm_memory = malloc(16 * 1024 * 1024),
-        vm_memory_size = 16 * 1024 * 1024,
-        printf("Allocated %sMB In RAM\n", "16");
+    if (!vm_memory_size)
+        vm_memory_size = 0x100000;
+    vm_memory = malloc(vm_memory_size + bios_size + 0x1000);
+    printf("Allocated %luMB In RAM\n", vm_memory_size / 1024 / 1024);
     if (bios_bin)
-        fread(vm_memory, size, 1, bios_bin);
+        fread(&vm_memory[vm_memory_size], bios_size, 1, bios_bin);
     if (dump_bios)
     {
-        for (size_t i = 0; i < size; i++)
-            printf("%x ", vm_memory[i]);
+        for (size_t i = 0; i < bios_size; i++)
+            printf("%x ", vm_memory[vm_memory_size + i]);
         printf("\n");
         return 0;
     }
-    cpu_setup_precalcs();
+    gdt_setup();
     SDL_Init(SDL_INIT_VIDEO);
     window = SDL_CreateWindow("Emulator", 0, 0,
                               window_framebuffer[1], window_framebuffer[2],

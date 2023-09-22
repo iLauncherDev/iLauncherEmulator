@@ -1,7 +1,5 @@
 #include "cpu.h"
 
-extern SDL_Window *window;
-extern SDL_Surface *window_surface;
 extern uint64_t window_framebuffer[];
 
 uint8_t rm_offset[16] = {
@@ -40,8 +38,12 @@ uint8_t segregs[] = {
     cpu_reg_ds,
 };
 
-static inline uint64_t cpu_read_reg(uint8_t reg)
+uint64_t cpu_read_reg(uint8_t reg)
 {
+    if (reg == cpu_reg_gdtr)
+    {
+        return *(uint64_t *)&cpu_state[reg];
+    }
     if (reg >= cpu_reg_eax && reg <= cpu_reg_r15d)
     {
         return (*(uint16_t *)&cpu_state[((reg - cpu_reg_eax) >> 1) + cpu_reg_ax] << 16) |
@@ -58,8 +60,13 @@ static inline uint64_t cpu_read_reg(uint8_t reg)
     return 0;
 }
 
-static inline void cpu_write_reg(uint8_t reg, uint64_t value)
+void cpu_write_reg(uint8_t reg, uint64_t value)
 {
+    if (reg == cpu_reg_gdtr)
+    {
+        *(uint64_t *)&cpu_state[reg] = value;
+        return;
+    }
     if (reg >= cpu_reg_eax && reg <= cpu_reg_r15d)
     {
         *(uint16_t *)&cpu_state[((reg - cpu_reg_eax) >> 1) + cpu_reg_al] = value & 0xffff;
@@ -223,13 +230,18 @@ static inline void cpu_exec_mov(uint64_t value1, uint64_t value2, uint8_t size)
                                                      : (cpu_read_reg(cpu_info[0].reg_type_buffer[1]) +
                                                         (cpu_read_reg(cpu_info[0].reg_type_buffer[2])));
     value2 = cpu_resolve_value(value2, 1, size);
+    gdt_entry_t *entry = (gdt_entry_t *)(&vm_memory[((gdtr_t *)&vm_memory[cpu_read_reg(cpu_reg_gdtr)])->base] +
+                                         cpu_read_reg(cpu_reg_ds));
+    uint64_t base = (entry->base_high << 24) |
+                    (entry->base_middle << 16) |
+                    entry->base_low;
     switch (cpu_info[0].reg_type)
     {
     case cpu_type_memory:
-        memory_write(&vm_memory[value1], value2, size);
+        memory_write(&vm_memory[base + value1], value2, size);
         break;
     case cpu_type_memory_reg:
-        memory_write(&vm_memory[value1], value2, size);
+        memory_write(&vm_memory[base + value1], value2, size);
         break;
     default:
         cpu_write_reg(value1, value2);
@@ -949,7 +961,12 @@ end:
 
 void cpu_emulate_i8086(uint8_t debug)
 {
-    opcode = &vm_memory[cpu_read_reg(cpu_reg_ip)];
+    gdt_entry_t *entry = (gdt_entry_t *)(&vm_memory[((gdtr_t *)&vm_memory[cpu_read_reg(cpu_reg_gdtr)])->base] +
+                                         cpu_read_reg(cpu_reg_cs));
+    uint64_t base = (entry->base_high << 24) |
+                    (entry->base_middle << 16) |
+                    entry->base_low;
+    opcode = &vm_memory[base + cpu_read_reg(cpu_reg_ip)];
     uint16_t value1;
     uint16_t value2;
     char *operation;

@@ -3,6 +3,7 @@
 #define CPU_H
 #include "memory.h"
 #include "io.h"
+#include "gdt.h"
 #include <stdint.h>
 #include <stdbool.h>
 #include <stdio.h>
@@ -78,7 +79,9 @@ typedef enum cpu_regs
     cpu_reg_r14d = 148,
     cpu_reg_r15d = 152,
 
-    cpu_reg_end = 154,
+    cpu_reg_gdtr = 156,
+
+    cpu_reg_end = 164,
 
     cpu_type_reg,
     cpu_type_int,
@@ -260,10 +263,10 @@ typedef struct cpu_info
     uint8_t reg_type_buffer[3];
 } cpu_info_t;
 
-extern uint64_t vm_memory_size;
-extern uint8_t *vm_memory;
 extern uint8_t cpu_state[];
 
+uint64_t cpu_read_reg(uint8_t reg);
+void cpu_write_reg(uint8_t reg, uint64_t value);
 void cpu_reset();
 void cpu_setup_precalcs();
 void cpu_dump_state();

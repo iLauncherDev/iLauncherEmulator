@@ -2,6 +2,7 @@
 #ifndef GDT_H
 #define GDT_H
 #include "memory.h"
+#include "cpu.h"
 
 typedef struct gdt_entry_t
 {
@@ -16,7 +17,10 @@ typedef struct gdt_entry_t
 typedef struct gdtr_t
 {
     uint16_t limit;
-    uint32_t base;
+    uint64_t base;
 } __attribute__((packed)) gdtr_t;
 
+extern gdtr_t *gdtr;
+
+void gdt_setup();
 #endif
