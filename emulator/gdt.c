@@ -20,7 +20,7 @@ void gdt_setup()
     gdtr->base = cpu_read_reg(cpu_reg_gdtr) + sizeof(gdtr_t);
     gdt_set_entry(0, 0, 0, 0, 0);
     gdt_set_entry(1, 0x00000000, 0xffffffff, 0x9A, 0x0F);
-    gdt_set_entry(2, vm_memory_size, vm_memory_size + bios_size, 0x92, 0x0F);
+    gdt_set_entry(2, 0x000f0000, 0xffffffff, 0x92, 0x0F);
     cpu_write_reg(cpu_reg_gs, 0x08);
     cpu_write_reg(cpu_reg_fs, 0x08);
     cpu_write_reg(cpu_reg_es, 0x08);

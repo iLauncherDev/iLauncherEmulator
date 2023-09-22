@@ -1,15 +1,11 @@
 bits 16
-section .bss
-
-stack_start:
-    resb 0x1000
-stack_end:
+org 0xf0000
 
 section .text
 
 pmode:use16
-    mov word sp, stack_end
-    call start
+    mov word sp, 0x3000
+    call word start
     lgdt [gdtr]
     mov ax, 0x10
     mov ds, ax
@@ -65,22 +61,9 @@ loop:use16
 
 gdt:
     .start:
-    .null:
-        dq 0
-    .code:
-        dw 0FFFFh
-	    dw 0
-	    db 0
-	    db 10011010b
-	    db 11001111b
-	    db 0
-    .data:
-	    dw 0FFFFh
-	    dw 0
-	    db 0
-	    db 10010010b
-	    db 11001111b
-	    db 0
+        dq 0x0000000000000000
+        dq 0x00cf9a000000ffff
+        dq 0x00cf93000000ffff
     .end:
     
 gdtr:

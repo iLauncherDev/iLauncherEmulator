@@ -1211,6 +1211,11 @@ void cpu_emulate_i8086(uint8_t debug)
             printf("popa\n");
         cpu_add_reg(cpu_reg_ip, 1);
         break;
+    case 0x66:
+        if (debug)
+            printf("dword override\n");
+        cpu_add_reg(cpu_reg_ip, 1);
+        break;
     case 0x6a:
         value2 = cpu_imm8(cpu_reg_ip);
         cpu_push_int(cpu_reg_sp, value2, 2);
