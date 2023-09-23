@@ -153,7 +153,7 @@ int32_t main(int32_t argc, char **argv)
         }
     }
     if (!vm_memory_size)
-        vm_memory_size = 0x100000;
+        vm_memory_size = 0x400000;
     vm_memory = malloc(vm_memory_size + bios_size + 0xffff);
     printf("Allocated %luMB In RAM\n", vm_memory_size / 1024 / 1024);
     if (bios_bin)

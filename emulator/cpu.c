@@ -36,6 +36,8 @@ uint8_t segregs[] = {
     cpu_reg_cs,
     cpu_reg_ss,
     cpu_reg_ds,
+    cpu_reg_fs,
+    cpu_reg_gs,
 };
 
 uint64_t cpu_read_reg(uint8_t reg)
@@ -502,13 +504,13 @@ static inline uint64_t cpu_r_rm(uint8_t reg, void *r, uint8_t r_size, uint8_t si
     switch (r_size)
     {
     case 1:
-        *(uint8_t *)r = regs8[(opcode[1] & 0x38) >> 3];
+        *(uint64_t *)r = regs8[(opcode[1] & 0x38) >> 3];
         break;
     case 2:
-        *(uint8_t *)r = regs16[(opcode[1] & 0x38) >> 3];
+        *(uint64_t *)r = regs16[(opcode[1] & 0x38) >> 3];
         break;
     case 255:
-        *(uint8_t *)r = segregs[((opcode[1] & 0x38) >> 3) & 0x03];
+        *(uint64_t *)r = segregs[(opcode[1] & 0x38) >> 3];
         break;
     default:
         break;
@@ -610,13 +612,13 @@ static inline uint64_t cpu_rm_r(uint8_t reg, void *r, uint8_t r_size, uint8_t si
     switch (r_size)
     {
     case 1:
-        *(uint8_t *)r = regs8[(opcode[1] & 0x38) >> 3];
+        *(uint64_t *)r = regs8[(opcode[1] & 0x38) >> 3];
         break;
     case 2:
-        *(uint8_t *)r = regs16[(opcode[1] & 0x38) >> 3];
+        *(uint64_t *)r = regs16[(opcode[1] & 0x38) >> 3];
         break;
     case 255:
-        *(uint8_t *)r = segregs[((opcode[1] & 0x38) >> 3) & 0x03];
+        *(uint64_t *)r = segregs[(opcode[1] & 0x38) >> 3];
         break;
     default:
         break;
@@ -895,8 +897,8 @@ void cpu_emulate_i8086(uint8_t debug)
                     (entry->base_middle << 16) |
                     entry->base_low;
     opcode = &vm_memory[base + cpu_read_reg(cpu_reg_ip)];
-    uint16_t value1;
-    uint16_t value2;
+    uint64_t value1;
+    uint64_t value2;
     char *operation;
     if (debug)
         printf("IP: 0x%lx, SP: 0x%lx, OPCODE 0x%x: ",
@@ -934,25 +936,25 @@ void cpu_emulate_i8086(uint8_t debug)
                 value1 = cpu_rel16(cpu_reg_ip);
                 cpu_exec_jnc(cpu_reg_ip, value1, 2);
                 if (debug)
-                    printf("jnc 0x%hx\n", value1);
+                    printf("jnc 0x%lx\n", value1);
                 break;
             case 2:
                 value1 = cpu_rel16(cpu_reg_ip);
                 cpu_exec_jc(cpu_reg_ip, value1, 2);
                 if (debug)
-                    printf("jc 0x%hx\n", value1);
+                    printf("jc 0x%lx\n", value1);
                 break;
             case 3:
                 value1 = cpu_rel16(cpu_reg_ip);
                 cpu_exec_jnz(cpu_reg_ip, value1, 2);
                 if (debug)
-                    printf("jnz 0x%hx\n", value1);
+                    printf("jnz 0x%lx\n", value1);
                 break;
             case 4:
                 value1 = cpu_rel16(cpu_reg_ip);
                 cpu_exec_jz(cpu_reg_ip, value1, 2);
                 if (debug)
-                    printf("jz 0x%hx\n", value1);
+                    printf("jz 0x%lx\n", value1);
                 break;
             case 5:
                 switch ((opcode[1] & 0x38) >> 3)
@@ -970,7 +972,7 @@ void cpu_emulate_i8086(uint8_t debug)
                     value1 = cpu_rel16(cpu_reg_ip);
                     cpu_exec_jne(cpu_reg_ip, value1, 2);
                     if (debug)
-                        printf("jne 0x%hx\n", value1);
+                        printf("jne 0x%lx\n", value1);
                     break;
                 }
                 break;
@@ -978,7 +980,7 @@ void cpu_emulate_i8086(uint8_t debug)
                 value1 = cpu_rel16(cpu_reg_ip);
                 cpu_exec_je(cpu_reg_ip, value1, 2);
                 if (debug)
-                    printf("je 0x%hx\n", value1);
+                    printf("je 0x%lx\n", value1);
                 break;
             default:
                 goto is_pop_cs;
@@ -1164,21 +1166,21 @@ void cpu_emulate_i8086(uint8_t debug)
         value2 = cpu_imm8(cpu_reg_ip);
         cpu_push_int(cpu_reg_sp, value2, 2);
         if (debug)
-            printf("push byte 0x%x\n", value2);
+            printf("push byte 0x%lx\n", value2);
         cpu_add_reg(cpu_reg_ip, 1);
         break;
     case 0x68:
         value2 = cpu_imm16(cpu_reg_ip);
         cpu_push_int(cpu_reg_sp, value2, 2);
         if (debug)
-            printf("push word 0x%x\n", value2);
+            printf("push word 0x%lx\n", value2);
         cpu_add_reg(cpu_reg_ip, 1);
         break;
     case 0x74:
         value1 = cpu_rel8(cpu_reg_ip);
         cpu_exec_je(cpu_reg_ip, value1, 2);
         if (debug)
-            printf("je 0x%hx\n", value1);
+            printf("je 0x%lx\n", value1);
         break;
     case 0x80:
         switch ((opcode[1] & 0x38) >> 3)
@@ -1491,7 +1493,7 @@ void cpu_emulate_i8086(uint8_t debug)
         cpu_push_reg(cpu_reg_sp, cpu_reg_ip, 2);
         cpu_write_reg(cpu_reg_ip, value1);
         if (debug)
-            printf("call word 0x%hx\n", value1);
+            printf("call word 0x%lx\n", value1);
         break;
     case 0xe9:
         cpu_write_reg(cpu_reg_ip, cpu_rel16(cpu_reg_ip));
