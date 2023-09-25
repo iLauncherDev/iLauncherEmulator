@@ -2,7 +2,14 @@
 
 extern uint64_t window_framebuffer[];
 
-uint8_t rm_offset[16] = {
+uint8_t rm_offset[] = {
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
     0,
     0,
 };
@@ -1159,7 +1166,7 @@ void cpu_emulate_i8086(uint8_t debug)
         break;
     case 0x66:
         if (debug)
-            printf("dword override\n");
+            printf(";dword override\n");
         cpu_add_reg(cpu_reg_ip, 1);
         break;
     case 0x6a:
