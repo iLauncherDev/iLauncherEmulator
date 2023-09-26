@@ -32,11 +32,17 @@ call_loop:use16
     cmp word bp, colors + (256 * 4)
     je .end
 .l2:
-    mov ax, [bp]
-    add bp, 2
-    mov bx, [bp]
-    add bp, 2
-    call loop
+    mov ax, 0x18
+    mov ds, ax
+    mov word ax, [bp]
+    add word bp, 2
+    mov word bx, [bp]
+    add word bp, 2
+    push ax
+    mov ax, 0x10
+    mov ds, ax
+    pop ax
+    call word loop
     jmp .l1
 .end:
     jmp call_loop
