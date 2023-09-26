@@ -126,6 +126,11 @@ static inline void cpu_or_reg(uint8_t reg, uint64_t value)
     cpu_write_reg(reg, cpu_read_reg(reg) | value);
 }
 
+static inline void cpu_xor_reg(uint8_t reg, uint64_t value)
+{
+    cpu_write_reg(reg, cpu_read_reg(reg) ^ value);
+}
+
 static inline uint64_t cpu_resolve_value(uint64_t value, uint8_t index, uint8_t size)
 {
     gdt_entry_t *entry = (gdt_entry_t *)(&vm_memory[((gdtr_t *)&vm_memory[cpu_read_reg(cpu_reg_gdtr)])->base] +
@@ -254,6 +259,19 @@ static inline void cpu_exec_or(uint64_t value1, uint64_t value2, uint8_t size)
     value2 = cpu_resolve_value(value2, 1, size);
     cpu_info[1].reg_type = cpu_type_int;
     cpu_exec_mov(value1, resolved_value1 | value2, size);
+}
+
+static inline void cpu_exec_xor(uint64_t value1, uint64_t value2, uint8_t size)
+{
+    if (cpu_info[0].reg_type == cpu_type_reg)
+    {
+        cpu_xor_reg(value1, value2);
+        return;
+    }
+    uint64_t resolved_value1 = cpu_resolve_value(value1, 0, size);
+    value2 = cpu_resolve_value(value2, 1, size);
+    cpu_info[1].reg_type = cpu_type_int;
+    cpu_exec_mov(value1, resolved_value1 ^ value2, size);
 }
 
 static inline uint8_t cpu_resolve_flags(uint8_t size)
@@ -420,7 +438,7 @@ static inline uint64_t cpu_rm(uint8_t reg, uint8_t size)
     case 0x00:
         if (rm8 == 0x06)
         {
-            value = (opcode[3] << 8) | opcode[2];
+            value = *(uint16_t *)&opcode[2];
             cpu_info[cpu_info_index++].reg_type = cpu_type_memory;
             opcode += 3, cpu_write_reg(reg, cpu_read_reg(reg) + 3);
             return value;
@@ -435,7 +453,7 @@ static inline uint64_t cpu_rm(uint8_t reg, uint8_t size)
         }
         break;
     case 0x02:
-        value = (opcode[3] << 8) | opcode[2];
+        value = *(uint16_t *)&opcode[2];
         cpu_info[cpu_info_index++].reg_type = cpu_type_memory;
         opcode += 3, cpu_write_reg(reg, cpu_read_reg(reg) + 3);
         return (uint64_t)value;
@@ -723,14 +741,14 @@ static inline uint8_t cpu_r16(uint8_t reg)
 {
     opcode++, cpu_write_reg(reg, cpu_read_reg(reg) + 1);
     cpu_info[cpu_info_index++].reg_type = cpu_type_reg;
-    return regs16[(*opcode & 0x38) >> 3];
+    return regs16[(*opcode & 0x38) & 7];
 }
 
 static inline uint8_t cpu_r8(uint8_t reg)
 {
     opcode++, cpu_write_reg(reg, cpu_read_reg(reg) + 1);
     cpu_info[cpu_info_index++].reg_type = cpu_type_reg;
-    return regs8[(*opcode & 0x38) >> 3];
+    return regs8[(*opcode & 0x38) & 7];
 }
 
 static inline uint16_t cpu_rm8_r8(uint8_t reg, void *r)
@@ -795,7 +813,7 @@ static inline uint8_t cpu_rm8(uint8_t reg)
 
 static inline uint16_t cpu_imm16(uint8_t reg)
 {
-    uint16_t imm = (opcode[2] << 8) | opcode[1];
+    uint16_t imm = *(uint16_t *)&opcode[1];
     cpu_info[cpu_info_index++].reg_type = cpu_type_int;
     opcode += 2, cpu_write_reg(reg, cpu_read_reg(reg) + 2);
     return (uint16_t)imm;
@@ -811,7 +829,7 @@ static inline uint8_t cpu_imm8(uint8_t reg)
 
 static inline uint16_t cpu_rel16(uint8_t reg)
 {
-    uint16_t rel = (opcode[2] << 8) | opcode[1];
+    uint16_t rel = *(uint16_t *)&opcode[1];
     cpu_info[cpu_info_index++].reg_type = cpu_type_int;
     opcode += 2, cpu_write_reg(reg, cpu_read_reg(reg) + 2);
     return (uint16_t)(cpu_read_reg(reg) + rel + 1);
@@ -829,7 +847,7 @@ static inline uint8_t cpu_sr(uint8_t reg)
 {
     cpu_info[cpu_info_index++].reg_type = cpu_type_reg;
     opcode++, cpu_write_reg(reg, cpu_read_reg(reg) + 1);
-    return (opcode[0] & 0x38) >> 3;
+    return segregs[(opcode[1] & 0x38) >> 3];
 }
 
 static inline void cpu_print_instruction(char *instruction, char *type,
@@ -1026,6 +1044,34 @@ void cpu_emulate_i8086(uint8_t debug)
             printf("pop word ds\n");
         cpu_add_reg(cpu_reg_ip, 1);
         break;
+    case 0x30:
+        value1 = cpu_rm8(cpu_reg_ip);
+        value2 = cpu_r8(cpu_reg_ip);
+        cpu_exec_xor(value1, value2, 1);
+        if (debug)
+            cpu_print_instruction("xor", "byte", 2, value1, value2);
+        break;
+    case 0x31:
+        value1 = cpu_rm16(cpu_reg_ip);
+        value2 = cpu_r16(cpu_reg_ip);
+        cpu_exec_xor(value1, value2, 2);
+        if (debug)
+            cpu_print_instruction("xor", "word", 2, value1, value2);
+        break;
+    case 0x32:
+        value1 = cpu_r8(cpu_reg_ip);
+        value2 = cpu_rm8(cpu_reg_ip);
+        cpu_exec_xor(value1, value2, 1);
+        if (debug)
+            cpu_print_instruction("xor", "byte", 2, value1, value2);
+        break;
+    case 0x33:
+        value1 = cpu_r16(cpu_reg_ip);
+        value2 = cpu_rm16(cpu_reg_ip);
+        cpu_exec_xor(value1, value2, 2);
+        if (debug)
+            cpu_print_instruction("xor", "word", 2, value1, value2);
+        break;
     case 0x38:
         value1 = cpu_rm8_r8(cpu_reg_ip, &value2);
         cpu_exec_cmp(value1, value2, 1);
@@ -1220,6 +1266,13 @@ void cpu_emulate_i8086(uint8_t debug)
             if (debug)
                 cpu_print_instruction("sub", "byte", 2, value1, value2);
             break;
+        case 0x06:
+            value1 = cpu_rm8(cpu_reg_ip);
+            value2 = cpu_imm8(cpu_reg_ip);
+            cpu_exec_xor(value1, value2, 1);
+            if (debug)
+                cpu_print_instruction("xor", "byte", 2, value1, value2);
+            break;
         case 0x07:
             value1 = cpu_rm8(cpu_reg_ip);
             value2 = cpu_imm8(cpu_reg_ip);
@@ -1264,6 +1317,13 @@ void cpu_emulate_i8086(uint8_t debug)
             if (debug)
                 cpu_print_instruction("sub", "word", 2, value1, value2);
             break;
+        case 0x06:
+            value1 = cpu_rm16(cpu_reg_ip);
+            value2 = cpu_imm16(cpu_reg_ip);
+            cpu_exec_xor(value1, value2, 1);
+            if (debug)
+                cpu_print_instruction("xor", "byte", 2, value1, value2);
+            break;
         case 0x07:
             value1 = cpu_rm16(cpu_reg_ip);
             value2 = cpu_imm16(cpu_reg_ip);
@@ -1307,6 +1367,13 @@ void cpu_emulate_i8086(uint8_t debug)
             cpu_exec_sub(value1, value2, 2);
             if (debug)
                 cpu_print_instruction("sub", "word", 2, value1, value2);
+            break;
+        case 0x06:
+            value1 = cpu_rm16(cpu_reg_ip);
+            value2 = cpu_imm8(cpu_reg_ip);
+            cpu_exec_xor(value1, value2, 1);
+            if (debug)
+                cpu_print_instruction("xor", "byte", 2, value1, value2);
             break;
         case 0x07:
             value1 = cpu_rm16(cpu_reg_ip);
@@ -1506,6 +1573,14 @@ void cpu_emulate_i8086(uint8_t debug)
         cpu_write_reg(cpu_reg_ip, cpu_rel16(cpu_reg_ip));
         if (debug)
             printf("jmp word 0x%lx\n", cpu_read_reg(cpu_reg_ip));
+        break;
+    case 0xea:
+        value1 = cpu_imm16(cpu_reg_ip);
+        value2 = cpu_imm16(cpu_reg_ip);
+        cpu_write_reg(cpu_reg_ip, value1);
+        cpu_write_reg(cpu_reg_cs, value2);
+        if (debug)
+            printf("jmp word 0x%lx:0x%lx\n", value2, value1);
         break;
     case 0xeb:
         cpu_write_reg(cpu_reg_ip, cpu_rel8(cpu_reg_ip));
