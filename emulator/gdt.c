@@ -19,12 +19,12 @@ void gdt_setup()
     gdtr->limit = sizeof(gdt_entry_t) * 5 - 1;
     gdtr->base = cpu_read_reg(cpu_reg_gdtr) + sizeof(gdtr_t);
     gdt_set_entry(0, 0, 0, 0, 0);
-    gdt_set_entry(1, 0x00000000, 0xffffffff, 0x9A, 0x0F);
-    gdt_set_entry(2, 0x000f0000, 0xffffffff, 0x92, 0x0F);
-    cpu_write_reg(cpu_reg_gs, 0x08);
-    cpu_write_reg(cpu_reg_fs, 0x08);
-    cpu_write_reg(cpu_reg_es, 0x08);
-    cpu_write_reg(cpu_reg_ds, 0x08);
-    cpu_write_reg(cpu_reg_cs, 0x10);
-    cpu_write_reg(cpu_reg_ss, 0x08);
+    gdt_set_entry(1, vm_memory_size, 0xffffffff, 0x9A, 0x0F);
+    gdt_set_entry(2, vm_memory_size, 0xffffffff, 0x92, 0x0F);
+    cpu_write_reg(cpu_reg_gs, 0x10);
+    cpu_write_reg(cpu_reg_fs, 0x10);
+    cpu_write_reg(cpu_reg_es, 0x10);
+    cpu_write_reg(cpu_reg_ds, 0x10);
+    cpu_write_reg(cpu_reg_cs, 0x08);
+    cpu_write_reg(cpu_reg_ss, 0x10);
 }
