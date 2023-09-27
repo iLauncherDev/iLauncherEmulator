@@ -3,14 +3,14 @@ org 0xf0000
 
 pmode:use16
     mov word sp, 0x3000
-    ;lgdt [gdtr]
+    lgdt [gdtr]
     mov ax, 0x10
     mov ds, ax
     mov es, ax
     mov fs, ax
     mov gs, ax
     mov ss, ax
-	jmp 0x08:start
+	jmp start
 
 start:use16
     mov word ax, 0xffff

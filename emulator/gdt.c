@@ -15,6 +15,7 @@ void gdt_set_entry(uint8_t num, uint32_t base, uint32_t limit, uint8_t access, u
 void gdt_setup()
 {
     cpu_write_reg(cpu_reg_gdtr, vm_memory_size + bios_size);
+    cpu_write_reg(cpu_reg_gdtr_next, vm_memory_size + bios_size);
     gdtr_t *gdtr = (gdtr_t *)&vm_memory[cpu_read_reg(cpu_reg_gdtr)];
     gdtr->limit = sizeof(gdt_entry_t) * 5 - 1;
     gdtr->base = cpu_read_reg(cpu_reg_gdtr) + sizeof(gdtr_t);

@@ -49,7 +49,7 @@ uint8_t segregs[] = {
 
 uint64_t cpu_read_reg(uint8_t reg)
 {
-    if (reg == cpu_reg_gdtr)
+    if (reg >= cpu_reg_gdtr && reg < cpu_reg_end && ((reg - cpu_reg_gdtr) & 8) == 0)
     {
         return *(uint64_t *)&cpu_state[reg];
     }
@@ -72,7 +72,7 @@ uint64_t cpu_read_reg(uint8_t reg)
 
 void cpu_write_reg(uint8_t reg, uint64_t value)
 {
-    if (reg == cpu_reg_gdtr)
+    if (reg >= cpu_reg_gdtr && reg < cpu_reg_end && ((reg - cpu_reg_gdtr) & 8) == 0)
     {
         *(uint64_t *)&cpu_state[reg] = value;
         return;
@@ -430,7 +430,7 @@ void cpu_dump_state()
 
 static inline uint64_t cpu_rm(uint8_t reg, uint8_t size)
 {
-    uint8_t mod = opcode[1] >> 6;
+    uint8_t mod = (opcode[1] & 0xc0) >> 6;
     uint8_t rm8 = opcode[1] & 7;
     uint64_t value;
     switch (mod)
@@ -523,7 +523,7 @@ static inline uint64_t cpu_rm(uint8_t reg, uint8_t size)
 
 static inline uint64_t cpu_r_rm(uint8_t reg, void *r, uint8_t r_size, uint8_t size)
 {
-    uint8_t mod = opcode[1] >> 6;
+    uint8_t mod = (opcode[1] & 0xc0) >> 6;
     uint8_t rm8 = opcode[1] & 7;
     uint64_t value;
     switch (r_size)
@@ -631,7 +631,7 @@ static inline uint64_t cpu_r_rm(uint8_t reg, void *r, uint8_t r_size, uint8_t si
 
 static inline uint64_t cpu_rm_r(uint8_t reg, void *r, uint8_t r_size, uint8_t size)
 {
-    uint8_t mod = opcode[1] >> 6;
+    uint8_t mod = (opcode[1] & 0xc0) >> 6;
     uint8_t rm8 = opcode[1] & 7;
     uint64_t value;
     switch (r_size)
@@ -987,8 +987,7 @@ void cpu_emulate_i8086(uint8_t debug)
                 case 2:
                     value1 = cpu_rm16(cpu_reg_ip);
                     value2 = cpu_resolve_value(value1, 0, 2);
-                    cpu_add_reg(cpu_reg_ip, base);
-                    cpu_write_reg(cpu_reg_gdtr, value2);
+                    cpu_write_reg(cpu_reg_gdtr_next, value2);
                     if (debug)
                         cpu_print_instruction("lgdt", (void *)NULL, 1, value1, 0);
                     cpu_add_reg(cpu_reg_ip, 1);
@@ -1577,6 +1576,7 @@ void cpu_emulate_i8086(uint8_t debug)
     case 0xea:
         value1 = cpu_imm16(cpu_reg_ip);
         value2 = cpu_imm16(cpu_reg_ip);
+        cpu_write_reg(cpu_reg_gdtr, cpu_read_reg(cpu_reg_gdtr_next));
         cpu_write_reg(cpu_reg_ip, value1);
         cpu_write_reg(cpu_reg_cs, value2);
         if (debug)
