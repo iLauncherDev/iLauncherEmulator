@@ -83,9 +83,14 @@ void *window_update()
             scancode[SDL_SCANCODE_LSHIFT] && scancode[SDL_SCANCODE_F] && scancode_ready[SDL_SCANCODE_F])
         {
             if (!fullscreen)
+            {
                 SDL_SetWindowFullscreen(window, SDL_WINDOW_FULLSCREEN_DESKTOP), fullscreen = true;
+            }
             else
+            {
                 SDL_SetWindowFullscreen(window, 0), fullscreen = false;
+                SDL_SetWindowSize(window, window_framebuffer[1], window_framebuffer[2]);
+            }
             scancode_ready[SDL_SCANCODE_F] = false;
         }
         else if (scancode[SDL_SCANCODE_LCTRL] && scancode[SDL_SCANCODE_LALT] &&
@@ -157,7 +162,7 @@ int32_t main(int32_t argc, char **argv)
     vm_memory = malloc(vm_memory_size + bios_size + 0xff);
     printf("Allocated %luMB In RAM\n", vm_memory_size / 1024 / 1024);
     if (bios_bin)
-        fread(&vm_memory[vm_memory_size], bios_size, 1, bios_bin);
+        fread(&vm_memory[0xe0000], bios_size, 1, bios_bin);
     if (dump_bios)
     {
         for (size_t i = 0; i < bios_size; i++)

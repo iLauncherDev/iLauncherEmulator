@@ -925,11 +925,6 @@ void cpu_emulate_i8086(uint8_t debug)
     uint64_t value1;
     uint64_t value2;
     char *operation;
-    if (debug)
-        printf("IP: 0x%lx, SP: 0x%lx, OPCODE 0x%x: ",
-               cpu_read_reg(cpu_reg_ip),
-               cpu_read_reg(cpu_reg_sp),
-               *opcode);
     switch (*opcode)
     {
     case 0x06:
