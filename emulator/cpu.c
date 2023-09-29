@@ -1562,10 +1562,9 @@ void cpu_emulate_i8086(uint8_t debug)
         break;
     case 0xe8:
         value1 = cpu_rel16(cpu_reg_ip);
-        cpu_exec_jmp_near(cpu_reg_ip, value1, 2);
         cpu_add_reg(cpu_reg_ip, 1);
         cpu_push_reg(cpu_reg_sp, cpu_reg_ip, 2);
-        cpu_write_reg(cpu_reg_ip, value1);
+        cpu_exec_jmp_near(cpu_reg_ip, value1, 2);
         if (debug)
             printf("call 0x%lx\n", value1);
         break;
