@@ -304,12 +304,17 @@ static inline void cpu_exec_cmp(uint64_t value1, uint64_t value2, uint8_t size)
         cpu_and_reg(flags, ~cpu_flags_CF);
 }
 
+static inline void cpu_exec_jmp_near(uint8_t reg, uint64_t value1, uint8_t size)
+{
+    value1 = cpu_resolve_value(value1, 0, size);
+    cpu_add_reg(reg, value1 - cpu_read_reg(reg));
+}
+
 static inline void cpu_exec_je(uint8_t reg, uint64_t value1, uint8_t size)
 {
     uint8_t flags = cpu_resolve_flags(size);
-    value1 = cpu_resolve_value(value1, 0, size);
     if (cpu_read_reg(flags) & cpu_flags_ZF)
-        cpu_write_reg(reg, value1);
+        cpu_exec_jmp_near(reg, value1, size);
     else
         cpu_add_reg(reg, 1);
 }
@@ -319,7 +324,7 @@ static inline void cpu_exec_jne(uint8_t reg, uint64_t value1, uint8_t size)
     uint8_t flags = cpu_resolve_flags(size);
     value1 = cpu_resolve_value(value1, 0, size);
     if (~cpu_read_reg(flags) & cpu_flags_ZF)
-        cpu_write_reg(reg, value1);
+        cpu_exec_jmp_near(reg, value1, size);
     else
         cpu_add_reg(reg, 1);
 }
@@ -329,7 +334,7 @@ static inline void cpu_exec_jc(uint8_t reg, uint64_t value1, uint8_t size)
     uint8_t flags = cpu_resolve_flags(size);
     value1 = cpu_resolve_value(value1, 0, size);
     if (cpu_read_reg(flags) & cpu_flags_CF)
-        cpu_write_reg(reg, value1);
+        cpu_exec_jmp_near(reg, value1, size);
     else
         cpu_add_reg(reg, 1);
 }
@@ -339,7 +344,7 @@ static inline void cpu_exec_jnc(uint8_t reg, uint64_t value1, uint8_t size)
     uint8_t flags = cpu_resolve_flags(size);
     value1 = cpu_resolve_value(value1, 0, size);
     if (~cpu_read_reg(flags) & cpu_flags_CF)
-        cpu_write_reg(reg, value1);
+        cpu_exec_jmp_near(reg, value1, size);
     else
         cpu_add_reg(reg, 1);
 }
@@ -1557,16 +1562,18 @@ void cpu_emulate_i8086(uint8_t debug)
         break;
     case 0xe8:
         value1 = cpu_rel16(cpu_reg_ip);
+        cpu_exec_jmp_near(cpu_reg_ip, value1, 2);
         cpu_add_reg(cpu_reg_ip, 1);
         cpu_push_reg(cpu_reg_sp, cpu_reg_ip, 2);
         cpu_write_reg(cpu_reg_ip, value1);
         if (debug)
-            printf("call word 0x%lx\n", value1);
+            printf("call 0x%lx\n", value1);
         break;
     case 0xe9:
-        cpu_write_reg(cpu_reg_ip, cpu_rel16(cpu_reg_ip));
+        value1 = cpu_rel16(cpu_reg_ip);
+        cpu_exec_jmp_near(cpu_reg_ip, value1, 2);
         if (debug)
-            printf("jmp word 0x%lx\n", cpu_read_reg(cpu_reg_ip));
+            printf("jmp 0x%lx\n", value1);
         break;
     case 0xea:
         value1 = cpu_imm16(cpu_reg_ip);
@@ -1575,12 +1582,13 @@ void cpu_emulate_i8086(uint8_t debug)
         cpu_write_reg(cpu_reg_ip, value1);
         cpu_write_reg(cpu_reg_cs, value2);
         if (debug)
-            printf("jmp word 0x%lx:0x%lx\n", value2, value1);
+            printf("jmp 0x%lx:0x%lx\n", value2, value1);
         break;
     case 0xeb:
-        cpu_write_reg(cpu_reg_ip, cpu_rel8(cpu_reg_ip));
+        value1 = cpu_rel8(cpu_reg_ip);
+        cpu_exec_jmp_near(cpu_reg_ip, value1, 2);
         if (debug)
-            printf("jmp byte 0x%lx\n", cpu_read_reg(cpu_reg_ip));
+            printf("jmp 0x%lx\n", value1);
         break;
     case 0xec:
         if (debug)
