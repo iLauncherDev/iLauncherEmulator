@@ -8,6 +8,7 @@ start:
     ;mov ds, ax
     ;xor ax, ax
     ;mov es, ax
+    mov eax, 0xffff
     call test
     jmp start
 
