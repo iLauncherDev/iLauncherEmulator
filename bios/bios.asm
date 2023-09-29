@@ -8,7 +8,8 @@ start:
     ;mov ds, ax
     ;xor ax, ax
     ;mov es, ax
-    ;jmp main
+    call test
+    jmp start
 
 test:
     mov word ax, 0xffff

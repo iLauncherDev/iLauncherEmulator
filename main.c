@@ -157,7 +157,7 @@ int32_t main(int32_t argc, char **argv)
             return 1;
         }
     }
-    if (!vm_memory_size)
+    if (vm_memory_size < 0x400000)
         vm_memory_size = 0x400000;
     vm_memory = malloc(vm_memory_size + bios_size + 0xff);
     printf("Allocated %luMB In RAM\n", vm_memory_size / 1024 / 1024);
@@ -166,7 +166,7 @@ int32_t main(int32_t argc, char **argv)
     if (dump_bios)
     {
         for (size_t i = 0; i < bios_size; i++)
-            printf("%x ", vm_memory[vm_memory_size + i]);
+            printf("%x ", vm_memory[0xe0000 + i]);
         printf("\n");
         return 0;
     }

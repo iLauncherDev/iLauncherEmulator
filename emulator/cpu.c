@@ -49,6 +49,8 @@ uint8_t segregs[] = {
 
 uint64_t cpu_read_reg(uint8_t reg)
 {
+    if (reg == cpu_reg_ip)
+        reg = cpu_reg_eip;
     if (reg >= cpu_reg_gdtr && reg < cpu_reg_end && ((reg - cpu_reg_gdtr) & 8) == 0)
     {
         return *(uint64_t *)&cpu_state[reg];
@@ -60,8 +62,7 @@ uint64_t cpu_read_reg(uint8_t reg)
     }
     if (reg >= cpu_reg_ax && reg <= cpu_reg_r15w)
     {
-        return (*(uint16_t *)&cpu_state[reg] << 16) |
-               *(uint16_t *)&cpu_state[(reg - cpu_reg_ax) + cpu_reg_al];
+        return *(uint16_t *)&cpu_state[(reg - cpu_reg_ax) + cpu_reg_al];
     }
     if (reg >= cpu_reg_gs && reg <= cpu_reg_r15b)
     {
@@ -72,6 +73,8 @@ uint64_t cpu_read_reg(uint8_t reg)
 
 void cpu_write_reg(uint8_t reg, uint64_t value)
 {
+    if (reg == cpu_reg_ip)
+        reg = cpu_reg_eip;
     if (reg >= cpu_reg_gdtr && reg < cpu_reg_end && ((reg - cpu_reg_gdtr) & 8) == 0)
     {
         *(uint64_t *)&cpu_state[reg] = value;
@@ -86,7 +89,6 @@ void cpu_write_reg(uint8_t reg, uint64_t value)
     if (reg >= cpu_reg_ax && reg <= cpu_reg_r15w)
     {
         *(uint16_t *)&cpu_state[(reg - cpu_reg_ax) + cpu_reg_al] = value & 0xffff;
-        *(uint16_t *)&cpu_state[reg] = (value >> 16) & 0xffff;
         return;
     }
     if (reg >= cpu_reg_gs && reg <= cpu_reg_r15b)
@@ -141,12 +143,12 @@ static inline uint64_t cpu_resolve_value(uint64_t value, uint8_t index, uint8_t 
     switch (cpu_info[index].reg_type)
     {
     case cpu_type_memory:
-        return memory_read(&vm_memory[base + value], size);
+        return memory_read(base + value, size);
     case cpu_type_memory_reg:
-        return memory_read(&vm_memory[base + (cpu_info[index].reg_type_buffer[0] == 1
-                                                  ? (cpu_read_reg(cpu_info[index].reg_type_buffer[1]))
-                                                  : (cpu_read_reg(cpu_info[index].reg_type_buffer[1]) +
-                                                     (cpu_read_reg(cpu_info[index].reg_type_buffer[2]))))],
+        return memory_read(base + (cpu_info[index].reg_type_buffer[0] == 1
+                                       ? (cpu_read_reg(cpu_info[index].reg_type_buffer[1]))
+                                       : (cpu_read_reg(cpu_info[index].reg_type_buffer[1]) +
+                                          (cpu_read_reg(cpu_info[index].reg_type_buffer[2])))),
                            size);
     case cpu_type_reg:
         return cpu_read_reg(value);
@@ -165,13 +167,13 @@ static inline void cpu_exec_mov(uint64_t value1, uint64_t value2, uint8_t size)
     switch (cpu_info[0].reg_type)
     {
     case cpu_type_memory:
-        memory_write(&vm_memory[base + value1], value2, size);
+        memory_write(base + value1, value2, size);
         break;
     case cpu_type_memory_reg:
-        memory_write(&vm_memory[base + (cpu_info[0].reg_type_buffer[0] == 1
-                                            ? (cpu_read_reg(cpu_info[0].reg_type_buffer[1]))
-                                            : (cpu_read_reg(cpu_info[0].reg_type_buffer[1]) +
-                                               (cpu_read_reg(cpu_info[0].reg_type_buffer[2]))))],
+        memory_write(base + (cpu_info[0].reg_type_buffer[0] == 1
+                                 ? (cpu_read_reg(cpu_info[0].reg_type_buffer[1]))
+                                 : (cpu_read_reg(cpu_info[0].reg_type_buffer[1]) +
+                                    (cpu_read_reg(cpu_info[0].reg_type_buffer[2])))),
                      value2, size);
         break;
     default:
@@ -1548,10 +1550,10 @@ void cpu_emulate_i8086(uint8_t debug)
             *(uint32_t *)&vm_memory[window_framebuffer[0] + (cx * window_framebuffer[1] + dx) * sizeof(uint32_t)] = (bx << 16) | ax;
             break;
         case 0x21:
-            memory_write(&vm_memory[0xfff0], window_framebuffer[0], 2);
-            memory_write(&vm_memory[0xfff2], window_framebuffer[1], 2);
-            memory_write(&vm_memory[0xfff4], window_framebuffer[2], 2);
-            memory_write(&vm_memory[0xfff6], window_framebuffer[3], 2);
+            memory_write(0xfff0, window_framebuffer[0], 2);
+            memory_write(0xfff2, window_framebuffer[1], 2);
+            memory_write(0xfff4, window_framebuffer[2], 2);
+            memory_write(0xfff6, window_framebuffer[3], 2);
             break;
         default:
             break;
