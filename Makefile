@@ -6,7 +6,7 @@ BIOSFILES := $(shell find bios -name "*.c")
 BIOSROM := bios/bios.bin
 
 build:
-	make -C bios build
+	@make -C bios build
 	@$(CC) $(EMUFILES) -o iLEmu-system-x86_64 $(CC_FLAGS)
 
 run:
