@@ -2,22 +2,21 @@
 
 extern uint64_t window_framebuffer[];
 
-uint8_t rm_offset[] = {
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-};
 cpu_info_t cpu_info[8];
 uint8_t cpu_info_index = 0;
 
 uint8_t *opcode;
 uint8_t cpu_state[cpu_reg_end];
+uint8_t regs32[] = {
+    cpu_reg_eax,
+    cpu_reg_ecx,
+    cpu_reg_edx,
+    cpu_reg_ebx,
+    cpu_reg_esp,
+    cpu_reg_ebp,
+    cpu_reg_esi,
+    cpu_reg_edi,
+};
 uint8_t regs16[] = {
     cpu_reg_ax,
     cpu_reg_cx,
@@ -435,6 +434,16 @@ void cpu_dump_state()
     printf("};\n");
 }
 
+static inline uint8_t cpu_rm_resolve_reg(uint8_t reg, uint8_t size)
+{
+    switch (size)
+    {
+    case 4:
+        return ((reg - cpu_reg_ax) << 1) + cpu_reg_eax;
+    }
+    return reg;
+}
+
 static inline uint64_t cpu_rm(uint8_t reg, uint8_t size)
 {
     uint8_t mod = (opcode[1] & 0xc0) >> 6;
@@ -474,6 +483,9 @@ static inline uint64_t cpu_rm(uint8_t reg, uint8_t size)
         case 2:
             cpu_info[cpu_info_index++].reg_type = cpu_type_reg;
             return regs16[rm8];
+        case 4:
+            cpu_info[cpu_info_index++].reg_type = cpu_type_reg;
+            return regs32[rm8];
         }
         break;
     }
@@ -482,46 +494,46 @@ static inline uint64_t cpu_rm(uint8_t reg, uint8_t size)
     case 0x00:
         cpu_info[cpu_info_index].reg_type = cpu_type_memory_reg;
         cpu_info[cpu_info_index].reg_type_buffer[0] = 2;
-        cpu_info[cpu_info_index].reg_type_buffer[1] = cpu_reg_bx + rm_offset[size];
-        cpu_info[cpu_info_index++].reg_type_buffer[2] = cpu_reg_si + rm_offset[size];
+        cpu_info[cpu_info_index].reg_type_buffer[1] = cpu_rm_resolve_reg(cpu_reg_bx, size);
+        cpu_info[cpu_info_index++].reg_type_buffer[2] = cpu_rm_resolve_reg(cpu_reg_si, size);
         break;
     case 0x01:
         cpu_info[cpu_info_index].reg_type = cpu_type_memory_reg;
         cpu_info[cpu_info_index].reg_type_buffer[0] = 2;
-        cpu_info[cpu_info_index].reg_type_buffer[1] = cpu_reg_bx + rm_offset[size];
-        cpu_info[cpu_info_index++].reg_type_buffer[2] = cpu_reg_di + rm_offset[size];
+        cpu_info[cpu_info_index].reg_type_buffer[1] = cpu_rm_resolve_reg(cpu_reg_bx, size);
+        cpu_info[cpu_info_index++].reg_type_buffer[2] = cpu_rm_resolve_reg(cpu_reg_di, size);
         break;
     case 0x02:
         cpu_info[cpu_info_index].reg_type = cpu_type_memory_reg;
         cpu_info[cpu_info_index].reg_type_buffer[0] = 2;
-        cpu_info[cpu_info_index].reg_type_buffer[1] = cpu_reg_bp + rm_offset[size];
-        cpu_info[cpu_info_index++].reg_type_buffer[2] = cpu_reg_si + rm_offset[size];
+        cpu_info[cpu_info_index].reg_type_buffer[1] = cpu_rm_resolve_reg(cpu_reg_bp, size);
+        cpu_info[cpu_info_index++].reg_type_buffer[2] = cpu_rm_resolve_reg(cpu_reg_si, size);
         break;
     case 0x03:
         cpu_info[cpu_info_index].reg_type = cpu_type_memory_reg;
         cpu_info[cpu_info_index].reg_type_buffer[0] = 2;
-        cpu_info[cpu_info_index].reg_type_buffer[1] = cpu_reg_bp + rm_offset[size];
-        cpu_info[cpu_info_index++].reg_type_buffer[2] = cpu_reg_di + rm_offset[size];
+        cpu_info[cpu_info_index].reg_type_buffer[1] = cpu_rm_resolve_reg(cpu_reg_bp, size);
+        cpu_info[cpu_info_index++].reg_type_buffer[2] = cpu_rm_resolve_reg(cpu_reg_di, size);
         break;
     case 0x04:
         cpu_info[cpu_info_index].reg_type = cpu_type_memory_reg;
         cpu_info[cpu_info_index].reg_type_buffer[0] = 1;
-        cpu_info[cpu_info_index++].reg_type_buffer[1] = cpu_reg_si + rm_offset[size];
+        cpu_info[cpu_info_index++].reg_type_buffer[1] = cpu_rm_resolve_reg(cpu_reg_si, size);
         break;
     case 0x05:
         cpu_info[cpu_info_index].reg_type = cpu_type_memory_reg;
         cpu_info[cpu_info_index].reg_type_buffer[0] = 1;
-        cpu_info[cpu_info_index++].reg_type_buffer[1] = cpu_reg_di + rm_offset[size];
+        cpu_info[cpu_info_index++].reg_type_buffer[1] = cpu_rm_resolve_reg(cpu_reg_di, size);
         break;
     case 0x06:
         cpu_info[cpu_info_index].reg_type = cpu_type_memory_reg;
         cpu_info[cpu_info_index].reg_type_buffer[0] = 1;
-        cpu_info[cpu_info_index++].reg_type_buffer[1] = cpu_reg_bp + rm_offset[size];
+        cpu_info[cpu_info_index++].reg_type_buffer[1] = cpu_rm_resolve_reg(cpu_reg_bp, size);
         break;
     case 0x07:
         cpu_info[cpu_info_index].reg_type = cpu_type_memory_reg;
         cpu_info[cpu_info_index].reg_type_buffer[0] = 1;
-        cpu_info[cpu_info_index++].reg_type_buffer[1] = cpu_reg_bx + rm_offset[size];
+        cpu_info[cpu_info_index++].reg_type_buffer[1] = cpu_rm_resolve_reg(cpu_reg_bx, size);
         break;
     }
     opcode++, cpu_write_reg(reg, cpu_read_reg(reg) + 1);
@@ -540,6 +552,9 @@ static inline uint64_t cpu_r_rm(uint8_t reg, void *r, uint8_t r_size, uint8_t si
         break;
     case 2:
         *(uint64_t *)r = regs16[(opcode[1] & 0x38) >> 3];
+        break;
+    case 4:
+        *(uint64_t *)r = regs32[(opcode[1] & 0x38) >> 3];
         break;
     case 255:
         *(uint64_t *)r = segregs[(opcode[1] & 0x38) >> 3];
@@ -582,6 +597,9 @@ static inline uint64_t cpu_r_rm(uint8_t reg, void *r, uint8_t r_size, uint8_t si
         case 2:
             cpu_info[cpu_info_index++].reg_type = cpu_type_reg;
             return regs16[rm8];
+        case 4:
+            cpu_info[cpu_info_index++].reg_type = cpu_type_reg;
+            return regs32[rm8];
         }
         break;
     }
@@ -590,46 +608,46 @@ static inline uint64_t cpu_r_rm(uint8_t reg, void *r, uint8_t r_size, uint8_t si
     case 0x00:
         cpu_info[cpu_info_index].reg_type = cpu_type_memory_reg;
         cpu_info[cpu_info_index].reg_type_buffer[0] = 2;
-        cpu_info[cpu_info_index].reg_type_buffer[1] = cpu_reg_bx + rm_offset[size];
-        cpu_info[cpu_info_index++].reg_type_buffer[2] = cpu_reg_si + rm_offset[size];
+        cpu_info[cpu_info_index].reg_type_buffer[1] = cpu_rm_resolve_reg(cpu_reg_bx, size);
+        cpu_info[cpu_info_index++].reg_type_buffer[2] = cpu_rm_resolve_reg(cpu_reg_si, size);
         break;
     case 0x01:
         cpu_info[cpu_info_index].reg_type = cpu_type_memory_reg;
         cpu_info[cpu_info_index].reg_type_buffer[0] = 2;
-        cpu_info[cpu_info_index].reg_type_buffer[1] = cpu_reg_bx + rm_offset[size];
-        cpu_info[cpu_info_index++].reg_type_buffer[2] = cpu_reg_di + rm_offset[size];
+        cpu_info[cpu_info_index].reg_type_buffer[1] = cpu_rm_resolve_reg(cpu_reg_bx, size);
+        cpu_info[cpu_info_index++].reg_type_buffer[2] = cpu_rm_resolve_reg(cpu_reg_di, size);
         break;
     case 0x02:
         cpu_info[cpu_info_index].reg_type = cpu_type_memory_reg;
         cpu_info[cpu_info_index].reg_type_buffer[0] = 2;
-        cpu_info[cpu_info_index].reg_type_buffer[1] = cpu_reg_bp + rm_offset[size];
-        cpu_info[cpu_info_index++].reg_type_buffer[2] = cpu_reg_si + rm_offset[size];
+        cpu_info[cpu_info_index].reg_type_buffer[1] = cpu_rm_resolve_reg(cpu_reg_bp, size);
+        cpu_info[cpu_info_index++].reg_type_buffer[2] = cpu_rm_resolve_reg(cpu_reg_si, size);
         break;
     case 0x03:
         cpu_info[cpu_info_index].reg_type = cpu_type_memory_reg;
         cpu_info[cpu_info_index].reg_type_buffer[0] = 2;
-        cpu_info[cpu_info_index].reg_type_buffer[1] = cpu_reg_bp + rm_offset[size];
-        cpu_info[cpu_info_index++].reg_type_buffer[2] = cpu_reg_di + rm_offset[size];
+        cpu_info[cpu_info_index].reg_type_buffer[1] = cpu_rm_resolve_reg(cpu_reg_bp, size);
+        cpu_info[cpu_info_index++].reg_type_buffer[2] = cpu_rm_resolve_reg(cpu_reg_di, size);
         break;
     case 0x04:
         cpu_info[cpu_info_index].reg_type = cpu_type_memory_reg;
         cpu_info[cpu_info_index].reg_type_buffer[0] = 1;
-        cpu_info[cpu_info_index++].reg_type_buffer[1] = cpu_reg_si + rm_offset[size];
+        cpu_info[cpu_info_index++].reg_type_buffer[1] = cpu_rm_resolve_reg(cpu_reg_si, size);
         break;
     case 0x05:
         cpu_info[cpu_info_index].reg_type = cpu_type_memory_reg;
         cpu_info[cpu_info_index].reg_type_buffer[0] = 1;
-        cpu_info[cpu_info_index++].reg_type_buffer[1] = cpu_reg_di + rm_offset[size];
+        cpu_info[cpu_info_index++].reg_type_buffer[1] = cpu_rm_resolve_reg(cpu_reg_di, size);
         break;
     case 0x06:
         cpu_info[cpu_info_index].reg_type = cpu_type_memory_reg;
         cpu_info[cpu_info_index].reg_type_buffer[0] = 1;
-        cpu_info[cpu_info_index++].reg_type_buffer[1] = cpu_reg_bp + rm_offset[size];
+        cpu_info[cpu_info_index++].reg_type_buffer[1] = cpu_rm_resolve_reg(cpu_reg_bp, size);
         break;
     case 0x07:
         cpu_info[cpu_info_index].reg_type = cpu_type_memory_reg;
         cpu_info[cpu_info_index].reg_type_buffer[0] = 1;
-        cpu_info[cpu_info_index++].reg_type_buffer[1] = cpu_reg_bx + rm_offset[size];
+        cpu_info[cpu_info_index++].reg_type_buffer[1] = cpu_rm_resolve_reg(cpu_reg_bx, size);
         break;
     }
     opcode++, cpu_write_reg(reg, cpu_read_reg(reg) + 1);
@@ -648,6 +666,9 @@ static inline uint64_t cpu_rm_r(uint8_t reg, void *r, uint8_t r_size, uint8_t si
         break;
     case 2:
         *(uint64_t *)r = regs16[(opcode[1] & 0x38) >> 3];
+        break;
+    case 4:
+        *(uint64_t *)r = regs32[(opcode[1] & 0x38) >> 3];
         break;
     case 255:
         *(uint64_t *)r = segregs[(opcode[1] & 0x38) >> 3];
@@ -690,6 +711,9 @@ static inline uint64_t cpu_rm_r(uint8_t reg, void *r, uint8_t r_size, uint8_t si
         case 2:
             cpu_info[cpu_info_index++].reg_type = cpu_type_reg;
             return regs16[rm8];
+        case 4:
+            cpu_info[cpu_info_index++].reg_type = cpu_type_reg;
+            return regs32[rm8];
         }
         break;
     }
@@ -698,50 +722,57 @@ static inline uint64_t cpu_rm_r(uint8_t reg, void *r, uint8_t r_size, uint8_t si
     case 0x00:
         cpu_info[cpu_info_index].reg_type = cpu_type_memory_reg;
         cpu_info[cpu_info_index].reg_type_buffer[0] = 2;
-        cpu_info[cpu_info_index].reg_type_buffer[1] = cpu_reg_bx + rm_offset[size];
-        cpu_info[cpu_info_index++].reg_type_buffer[2] = cpu_reg_si + rm_offset[size];
+        cpu_info[cpu_info_index].reg_type_buffer[1] = cpu_rm_resolve_reg(cpu_reg_bx, size);
+        cpu_info[cpu_info_index++].reg_type_buffer[2] = cpu_rm_resolve_reg(cpu_reg_si, size);
         break;
     case 0x01:
         cpu_info[cpu_info_index].reg_type = cpu_type_memory_reg;
         cpu_info[cpu_info_index].reg_type_buffer[0] = 2;
-        cpu_info[cpu_info_index].reg_type_buffer[1] = cpu_reg_bx + rm_offset[size];
-        cpu_info[cpu_info_index++].reg_type_buffer[2] = cpu_reg_di + rm_offset[size];
+        cpu_info[cpu_info_index].reg_type_buffer[1] = cpu_rm_resolve_reg(cpu_reg_bx, size);
+        cpu_info[cpu_info_index++].reg_type_buffer[2] = cpu_rm_resolve_reg(cpu_reg_di, size);
         break;
     case 0x02:
         cpu_info[cpu_info_index].reg_type = cpu_type_memory_reg;
         cpu_info[cpu_info_index].reg_type_buffer[0] = 2;
-        cpu_info[cpu_info_index].reg_type_buffer[1] = cpu_reg_bp + rm_offset[size];
-        cpu_info[cpu_info_index++].reg_type_buffer[2] = cpu_reg_si + rm_offset[size];
+        cpu_info[cpu_info_index].reg_type_buffer[1] = cpu_rm_resolve_reg(cpu_reg_bp, size);
+        cpu_info[cpu_info_index++].reg_type_buffer[2] = cpu_rm_resolve_reg(cpu_reg_si, size);
         break;
     case 0x03:
         cpu_info[cpu_info_index].reg_type = cpu_type_memory_reg;
         cpu_info[cpu_info_index].reg_type_buffer[0] = 2;
-        cpu_info[cpu_info_index].reg_type_buffer[1] = cpu_reg_bp + rm_offset[size];
-        cpu_info[cpu_info_index++].reg_type_buffer[2] = cpu_reg_di + rm_offset[size];
+        cpu_info[cpu_info_index].reg_type_buffer[1] = cpu_rm_resolve_reg(cpu_reg_bp, size);
+        cpu_info[cpu_info_index++].reg_type_buffer[2] = cpu_rm_resolve_reg(cpu_reg_di, size);
         break;
     case 0x04:
         cpu_info[cpu_info_index].reg_type = cpu_type_memory_reg;
         cpu_info[cpu_info_index].reg_type_buffer[0] = 1;
-        cpu_info[cpu_info_index++].reg_type_buffer[1] = cpu_reg_si + rm_offset[size];
+        cpu_info[cpu_info_index++].reg_type_buffer[1] = cpu_rm_resolve_reg(cpu_reg_si, size);
         break;
     case 0x05:
         cpu_info[cpu_info_index].reg_type = cpu_type_memory_reg;
         cpu_info[cpu_info_index].reg_type_buffer[0] = 1;
-        cpu_info[cpu_info_index++].reg_type_buffer[1] = cpu_reg_di + rm_offset[size];
+        cpu_info[cpu_info_index++].reg_type_buffer[1] = cpu_rm_resolve_reg(cpu_reg_di, size);
         break;
     case 0x06:
         cpu_info[cpu_info_index].reg_type = cpu_type_memory_reg;
         cpu_info[cpu_info_index].reg_type_buffer[0] = 1;
-        cpu_info[cpu_info_index++].reg_type_buffer[1] = cpu_reg_bp + rm_offset[size];
+        cpu_info[cpu_info_index++].reg_type_buffer[1] = cpu_rm_resolve_reg(cpu_reg_bp, size);
         break;
     case 0x07:
         cpu_info[cpu_info_index].reg_type = cpu_type_memory_reg;
         cpu_info[cpu_info_index].reg_type_buffer[0] = 1;
-        cpu_info[cpu_info_index++].reg_type_buffer[1] = cpu_reg_bx + rm_offset[size];
+        cpu_info[cpu_info_index++].reg_type_buffer[1] = cpu_rm_resolve_reg(cpu_reg_bx, size);
         break;
     }
     opcode++, cpu_write_reg(reg, cpu_read_reg(reg) + 1);
     return (uint64_t)-1;
+}
+
+static inline uint8_t cpu_r32(uint8_t reg)
+{
+    opcode++, cpu_write_reg(reg, cpu_read_reg(reg) + 1);
+    cpu_info[cpu_info_index++].reg_type = cpu_type_reg;
+    return regs32[(*opcode & 0x38) & 7];
 }
 
 static inline uint8_t cpu_r16(uint8_t reg)
@@ -808,6 +839,21 @@ static inline uint16_t cpu_sr_rm16(uint8_t reg, void *r)
     return (uint16_t)cpu_r_rm(reg, r, 255, 2);
 }
 
+static inline uint32_t cpu_rm32_r32(uint8_t reg, void *r)
+{
+    return (uint32_t)cpu_rm_r(reg, r, 4, 4);
+}
+
+static inline uint32_t cpu_r32_rm32(uint8_t reg, void *r)
+{
+    return (uint32_t)cpu_r_rm(reg, r, 4, 4);
+}
+
+static inline uint16_t cpu_rm32(uint8_t reg)
+{
+    return (uint16_t)cpu_rm(reg, 4);
+}
+
 static inline uint16_t cpu_rm16(uint8_t reg)
 {
     return (uint16_t)cpu_rm(reg, 2);
@@ -816,6 +862,14 @@ static inline uint16_t cpu_rm16(uint8_t reg)
 static inline uint8_t cpu_rm8(uint8_t reg)
 {
     return (uint8_t)cpu_rm(reg, 1);
+}
+
+static inline uint32_t cpu_imm32(uint8_t reg)
+{
+    uint32_t imm = *(uint32_t *)&opcode[1];
+    cpu_info[cpu_info_index++].reg_type = cpu_type_int;
+    opcode += 2, cpu_write_reg(reg, cpu_read_reg(reg) + 4);
+    return (uint32_t)imm;
 }
 
 static inline uint16_t cpu_imm16(uint8_t reg)
@@ -832,6 +886,14 @@ static inline uint8_t cpu_imm8(uint8_t reg)
     cpu_info[cpu_info_index++].reg_type = cpu_type_int;
     opcode++, cpu_write_reg(reg, cpu_read_reg(reg) + 1);
     return (uint8_t)imm;
+}
+
+static inline uint32_t cpu_rel32(uint8_t reg)
+{
+    uint32_t rel = *(uint32_t *)&opcode[1];
+    cpu_info[cpu_info_index++].reg_type = cpu_type_int;
+    opcode += 2, cpu_write_reg(reg, cpu_read_reg(reg) + 4);
+    return (uint32_t)(cpu_read_reg(reg) + rel + 1);
 }
 
 static inline uint16_t cpu_rel16(uint8_t reg)
@@ -921,7 +983,7 @@ end:
     printf("\n");
 }
 
-void cpu_emulate_i8086(uint8_t debug)
+void cpu_emulate_i8086(uint8_t debug, uint8_t override)
 {
     gdt_entry_t *entry = (gdt_entry_t *)(&vm_memory[((gdtr_t *)&vm_memory[cpu_read_reg(cpu_reg_gdtr)])->base] +
                                          cpu_read_reg(cpu_reg_cs));
@@ -1102,119 +1164,283 @@ void cpu_emulate_i8086(uint8_t debug)
         cpu_add_reg(cpu_reg_ip, 1);
         break;
     case 0x50:
-        cpu_push_reg(cpu_reg_sp, cpu_reg_ax, 2);
-        if (debug)
-            printf("push word ax\n");
+        if (override & cpu_override_dword)
+        {
+            cpu_push_reg(cpu_reg_esp, cpu_reg_eax, 4);
+            if (debug)
+                printf("push dword eax\n");
+        }
+        else
+        {
+            cpu_push_reg(cpu_reg_sp, cpu_reg_ax, 2);
+            if (debug)
+                printf("push word ax\n");
+        }
         cpu_add_reg(cpu_reg_ip, 1);
         break;
     case 0x51:
-        cpu_push_reg(cpu_reg_sp, cpu_reg_cx, 2);
-        if (debug)
-            printf("push word cx\n");
+        if (override & cpu_override_dword)
+        {
+            cpu_push_reg(cpu_reg_esp, cpu_reg_ecx, 4);
+            if (debug)
+                printf("push dword ecx\n");
+        }
+        else
+        {
+            cpu_push_reg(cpu_reg_sp, cpu_reg_cx, 2);
+            if (debug)
+                printf("push word cx\n");
+        }
         cpu_add_reg(cpu_reg_ip, 1);
         break;
     case 0x52:
-        cpu_push_reg(cpu_reg_sp, cpu_reg_dx, 2);
-        if (debug)
-            printf("push word dx\n");
+        if (override & cpu_override_dword)
+        {
+            cpu_push_reg(cpu_reg_esp, cpu_reg_edx, 4);
+            if (debug)
+                printf("push dword edx\n");
+        }
+        else
+        {
+            cpu_push_reg(cpu_reg_sp, cpu_reg_dx, 2);
+            if (debug)
+                printf("push word dx\n");
+        }
         cpu_add_reg(cpu_reg_ip, 1);
         break;
     case 0x53:
-        cpu_push_reg(cpu_reg_sp, cpu_reg_bx, 2);
-        if (debug)
-            printf("push word bx\n");
+        if (override & cpu_override_dword)
+        {
+            cpu_push_reg(cpu_reg_esp, cpu_reg_ebx, 4);
+            if (debug)
+                printf("push dword ebx\n");
+        }
+        else
+        {
+            cpu_push_reg(cpu_reg_sp, cpu_reg_bx, 2);
+            if (debug)
+                printf("push word bx\n");
+        }
         cpu_add_reg(cpu_reg_ip, 1);
         break;
     case 0x54:
-        cpu_push_reg(cpu_reg_sp, cpu_reg_sp, 2);
-        if (debug)
-            printf("push word sp\n");
+        if (override & cpu_override_dword)
+        {
+            cpu_push_reg(cpu_reg_esp, cpu_reg_esp, 4);
+            if (debug)
+                printf("push dword esp\n");
+        }
+        else
+        {
+            cpu_push_reg(cpu_reg_sp, cpu_reg_sp, 2);
+            if (debug)
+                printf("push word sp\n");
+        }
         cpu_add_reg(cpu_reg_ip, 1);
         break;
     case 0x55:
-        cpu_push_reg(cpu_reg_sp, cpu_reg_bp, 2);
-        if (debug)
-            printf("push word bp\n");
+        if (override & cpu_override_dword)
+        {
+            cpu_push_reg(cpu_reg_esp, cpu_reg_ebp, 4);
+            if (debug)
+                printf("push dword ebp\n");
+        }
+        else
+        {
+            cpu_push_reg(cpu_reg_sp, cpu_reg_bp, 2);
+            if (debug)
+                printf("push word bp\n");
+        }
         cpu_add_reg(cpu_reg_ip, 1);
         break;
     case 0x56:
-        cpu_push_reg(cpu_reg_sp, cpu_reg_si, 2);
-        if (debug)
-            printf("push word si\n");
+        if (override & cpu_override_dword)
+        {
+            cpu_push_reg(cpu_reg_esp, cpu_reg_esi, 4);
+            if (debug)
+                printf("push dword esi\n");
+        }
+        else
+        {
+            cpu_push_reg(cpu_reg_sp, cpu_reg_si, 2);
+            if (debug)
+                printf("push word si\n");
+        }
         cpu_add_reg(cpu_reg_ip, 1);
         break;
     case 0x57:
-        cpu_push_reg(cpu_reg_sp, cpu_reg_di, 2);
-        if (debug)
-            printf("push word di\n");
+        if (override & cpu_override_dword)
+        {
+            cpu_push_reg(cpu_reg_esp, cpu_reg_edi, 4);
+            if (debug)
+                printf("push dword edi\n");
+        }
+        else
+        {
+            cpu_push_reg(cpu_reg_sp, cpu_reg_di, 2);
+            if (debug)
+                printf("push word di\n");
+        }
         cpu_add_reg(cpu_reg_ip, 1);
         break;
     case 0x58:
-        cpu_pop_reg(cpu_reg_sp, cpu_reg_ax, 2);
-        if (debug)
-            printf("pop word ax\n");
+        if (override & cpu_override_dword)
+        {
+            cpu_pop_reg(cpu_reg_esp, cpu_reg_eax, 4);
+            if (debug)
+                printf("pop dword eax\n");
+        }
+        else
+        {
+            cpu_pop_reg(cpu_reg_sp, cpu_reg_ax, 2);
+            if (debug)
+                printf("pop word ax\n");
+        }
         cpu_add_reg(cpu_reg_ip, 1);
         break;
     case 0x59:
-        cpu_pop_reg(cpu_reg_sp, cpu_reg_cx, 2);
-        if (debug)
-            printf("pop word cx\n");
+        if (override & cpu_override_dword)
+        {
+            cpu_pop_reg(cpu_reg_esp, cpu_reg_ecx, 4);
+            if (debug)
+                printf("pop dword ecx\n");
+        }
+        else
+        {
+            cpu_pop_reg(cpu_reg_sp, cpu_reg_cx, 2);
+            if (debug)
+                printf("pop word cx\n");
+        }
         cpu_add_reg(cpu_reg_ip, 1);
         break;
     case 0x5a:
-        cpu_pop_reg(cpu_reg_sp, cpu_reg_dx, 2);
-        if (debug)
-            printf("pop word dx\n");
+        if (override & cpu_override_dword)
+        {
+            cpu_pop_reg(cpu_reg_esp, cpu_reg_edx, 4);
+            if (debug)
+                printf("pop dword edx\n");
+        }
+        else
+        {
+            cpu_pop_reg(cpu_reg_sp, cpu_reg_dx, 2);
+            if (debug)
+                printf("pop word dx\n");
+        }
         cpu_add_reg(cpu_reg_ip, 1);
         break;
     case 0x5b:
-        cpu_pop_reg(cpu_reg_sp, cpu_reg_bx, 2);
-        if (debug)
-            printf("pop word bx\n");
+        if (override & cpu_override_dword)
+        {
+            cpu_pop_reg(cpu_reg_esp, cpu_reg_ebx, 4);
+            if (debug)
+                printf("pop dword ebx\n");
+        }
+        else
+        {
+            cpu_pop_reg(cpu_reg_sp, cpu_reg_bx, 2);
+            if (debug)
+                printf("pop word bx\n");
+        }
         cpu_add_reg(cpu_reg_ip, 1);
         break;
     case 0x5c:
-        cpu_pop_reg(cpu_reg_sp, cpu_reg_sp, 2);
-        if (debug)
-            printf("pop word sp\n");
+        if (override & cpu_override_dword)
+        {
+            cpu_pop_reg(cpu_reg_esp, cpu_reg_esp, 4);
+            if (debug)
+                printf("pop dword esp\n");
+        }
+        else
+        {
+            cpu_pop_reg(cpu_reg_sp, cpu_reg_sp, 2);
+            if (debug)
+                printf("pop word sp\n");
+        }
         cpu_add_reg(cpu_reg_ip, 1);
         break;
     case 0x5d:
-        cpu_pop_reg(cpu_reg_sp, cpu_reg_bp, 2);
-        if (debug)
-            printf("pop word bp\n");
+        if (override & cpu_override_dword)
+        {
+            cpu_pop_reg(cpu_reg_esp, cpu_reg_ebp, 4);
+            if (debug)
+                printf("pop dword ebp\n");
+        }
+        else
+        {
+            cpu_pop_reg(cpu_reg_sp, cpu_reg_bp, 2);
+            if (debug)
+                printf("pop word bp\n");
+        }
         cpu_add_reg(cpu_reg_ip, 1);
         break;
     case 0x5e:
-        cpu_pop_reg(cpu_reg_sp, cpu_reg_si, 2);
-        if (debug)
-            printf("pop word si\n");
+        if (override & cpu_override_dword)
+        {
+            cpu_pop_reg(cpu_reg_esp, cpu_reg_esi, 4);
+            if (debug)
+                printf("pop dword esi\n");
+        }
+        else
+        {
+            cpu_pop_reg(cpu_reg_sp, cpu_reg_si, 2);
+            if (debug)
+                printf("pop word si\n");
+        }
         cpu_add_reg(cpu_reg_ip, 1);
         break;
     case 0x5f:
-        cpu_pop_reg(cpu_reg_sp, cpu_reg_di, 2);
-        if (debug)
-            printf("pop word di\n");
+        if (override & cpu_override_dword)
+        {
+            cpu_pop_reg(cpu_reg_esp, cpu_reg_edi, 4);
+            if (debug)
+                printf("pop dword edi\n");
+        }
+        else
+        {
+            cpu_pop_reg(cpu_reg_sp, cpu_reg_di, 2);
+            if (debug)
+                printf("pop word di\n");
+        }
         cpu_add_reg(cpu_reg_ip, 1);
         break;
     case 0x60:
-        for (uint8_t i = cpu_reg_ax; i < cpu_reg_flags + 1; i += 2)
-            cpu_push_reg(cpu_reg_sp, i, 2);
-        if (debug)
-            printf("pusha\n");
+        if (override & cpu_override_dword)
+        {
+            for (uint8_t i = cpu_reg_eax; i < cpu_reg_eflags + 1; i += 2)
+                cpu_push_reg(cpu_reg_esp, i, 4);
+            if (debug)
+                printf("pushad\n");
+        }
+        else
+        {
+            for (uint8_t i = cpu_reg_ax; i < cpu_reg_flags + 1; i += 2)
+                cpu_push_reg(cpu_reg_sp, i, 2);
+            if (debug)
+                printf("pusha\n");
+        }
         cpu_add_reg(cpu_reg_ip, 1);
         break;
     case 0x61:
-        for (uint8_t i = cpu_reg_flags; i > cpu_reg_ax - 1; i -= 2)
-            cpu_pop_reg(cpu_reg_sp, i, 2);
-        if (debug)
-            printf("popa\n");
-        cpu_add_reg(cpu_reg_ip, 1);
+        value1 = cpu_read_reg(cpu_reg_ip);
+        if (override & cpu_override_dword)
+        {
+            for (uint8_t i = cpu_reg_eax; i < cpu_reg_eflags + 1; i += 2)
+                cpu_pop_reg(cpu_reg_esp, cpu_reg_flags - i, 4);
+            if (debug)
+                printf("popad\n");
+        }
+        else
+        {
+            for (uint8_t i = cpu_reg_ax; i < cpu_reg_flags + 1; i += 2)
+                cpu_pop_reg(cpu_reg_sp, cpu_reg_flags - i, 2);
+            if (debug)
+                printf("popa\n");
+        }
+        cpu_write_reg(cpu_reg_ip, value1 + 1);
         break;
     case 0x66:
-        if (debug)
-            printf(";dword override\n");
         cpu_add_reg(cpu_reg_ip, 1);
+        cpu_emulate_i8086(debug, override | cpu_override_dword);
         break;
     case 0x6a:
         value2 = cpu_imm8(cpu_reg_ip);
@@ -1397,11 +1623,22 @@ void cpu_emulate_i8086(uint8_t debug)
         cpu_add_reg(cpu_reg_ip, 1);
         break;
     case 0x89:
-        value1 = cpu_rm16_r16(cpu_reg_ip, &value2);
-        cpu_exec_mov(value1, value2, 2);
-        if (debug)
-            cpu_print_instruction("mov", "word", 2, value1, value2);
-        cpu_add_reg(cpu_reg_ip, 1);
+        if (override & cpu_override_dword)
+        {
+            value1 = cpu_rm32_r32(cpu_reg_ip, &value2);
+            cpu_exec_mov(value1, value2, 4);
+            if (debug)
+                cpu_print_instruction("mov", "dword", 2, value1, value2);
+            cpu_add_reg(cpu_reg_ip, 1);
+        }
+        else
+        {
+            value1 = cpu_rm16_r16(cpu_reg_ip, &value2);
+            cpu_exec_mov(value1, value2, 2);
+            if (debug)
+                cpu_print_instruction("mov", "word", 2, value1, value2);
+            cpu_add_reg(cpu_reg_ip, 1);
+        }
         break;
     case 0x8c:
         value1 = cpu_rm16_sr(cpu_reg_ip, &value2);
@@ -1425,11 +1662,22 @@ void cpu_emulate_i8086(uint8_t debug)
         cpu_add_reg(cpu_reg_ip, 1);
         break;
     case 0x8b:
-        value2 = cpu_r16_rm16(cpu_reg_ip, &value1);
-        cpu_exec_mov(value1, value2, 2);
-        if (debug)
-            cpu_print_instruction("mov", "word", 2, value1, value2);
-        cpu_add_reg(cpu_reg_ip, 1);
+        if (override & cpu_override_dword)
+        {
+            value2 = cpu_r32_rm32(cpu_reg_ip, &value1);
+            cpu_exec_mov(value1, value2, 4);
+            if (debug)
+                cpu_print_instruction("mov", "dword", 2, value1, value2);
+            cpu_add_reg(cpu_reg_ip, 1);
+        }
+        else
+        {
+            value2 = cpu_r16_rm16(cpu_reg_ip, &value1);
+            cpu_exec_mov(value1, value2, 2);
+            if (debug)
+                cpu_print_instruction("mov", "word", 2, value1, value2);
+            cpu_add_reg(cpu_reg_ip, 1);
+        }
         break;
     case 0x90:
         if (debug)
@@ -1485,51 +1733,123 @@ void cpu_emulate_i8086(uint8_t debug)
         cpu_add_reg(cpu_reg_ip, 1);
         break;
     case 0xb8:
-        cpu_write_reg(cpu_reg_ax, cpu_imm16(cpu_reg_ip));
-        if (debug)
-            printf("mov word ax, 0x%lx\n", cpu_read_reg(cpu_reg_ax));
+        if (override & cpu_override_dword)
+        {
+            cpu_write_reg(cpu_reg_eax, cpu_imm32(cpu_reg_ip));
+            if (debug)
+                printf("mov dword eax, 0x%lx\n", cpu_read_reg(cpu_reg_eax));
+        }
+        else
+        {
+            cpu_write_reg(cpu_reg_ax, cpu_imm16(cpu_reg_ip));
+            if (debug)
+                printf("mov word ax, 0x%lx\n", cpu_read_reg(cpu_reg_ax));
+        }
         cpu_add_reg(cpu_reg_ip, 1);
         break;
     case 0xb9:
-        cpu_write_reg(cpu_reg_cx, cpu_imm16(cpu_reg_ip));
-        if (debug)
-            printf("mov word cx, 0x%lx\n", cpu_read_reg(cpu_reg_cx));
+        if (override & cpu_override_dword)
+        {
+            cpu_write_reg(cpu_reg_ecx, cpu_imm32(cpu_reg_ip));
+            if (debug)
+                printf("mov dword ecx, 0x%lx\n", cpu_read_reg(cpu_reg_ecx));
+        }
+        else
+        {
+            cpu_write_reg(cpu_reg_cx, cpu_imm16(cpu_reg_ip));
+            if (debug)
+                printf("mov word cx, 0x%lx\n", cpu_read_reg(cpu_reg_cx));
+        }
         cpu_add_reg(cpu_reg_ip, 1);
         break;
     case 0xba:
-        cpu_write_reg(cpu_reg_dx, cpu_imm16(cpu_reg_ip));
-        if (debug)
-            printf("mov word dx, 0x%lx\n", cpu_read_reg(cpu_reg_dx));
+        if (override & cpu_override_dword)
+        {
+            cpu_write_reg(cpu_reg_edx, cpu_imm32(cpu_reg_ip));
+            if (debug)
+                printf("mov dword edx, 0x%lx\n", cpu_read_reg(cpu_reg_edx));
+        }
+        else
+        {
+            cpu_write_reg(cpu_reg_dx, cpu_imm16(cpu_reg_ip));
+            if (debug)
+                printf("mov word dx, 0x%lx\n", cpu_read_reg(cpu_reg_dx));
+        }
         cpu_add_reg(cpu_reg_ip, 1);
         break;
     case 0xbb:
-        cpu_write_reg(cpu_reg_bx, cpu_imm16(cpu_reg_ip));
-        if (debug)
-            printf("mov word bx, 0x%lx\n", cpu_read_reg(cpu_reg_bx));
+        if (override & cpu_override_dword)
+        {
+            cpu_write_reg(cpu_reg_ebx, cpu_imm32(cpu_reg_ip));
+            if (debug)
+                printf("mov dword ebx, 0x%lx\n", cpu_read_reg(cpu_reg_ebx));
+        }
+        else
+        {
+            cpu_write_reg(cpu_reg_bx, cpu_imm16(cpu_reg_ip));
+            if (debug)
+                printf("mov word bx, 0x%lx\n", cpu_read_reg(cpu_reg_bx));
+        }
         cpu_add_reg(cpu_reg_ip, 1);
         break;
     case 0xbc:
-        cpu_write_reg(cpu_reg_sp, cpu_imm16(cpu_reg_ip));
-        if (debug)
-            printf("mov word sp, 0x%lx\n", cpu_read_reg(cpu_reg_sp));
+        if (override & cpu_override_dword)
+        {
+            cpu_write_reg(cpu_reg_esp, cpu_imm32(cpu_reg_ip));
+            if (debug)
+                printf("mov dword esp, 0x%lx\n", cpu_read_reg(cpu_reg_esp));
+        }
+        else
+        {
+            cpu_write_reg(cpu_reg_sp, cpu_imm16(cpu_reg_ip));
+            if (debug)
+                printf("mov word sp, 0x%lx\n", cpu_read_reg(cpu_reg_sp));
+        }
         cpu_add_reg(cpu_reg_ip, 1);
         break;
     case 0xbd:
-        cpu_write_reg(cpu_reg_bp, cpu_imm16(cpu_reg_ip));
-        if (debug)
-            printf("mov word bp, 0x%lx\n", cpu_read_reg(cpu_reg_bp));
+        if (override & cpu_override_dword)
+        {
+            cpu_write_reg(cpu_reg_ebp, cpu_imm32(cpu_reg_ip));
+            if (debug)
+                printf("mov dword ebp, 0x%lx\n", cpu_read_reg(cpu_reg_ebp));
+        }
+        else
+        {
+            cpu_write_reg(cpu_reg_bp, cpu_imm16(cpu_reg_ip));
+            if (debug)
+                printf("mov word bp, 0x%lx\n", cpu_read_reg(cpu_reg_bp));
+        }
         cpu_add_reg(cpu_reg_ip, 1);
         break;
     case 0xbe:
-        cpu_write_reg(cpu_reg_si, cpu_imm16(cpu_reg_ip));
-        if (debug)
-            printf("mov word si, 0x%lx\n", cpu_read_reg(cpu_reg_si));
+        if (override & cpu_override_dword)
+        {
+            cpu_write_reg(cpu_reg_esi, cpu_imm32(cpu_reg_ip));
+            if (debug)
+                printf("mov dword esi, 0x%lx\n", cpu_read_reg(cpu_reg_esi));
+        }
+        else
+        {
+            cpu_write_reg(cpu_reg_si, cpu_imm16(cpu_reg_ip));
+            if (debug)
+                printf("mov word si, 0x%lx\n", cpu_read_reg(cpu_reg_si));
+        }
         cpu_add_reg(cpu_reg_ip, 1);
         break;
     case 0xbf:
-        cpu_write_reg(cpu_reg_di, cpu_imm16(cpu_reg_ip));
-        if (debug)
-            printf("mov word di, 0x%lx\n", cpu_read_reg(cpu_reg_di));
+        if (override & cpu_override_dword)
+        {
+            cpu_write_reg(cpu_reg_edi, cpu_imm32(cpu_reg_ip));
+            if (debug)
+                printf("mov dword edi, 0x%lx\n", cpu_read_reg(cpu_reg_edi));
+        }
+        else
+        {
+            cpu_write_reg(cpu_reg_di, cpu_imm16(cpu_reg_ip));
+            if (debug)
+                printf("mov word di, 0x%lx\n", cpu_read_reg(cpu_reg_di));
+        }
         cpu_add_reg(cpu_reg_ip, 1);
         break;
     case 0xc3:

@@ -60,24 +60,24 @@ typedef enum cpu_regs
     cpu_reg_r14w = 74,
     cpu_reg_r15w = 76,
 
-    cpu_reg_eax = 80,
-    cpu_reg_ebx = 84,
-    cpu_reg_ecx = 88,
-    cpu_reg_edx = 92,
-    cpu_reg_ebp = 96,
-    cpu_reg_esi = 100,
-    cpu_reg_edi = 104,
-    cpu_reg_esp = 108,
-    cpu_reg_eip = 112,
-    cpu_reg_eflags = 116,
-    cpu_reg_r8d = 120,
-    cpu_reg_r9d = 124,
-    cpu_reg_r10d = 128,
+    cpu_reg_eax = 78,
+    cpu_reg_ebx = 82,
+    cpu_reg_ecx = 86,
+    cpu_reg_edx = 90,
+    cpu_reg_ebp = 94,
+    cpu_reg_esi = 104,
+    cpu_reg_edi = 108,
+    cpu_reg_esp = 112,
+    cpu_reg_eip = 116,
+    cpu_reg_eflags = 120,
+    cpu_reg_r8d = 124,
+    cpu_reg_r9d = 128,
+    cpu_reg_r10d = 132,
     cpu_reg_r11d = 132,
-    cpu_reg_r12d = 140,
-    cpu_reg_r13d = 144,
-    cpu_reg_r14d = 148,
-    cpu_reg_r15d = 152,
+    cpu_reg_r12d = 136,
+    cpu_reg_r13d = 140,
+    cpu_reg_r14d = 144,
+    cpu_reg_r15d = 148,
 
     cpu_reg_gdtr = 156,
     cpu_reg_gdtr_next = 164,
@@ -98,6 +98,14 @@ typedef enum cpu_regs
     cpu_flags_IF = 1 << 9,
     cpu_flags_DF = 1 << 10,
     cpu_flags_OF = 1 << 11,
+
+    cpu_override_dword = 1 << 0,
+    cpu_override_gs = 1 << 1,
+    cpu_override_fs = 1 << 2,
+    cpu_override_es = 1 << 3,
+    cpu_override_ds = 1 << 4,
+    cpu_override_cs = 1 << 5,
+    cpu_override_ss = 1 << 6,
 } cpu_regs_t;
 
 static char *cpu_regs_string[] = {
@@ -253,7 +261,6 @@ static char *cpu_regs_string[] = {
     "r15d",
     (char *)NULL,
     (char *)NULL,
-    (char *)NULL,
 
     "gdtr",
     (char *)NULL,
@@ -279,6 +286,6 @@ void cpu_write_reg(uint8_t reg, uint64_t value);
 void cpu_reset();
 void cpu_setup_precalcs();
 void cpu_dump_state();
-void cpu_emulate_i8086(uint8_t debug);
+void cpu_emulate_i8086(uint8_t debug, uint8_t override);
 
 #endif

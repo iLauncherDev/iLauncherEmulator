@@ -140,7 +140,7 @@ int32_t main(int32_t argc, char **argv)
             i++;
             if (bios_bin)
                 continue;
-            bios_bin = fopen(argv[i], "rwb");
+            bios_bin = fopen(argv[i], "rb");
             if (!bios_bin)
                 continue;
             fseek(bios_bin, 0L, SEEK_END);
@@ -181,7 +181,7 @@ int32_t main(int32_t argc, char **argv)
         sleep(1);
     while (true)
     {
-        cpu_emulate_i8086(debug_code);
+        cpu_emulate_i8086(debug_code, 0);
         if (code_delay)
             usleep(code_delay);
     }

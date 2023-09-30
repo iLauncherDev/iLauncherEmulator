@@ -4,6 +4,6 @@ void main()
 {
     while (true)
     {
-	*(uint16_t*)0xf0 = 0;
+        *(uint16_t *)0xf0 = 0;
     }
 }

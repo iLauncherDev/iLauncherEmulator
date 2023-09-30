@@ -8,7 +8,6 @@ start:
     ;mov ds, ax
     ;xor ax, ax
     ;mov es, ax
-    mov eax, 0xffff
     call test
     jmp start
 
@@ -16,7 +15,7 @@ test:
     mov word ax, 0xffff
     mov word bx, 0xffff
     push word ax
-    mov word dx, [0xf4f5]
+    mov dword edx, [0xf4f5]
     mov word ax, sp
     mov word sp, 0x0000
     mov word sp, ax
