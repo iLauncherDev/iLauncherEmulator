@@ -1,13 +1,10 @@
 #pragma once
 #ifndef CPU_H
 #define CPU_H
+#include "global.h"
 #include "memory.h"
 #include "io.h"
 #include "gdt.h"
-#include <stdint.h>
-#include <stdbool.h>
-#include <stdio.h>
-#include <SDL2/SDL.h>
 
 typedef enum cpu_regs
 {

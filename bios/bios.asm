@@ -1,3 +1,4 @@
+section .null
 bits 16
 section .text
 extern main

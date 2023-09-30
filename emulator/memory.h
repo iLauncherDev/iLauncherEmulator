@@ -4,9 +4,6 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-extern uint64_t vm_memory_size, bios_size;
-extern uint8_t *vm_memory;
-
 static inline uint64_t memory_read(uint64_t address, uint8_t size)
 {
     if (address >= vm_memory_size)
@@ -26,7 +23,7 @@ static inline uint64_t memory_read(uint64_t address, uint8_t size)
 
 static inline void memory_write(uint64_t address, uint64_t value, uint8_t size)
 {
-    if (address > 0xdffff && address < 0xfffff || address >= vm_memory_size)
+    if (address >= 0xe0000 && address <= 0xfffff || address >= vm_memory_size)
         return;
     switch (size)
     {

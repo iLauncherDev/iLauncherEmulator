@@ -1,7 +1,7 @@
 #pragma once
 #ifndef IO_H
 #define IO_H
-#include "memory.h"
+#include "global.h"
 
 extern uint8_t io_ports[];
 

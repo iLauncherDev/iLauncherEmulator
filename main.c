@@ -1,13 +1,4 @@
-#include <stdlib.h>
-#include <stdint.h>
-#include <stdbool.h>
-#include <pthread.h>
-#include <stdio.h>
-#include <string.h>
-#include <strings.h>
-#include <unistd.h>
-#include <SDL2/SDL.h>
-#include <rfb/rfb.h>
+#include "emulator/global.h"
 #include "emulator/cpu.h"
 #include "emulator/io.h"
 
@@ -159,16 +150,17 @@ int32_t main(int32_t argc, char **argv)
     }
     if (vm_memory_size < 0x400000)
         vm_memory_size = 0x400000;
-    vm_memory = malloc(vm_memory_size + bios_size + 0xff);
-    for (uint64_t i = 0; i < vm_memory_size + bios_size + 0xff; i++)
+    vm_memory = malloc(vm_memory_size + 0xff);
+    for (uint64_t i = 0; i < vm_memory_size + 0xff; i++)
         vm_memory[i] = 0;
     printf("Allocated %luMB In RAM\n", vm_memory_size / 1024 / 1024);
     if (bios_bin)
-        fread(&vm_memory[0xe0000], bios_size, 1, bios_bin);
+        fread(&vm_memory[0xfffff - limit(bios_size, (256 * 1024) - 1)], bios_size, 1, bios_bin);
     if (dump_bios)
     {
+        printf("Address: 0x%lx\n", 0xfffff - limit(bios_size, (256 * 1024) - 1));
         for (size_t i = 0; i < bios_size; i++)
-            printf("%x ", vm_memory[0xe0000 + i]);
+            printf("%x ", vm_memory[(0xfffff - limit(bios_size, (256 * 1024) - 1)) + i]);
         printf("\n");
         return 0;
     }

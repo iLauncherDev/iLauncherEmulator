@@ -3,6 +3,7 @@ ENTRY(main);
 
 SECTIONS {
     . = 0xe0000;
+	bios_start = .;
 
 	.text ALIGN(0x1000) :
 	{
@@ -25,5 +26,11 @@ SECTIONS {
 		*(.bss)
 	}
 
-    kernel_end = ALIGN(0x1000);
+    bios_end = ALIGN(0x1000);
+
+	.null :
+	{
+		*(.null)
+		. += 0xfffff - bios_end;
+	}
 }
