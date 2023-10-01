@@ -1,5 +1,5 @@
 CC := clang
-CC_FLAGS_BIOS := -c -ffreestanding -I include -m16
+CC_FLAGS_BIOS := -c -ffreestanding -I include -m16 -masm=intel -fno-pie
 BIOSFILES := $(shell find . -name "*.c")
 LD_FLAGS_BIOS := --allow-multiple-definition -build-id=none
 
