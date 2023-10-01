@@ -5,5 +5,6 @@ extern main
 
 start:
     mov sp, 0x3000
-    call main
+    mov dword [esp], 0xffff
+    mov dword [esp+ebx], 0xffff
     jmp start

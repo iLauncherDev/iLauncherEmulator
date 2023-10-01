@@ -8,6 +8,7 @@ SDL_Event event;
 uint8_t scancode[4096] = {false};
 uint8_t scancode_ready[4096] = {false};
 uint8_t debug_code = false, dump_bios = false;
+uint32_t ticks;
 
 uint64_t window_framebuffer[] = {
     0xfffff,
@@ -99,6 +100,16 @@ void *window_update()
     return (void *)NULL;
 }
 
+void *timer()
+{
+    while (true)
+    {
+        ticks++;
+        usleep(1000);
+    }
+    return (void *)NULL;
+}
+
 int32_t main(int32_t argc, char **argv)
 {
     uint32_t code_delay = 0;
@@ -169,7 +180,8 @@ int32_t main(int32_t argc, char **argv)
     window = SDL_CreateWindow("Emulator", 0, 0,
                               window_framebuffer[1], window_framebuffer[2],
                               SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE);
-    pthread_t window_update_thread;
+    pthread_t window_update_thread, timer_thread;
+    pthread_create(&timer_thread, NULL, timer, NULL);
     pthread_create(&window_update_thread, NULL, window_update, NULL);
     while (!window_framebuffer[0])
         sleep(1);

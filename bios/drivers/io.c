@@ -2,7 +2,7 @@
 
 void outb(uint16_t port, uint8_t data)
 {
-    asm volatile("outb %1, %0"
+    asm volatile("out %0, %1"
                  :
                  : "dN"(port), "a"(data));
 }
@@ -10,7 +10,7 @@ void outb(uint16_t port, uint8_t data)
 uint8_t inb(uint16_t port)
 {
     uint8_t ret;
-    asm volatile("inb %1, %0"
+    asm volatile("in %0, %1"
                  : "=a"(ret)
                  : "Nd"(port));
     return ret;
@@ -19,7 +19,7 @@ uint8_t inb(uint16_t port)
 uint16_t inw(uint16_t port)
 {
     uint16_t ret;
-    asm volatile("inw %1, %0"
+    asm volatile("in %0, %1"
                  : "=a"(ret)
                  : "dN"(port));
     return ret;
@@ -27,7 +27,7 @@ uint16_t inw(uint16_t port)
 
 void outw(uint16_t port, uint16_t data)
 {
-    asm volatile("outw %1, %0"
+    asm volatile("out %0, %1"
                  :
                  : "dN"(port), "a"(data));
 }
