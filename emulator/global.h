@@ -1,4 +1,5 @@
 #pragma once
+#pragma clang diagnostic ignored "-Wvarargs"
 #ifndef GLOBAL_H
 #define GLOBAL_H
 #include <stdlib.h>
