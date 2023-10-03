@@ -5,5 +5,6 @@ extern main
 
 start:
     mov sp, 0x3000
-    mov bx, [0xffff]
-    jmp start
+    call main
+.loop:
+    jmp .loop
