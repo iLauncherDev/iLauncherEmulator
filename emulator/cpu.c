@@ -440,14 +440,111 @@ void cpu_dump_state()
     printf("};\n");
 }
 
-static inline uint8_t cpu_rm_resolve_reg(uint8_t reg, uint8_t size)
+static inline void cpu_rm_resolve(uint8_t rm8, uint8_t size)
 {
     switch (size)
     {
-    case 4:
-        return ((reg - cpu_reg_ax) << 1) + cpu_reg_eax;
+    case 1 ... 2:
+        switch (rm8)
+        {
+        case 0x00:
+            cpu_info[cpu_info_index].reg_type = cpu_type_memory_reg;
+            cpu_info[cpu_info_index].reg_type_buffer[0] = 2;
+            cpu_info[cpu_info_index].reg_type_buffer[1] = cpu_reg_bx;
+            cpu_info[cpu_info_index].reg_type_buffer[2] = cpu_reg_si;
+            break;
+        case 0x01:
+            cpu_info[cpu_info_index].reg_type = cpu_type_memory_reg;
+            cpu_info[cpu_info_index].reg_type_buffer[0] = 2;
+            cpu_info[cpu_info_index].reg_type_buffer[1] = cpu_reg_bx;
+            cpu_info[cpu_info_index].reg_type_buffer[2] = cpu_reg_di;
+            break;
+        case 0x02:
+            cpu_info[cpu_info_index].reg_type = cpu_type_memory_reg;
+            cpu_info[cpu_info_index].reg_type_buffer[0] = 2;
+            cpu_info[cpu_info_index].reg_type_buffer[1] = cpu_reg_bp;
+            cpu_info[cpu_info_index].reg_type_buffer[2] = cpu_reg_si;
+            break;
+        case 0x03:
+            cpu_info[cpu_info_index].reg_type = cpu_type_memory_reg;
+            cpu_info[cpu_info_index].reg_type_buffer[0] = 2;
+            cpu_info[cpu_info_index].reg_type_buffer[1] = cpu_reg_bp;
+            cpu_info[cpu_info_index].reg_type_buffer[2] = cpu_reg_di;
+            break;
+        case 0x04:
+            cpu_info[cpu_info_index].reg_type = cpu_type_memory_reg;
+            cpu_info[cpu_info_index].reg_type_buffer[0] = 1;
+            cpu_info[cpu_info_index].reg_type_buffer[1] = cpu_reg_si;
+            break;
+        case 0x05:
+            cpu_info[cpu_info_index].reg_type = cpu_type_memory_reg;
+            cpu_info[cpu_info_index].reg_type_buffer[0] = 1;
+            cpu_info[cpu_info_index].reg_type_buffer[1] = cpu_reg_di;
+            break;
+        case 0x06:
+            cpu_info[cpu_info_index].reg_type = cpu_type_memory_reg;
+            cpu_info[cpu_info_index].reg_type_buffer[0] = 1;
+            cpu_info[cpu_info_index].reg_type_buffer[1] = cpu_reg_bp;
+            break;
+        case 0x07:
+            cpu_info[cpu_info_index].reg_type = cpu_type_memory_reg;
+            cpu_info[cpu_info_index].reg_type_buffer[0] = 1;
+            cpu_info[cpu_info_index].reg_type_buffer[1] = cpu_reg_bx;
+            break;
+        }
+        break;
+    case 0x04:
+        switch (rm8)
+        {
+        case 0x00:
+            cpu_info[cpu_info_index].reg_type = cpu_type_memory_reg;
+            cpu_info[cpu_info_index].reg_type_buffer[0] = 2;
+            cpu_info[cpu_info_index].reg_type_buffer[1] = cpu_reg_bx;
+            cpu_info[cpu_info_index].reg_type_buffer[2] = cpu_reg_si;
+            break;
+        case 0x01:
+            cpu_info[cpu_info_index].reg_type = cpu_type_memory_reg;
+            cpu_info[cpu_info_index].reg_type_buffer[0] = 2;
+            cpu_info[cpu_info_index].reg_type_buffer[1] = cpu_reg_bx;
+            cpu_info[cpu_info_index].reg_type_buffer[2] = cpu_reg_di;
+            break;
+        case 0x02:
+            cpu_info[cpu_info_index].reg_type = cpu_type_memory_reg;
+            cpu_info[cpu_info_index].reg_type_buffer[0] = 2;
+            cpu_info[cpu_info_index].reg_type_buffer[1] = cpu_reg_bp;
+            cpu_info[cpu_info_index].reg_type_buffer[2] = cpu_reg_si;
+            break;
+        case 0x03:
+            cpu_info[cpu_info_index].reg_type = cpu_type_memory_reg;
+            cpu_info[cpu_info_index].reg_type_buffer[0] = 2;
+            cpu_info[cpu_info_index].reg_type_buffer[1] = cpu_reg_bp;
+            cpu_info[cpu_info_index].reg_type_buffer[2] = cpu_reg_di;
+            break;
+        case 0x04:
+            cpu_info[cpu_info_index].reg_type = cpu_type_memory_reg;
+            cpu_info[cpu_info_index].reg_type_buffer[0] = 1;
+            cpu_info[cpu_info_index].reg_type_buffer[1] = cpu_reg_esp;
+            break;
+        case 0x05:
+            cpu_info[cpu_info_index].reg_type = cpu_type_memory_reg;
+            cpu_info[cpu_info_index].reg_type_buffer[0] = 1;
+            cpu_info[cpu_info_index].reg_type_buffer[1] = cpu_reg_ebp;
+            break;
+        case 0x06:
+            cpu_info[cpu_info_index].reg_type = cpu_type_memory_reg;
+            cpu_info[cpu_info_index].reg_type_buffer[0] = 1;
+            cpu_info[cpu_info_index].reg_type_buffer[1] = cpu_reg_bp;
+            break;
+        case 0x07:
+            cpu_info[cpu_info_index].reg_type = cpu_type_memory_reg;
+            cpu_info[cpu_info_index].reg_type_buffer[0] = 1;
+            cpu_info[cpu_info_index].reg_type_buffer[1] = cpu_reg_bx;
+            break;
+        }
+        break;
+    default:
+        break;
     }
-    return reg;
 }
 
 static inline uint64_t cpu_rm(uint8_t reg, uint8_t size, uint8_t override_size)
@@ -458,28 +555,31 @@ static inline uint64_t cpu_rm(uint8_t reg, uint8_t size, uint8_t override_size)
     switch (mod)
     {
     case 0x00:
-        if (rm8 != 6)
-            break;
-        switch (override_size)
+        if (rm8 == 0x06)
         {
-        case 1 ... 2:
-            value = *(uint16_t *)&opcode[2];
-            override_size = 2;
-            break;
-        case 4:
-            value = *(uint32_t *)&opcode[2];
-            break;
-        default:
-            break;
+            switch (override_size)
+            {
+            case 1 ... 2:
+                value = *(uint16_t *)&opcode[2];
+                override_size = 2;
+                break;
+            case 4:
+                value = *(uint32_t *)&opcode[2];
+                break;
+            default:
+                break;
+            }
+            opcode += override_size, cpu_add_reg(reg, override_size);
+            cpu_info[cpu_info_index].reg_type = cpu_type_memory;
+            goto ret;
         }
-        opcode += override_size, cpu_add_reg(reg, override_size);
-        cpu_info[cpu_info_index].reg_type = cpu_type_memory;
-        goto ret;
+        break;
     case 0x01:
         switch (override_size)
         {
         case 4:
             value = *(uint8_t *)&opcode[3];
+            opcode++, cpu_add_reg(reg, 1);
             break;
         default:
             value = *(uint8_t *)&opcode[2];
@@ -522,56 +622,8 @@ static inline uint64_t cpu_rm(uint8_t reg, uint8_t size, uint8_t override_size)
         }
         goto ret;
     }
-    switch (rm8)
-    {
-    case 0x00:
-        cpu_info[cpu_info_index].reg_type = cpu_type_memory_reg;
-        cpu_info[cpu_info_index].reg_type_buffer[0] = 2;
-        cpu_info[cpu_info_index].reg_type_buffer[1] = cpu_rm_resolve_reg(cpu_reg_bx, size);
-        cpu_info[cpu_info_index].reg_type_buffer[2] = cpu_rm_resolve_reg(cpu_reg_si, size);
-        break;
-    case 0x01:
-        cpu_info[cpu_info_index].reg_type = cpu_type_memory_reg;
-        cpu_info[cpu_info_index].reg_type_buffer[0] = 2;
-        cpu_info[cpu_info_index].reg_type_buffer[1] = cpu_rm_resolve_reg(cpu_reg_bx, size);
-        cpu_info[cpu_info_index].reg_type_buffer[2] = cpu_rm_resolve_reg(cpu_reg_di, size);
-        break;
-    case 0x02:
-        cpu_info[cpu_info_index].reg_type = cpu_type_memory_reg;
-        cpu_info[cpu_info_index].reg_type_buffer[0] = 2;
-        cpu_info[cpu_info_index].reg_type_buffer[1] = cpu_rm_resolve_reg(cpu_reg_bp, size);
-        cpu_info[cpu_info_index].reg_type_buffer[2] = cpu_rm_resolve_reg(cpu_reg_si, size);
-        break;
-    case 0x03:
-        cpu_info[cpu_info_index].reg_type = cpu_type_memory_reg;
-        cpu_info[cpu_info_index].reg_type_buffer[0] = 2;
-        cpu_info[cpu_info_index].reg_type_buffer[1] = cpu_rm_resolve_reg(cpu_reg_bp, size);
-        cpu_info[cpu_info_index].reg_type_buffer[2] = cpu_rm_resolve_reg(cpu_reg_di, size);
-        break;
-    case 0x04:
-        cpu_info[cpu_info_index].reg_type = cpu_type_memory_reg;
-        cpu_info[cpu_info_index].reg_type_buffer[0] = 1;
-        cpu_info[cpu_info_index].reg_type_buffer[1] = cpu_rm_resolve_reg(cpu_reg_si, size);
-        break;
-    case 0x05:
-        cpu_info[cpu_info_index].reg_type = cpu_type_memory_reg;
-        cpu_info[cpu_info_index].reg_type_buffer[0] = 1;
-        cpu_info[cpu_info_index].reg_type_buffer[1] = cpu_rm_resolve_reg(cpu_reg_di, size);
-        break;
-    case 0x06:
-        cpu_info[cpu_info_index].reg_type = cpu_type_memory_reg;
-        cpu_info[cpu_info_index].reg_type_buffer[0] = 1;
-        cpu_info[cpu_info_index].reg_type_buffer[1] = cpu_rm_resolve_reg(cpu_reg_bp, size);
-        break;
-    case 0x07:
-        cpu_info[cpu_info_index].reg_type = cpu_type_memory_reg;
-        cpu_info[cpu_info_index].reg_type_buffer[0] = 1;
-        cpu_info[cpu_info_index].reg_type_buffer[1] = cpu_rm_resolve_reg(cpu_reg_bx, size);
-        break;
-    }
+    cpu_rm_resolve(rm8, size);
 ret:
-    if (size == 4)
-        opcode++, cpu_add_reg(cpu_reg_ip, 1);
     opcode++, cpu_add_reg(reg, 1), cpu_info_index++;
     return value;
 }
@@ -743,6 +795,26 @@ static inline uint32_t cpu_rm32_r32(uint8_t reg, void *r, uint8_t override_size)
 static inline uint32_t cpu_r32_rm32(uint8_t reg, void *r, uint8_t override_size)
 {
     return (uint32_t)cpu_r_rm(reg, r, 4, 4, override_size);
+}
+
+static inline uint32_t cpu_rm32_r8(uint8_t reg, void *r, uint8_t override_size)
+{
+    return (uint32_t)cpu_rm_r(reg, r, 1, 4, override_size);
+}
+
+static inline uint32_t cpu_r8_rm32(uint8_t reg, void *r, uint8_t override_size)
+{
+    return (uint32_t)cpu_r_rm(reg, r, 1, 4, override_size);
+}
+
+static inline uint32_t cpu_rm32_r16(uint8_t reg, void *r, uint8_t override_size)
+{
+    return (uint32_t)cpu_rm_r(reg, r, 2, 4, override_size);
+}
+
+static inline uint32_t cpu_r16_rm32(uint8_t reg, void *r, uint8_t override_size)
+{
+    return (uint32_t)cpu_r_rm(reg, r, 2, 4, override_size);
 }
 
 static inline uint16_t cpu_rm32(uint8_t reg, uint8_t override_size)
@@ -1651,7 +1723,10 @@ void cpu_emulate_i8086(uint8_t debug, uint8_t override)
         cpu_add_reg(cpu_reg_ip, 1);
         break;
     case 0x8a:
-        value2 = cpu_r8_rm8(cpu_reg_ip, &value1, 1);
+        if (override & cpu_override_dword_address)
+            value2 = cpu_r8_rm32(cpu_reg_ip, &value1, 4);
+        else
+            value2 = cpu_r8_rm16(cpu_reg_ip, &value1, 2);
         cpu_exec_mov(value1, value2, 1);
         if (debug)
             cpu_print_instruction("mov", "byte", 2, value1, value2);
@@ -1663,17 +1738,19 @@ void cpu_emulate_i8086(uint8_t debug, uint8_t override)
             value2 = cpu_r32_rm32(cpu_reg_ip, &value1, 4);
             cpu_exec_mov(value1, value2, 4);
             if (debug)
-                cpu_print_instruction("mov", "dword", 2, value1, value2);
-            cpu_add_reg(cpu_reg_ip, 1);
+                cpu_print_instruction("mov", "dword", 2, value1, value2);   
         }
         else
         {
-            value2 = cpu_r16_rm16(cpu_reg_ip, &value1, 2);
+            if (override & cpu_override_dword_address)
+                value2 = cpu_r16_rm32(cpu_reg_ip, &value1, 4);
+            else
+                value2 = cpu_r16_rm16(cpu_reg_ip, &value1, 2);
             cpu_exec_mov(value1, value2, 2);
             if (debug)
                 cpu_print_instruction("mov", "word", 2, value1, value2);
-            cpu_add_reg(cpu_reg_ip, 1);
         }
+        cpu_add_reg(cpu_reg_ip, 1);
         break;
     case 0x90:
         if (debug)
