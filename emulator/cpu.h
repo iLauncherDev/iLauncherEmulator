@@ -1,6 +1,7 @@
 #pragma once
 #ifndef CPU_H
 #define CPU_H
+#define CPU_CHECK_OVERFLOW(x, y, bits) (((uintptr_t)x + (uintptr_t)y) >> (uintptr_t)bits ? 1 : 0)
 #include "global.h"
 #include "memory.h"
 #include "io.h"
