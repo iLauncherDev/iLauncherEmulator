@@ -270,6 +270,15 @@ static char *cpu_regs_string[] = {
     (char *)NULL,
     (char *)NULL,
     (char *)NULL,
+    
+    (char *)NULL,
+    (char *)NULL,
+    (char *)NULL,
+    (char *)NULL,
+    (char *)NULL,
+    (char *)NULL,
+    (char *)NULL,
+    (char *)NULL,
 };
 
 typedef struct cpu_info

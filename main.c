@@ -187,6 +187,8 @@ int32_t main(int32_t argc, char **argv)
         sleep(1);
     while (true)
     {
+        if (io_read(0xffff, 1) & (1 << 0))
+            exit(0);
         cpu_emulate_i8086(debug_code, 0);
         if (code_delay)
             usleep(code_delay);

@@ -2,8 +2,7 @@
 
 void main()
 {
-    outb(0xffff, 0xff);
-    uint8_t read = inb(0xffff);
+    outb(0xffff, 1 << 0);
     while (true)
         ;
 }

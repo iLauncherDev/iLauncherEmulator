@@ -23,7 +23,8 @@ static inline uint64_t memory_read(uint64_t address, uint8_t size)
 
 static inline void memory_write(uint64_t address, uint64_t value, uint8_t size)
 {
-    if (address >= 0xe0000 && address <= 0xfffff || address >= vm_memory_size)
+    if (address >= 0xfffff - limit(bios_size, (256 * 1024) - 1) && address <= 0xfffff ||
+        address >= vm_memory_size)
         return;
     switch (size)
     {
