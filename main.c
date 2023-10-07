@@ -187,20 +187,8 @@ int32_t main(int32_t argc, char **argv)
     pthread_create(&window_update_thread, NULL, window_update, NULL);
     while (!window_framebuffer[0])
         sleep(1);
-    uint64_t count = 0;
-    uint8_t port_value_old = io_read(0xffff, 1);
-    uint8_t enable_singlestep = 0;
     while (true)
     {
-        uint8_t port_value = io_read(0xffff, 1);
-        if (port_value & (1 << 0))
-            exit(0);
-        if (port_value & (1 << 1))
-            printf("Hello World from IO Port: %lu\n", count++);
-        if (port_value & (1 << 2) && enable_singlestep)
-            sleep(1);
-        if (port_value != port_value_old && port_value & (1 << 1))
-            enable_singlestep = true;
         cpu_emulate_i8086(debug_code, 0);
         if (code_delay)
             usleep(code_delay);
