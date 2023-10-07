@@ -10,6 +10,7 @@
         "tuple": "cpp",
         "type_traits": "cpp",
         "utility": "cpp",
-        "memory.h": "c"
+        "memory.h": "c",
+        "bios.h": "c"
     }
 }

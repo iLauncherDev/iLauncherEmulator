@@ -46,6 +46,28 @@ uint8_t segregs[] = {
     cpu_reg_gs,
 };
 
+int64_t cpu_unsigned2signed(uint64_t value, uint8_t size)
+{
+    int8_t signed8;
+    int16_t signed16;
+    int32_t signed32;
+    switch (size)
+    {
+    case 1:
+        signed8 = (int8_t)value;
+        return (int64_t)signed8;
+    case 2:
+        signed16 = (int16_t)value;
+        return (int64_t)signed16;
+    case 4:
+        signed32 = (int32_t)value;
+        return (int64_t)signed32;
+    default:
+        break;
+    }
+    return (int64_t)value;
+}
+
 uint64_t cpu_read_reg(uint8_t reg)
 {
     if (reg == cpu_reg_ip)
@@ -148,7 +170,9 @@ static inline uint64_t cpu_resolve_value(uint64_t value, uint8_t index, uint8_t 
         for (uint8_t i = 0; i < cpu_info[index].reg_type_buffer[0]; i++)
             buffer_address += cpu_read_reg(cpu_info[index].reg_type_buffer[i + 1]);
         if (cpu_info[index].reg_type_buffer[0])
-            return memory_read(base + (int64_t)value + buffer_address, size);
+            return memory_read(base + buffer_address +
+                                   cpu_unsigned2signed(value, cpu_info[index].sign),
+                               size);
         else
             return memory_read(base + cpu_read_reg(value), size);
     case cpu_type_reg:
@@ -175,7 +199,9 @@ static inline void cpu_exec_mov(uint64_t value1, uint64_t value2, uint8_t size)
         for (uint8_t i = 0; i < cpu_info[0].reg_type_buffer[0]; i++)
             buffer_address += cpu_read_reg(cpu_info[0].reg_type_buffer[i + 1]);
         if (cpu_info[0].reg_type_buffer[0])
-            memory_write(base + (int64_t)value1 + buffer_address, value2, size);
+            memory_write(base + buffer_address +
+                             cpu_unsigned2signed(value1, cpu_info[0].sign),
+                         value2, size);
         else
             memory_write(base + cpu_read_reg(value1), value2, size);
         break;
@@ -549,7 +575,7 @@ static inline uint64_t cpu_rm(uint8_t reg, uint8_t size, uint8_t override_size)
 {
     uint8_t mod = (opcode[1] & 0xc0) >> 0x06;
     uint8_t rm8 = opcode[1] & 0x07;
-    uint64_t value = 0;
+    int64_t value = 0;
     if (opcode[2] == 0x24)
         opcode++, cpu_add_reg(reg, 1);
     switch (mod)
@@ -560,40 +586,43 @@ static inline uint64_t cpu_rm(uint8_t reg, uint8_t size, uint8_t override_size)
             switch (override_size)
             {
             case 1 ... 2:
-                value = (int64_t)(0xffff & *(int16_t *)&opcode[2]);
+                value = *(uint16_t *)&opcode[2];
                 override_size = 2;
                 break;
             case 4:
-                value = (int64_t)(0xffffffff & *(int32_t *)&opcode[2]);
+                value = *(uint32_t *)&opcode[2];
                 break;
             default:
                 break;
             }
             opcode += override_size, cpu_add_reg(reg, override_size);
             cpu_info[cpu_info_index].reg_type = cpu_type_memory;
+            cpu_info[cpu_info_index].sign = override_size;
             goto ret;
         }
         break;
     case 0x01:
-        value = (int64_t)(0xff & *(int8_t *)&opcode[2]);
+        value = cpu_unsigned2signed(*(uint8_t *)&opcode[2], 1);
         cpu_info[cpu_info_index].reg_type = cpu_type_memory;
+        cpu_info[cpu_info_index].sign = 1;
         opcode++, cpu_add_reg(reg, 1);
         break;
     case 0x02:
         switch (override_size)
         {
         case 1 ... 2:
-            value = (int64_t)(0xffff & *(int16_t *)&opcode[2]);
+            value = *(uint16_t *)&opcode[2];
             override_size = 2;
             break;
         case 4:
-            value = (int64_t)(0xffffffff & *(int32_t *)&opcode[2]);
+            value = *(uint32_t *)&opcode[2];
             break;
         default:
             break;
         }
         opcode += override_size, cpu_add_reg(reg, override_size);
         cpu_info[cpu_info_index].reg_type = cpu_type_memory;
+        cpu_info[cpu_info_index].sign = override_size;
         break;
     case 0x03:
         switch (size)
@@ -786,6 +815,11 @@ static inline uint32_t cpu_rm32_r32(uint8_t reg, void *r, uint8_t override_size)
 static inline uint32_t cpu_r32_rm32(uint8_t reg, void *r, uint8_t override_size)
 {
     return (uint32_t)cpu_r_rm(reg, r, 4, 4, override_size);
+}
+
+static inline uint32_t cpu_r32_rm8(uint8_t reg, void *r, uint8_t override_size)
+{
+    return (uint32_t)cpu_r_rm(reg, r, 4, 1, override_size);
 }
 
 static inline uint32_t cpu_rm32_r8(uint8_t reg, void *r, uint8_t override_size)
@@ -998,6 +1032,98 @@ void cpu_emulate_i8086(uint8_t debug, uint8_t override)
             printf("pop word es\n");
         cpu_add_reg(cpu_reg_ip, 1);
         break;
+    case 0x08:
+        value1 = cpu_rm8_r8(cpu_reg_ip, &value2, 1);
+        cpu_exec_or(value1, value2, 1);
+        if (debug)
+            cpu_print_instruction("or", "byte", 2, value1, value2);
+        cpu_add_reg(cpu_reg_ip, 1);
+        break;
+    case 0x09:
+        if (override & cpu_override_dword_operand)
+        {
+            value1 = cpu_rm32_r32(cpu_reg_ip, &value2, 2);
+            cpu_exec_or(value1, value2, 1);
+            if (debug)
+                cpu_print_instruction("or", "dword", 2, value1, value2);
+        }
+        else
+        {
+            if (override & cpu_override_dword_address)
+            {
+                value1 = cpu_rm32_r16(cpu_reg_ip, &value2, 4);
+                cpu_exec_or(value1, value2, 2);
+                if (debug)
+                    cpu_print_instruction("or", "word", 2, value1, value2);
+            }
+            else
+            {
+                value1 = cpu_rm16_r16(cpu_reg_ip, &value2, 2);
+                cpu_exec_or(value1, value2, 2);
+                if (debug)
+                    cpu_print_instruction("or", "word", 2, value1, value2);
+            }
+        }
+        cpu_add_reg(cpu_reg_ip, 1);
+        break;
+    case 0x0a:
+        value2 = cpu_r8_rm8(cpu_reg_ip, &value1, 1);
+        cpu_exec_or(value1, value2, 1);
+        if (debug)
+            cpu_print_instruction("or", "byte", 2, value1, value2);
+        cpu_add_reg(cpu_reg_ip, 1);
+        break;
+    case 0x0b:
+        if (override & cpu_override_dword_operand)
+        {
+            value2 = cpu_r32_rm32(cpu_reg_ip, &value1, 2);
+            cpu_exec_or(value1, value2, 1);
+            if (debug)
+                cpu_print_instruction("or", "dword", 2, value1, value2);
+        }
+        else
+        {
+            if (override & cpu_override_dword_address)
+            {
+                value2 = cpu_r16_rm32(cpu_reg_ip, &value1, 4);
+                cpu_exec_or(value1, value2, 2);
+                if (debug)
+                    cpu_print_instruction("or", "dword", 2, value1, value2);
+            }
+            else
+            {
+                value2 = cpu_r16_rm16(cpu_reg_ip, &value1, 2);
+                cpu_exec_or(value1, value2, 2);
+                if (debug)
+                    cpu_print_instruction("or", "word", 2, value1, value2);
+            }
+        }
+        cpu_add_reg(cpu_reg_ip, 1);
+        break;
+    case 0x0c:
+        value1 = cpu_imm8(cpu_reg_ip);
+        cpu_or_reg(cpu_reg_al, value1);
+        if (debug)
+            cpu_print_instruction("or", "byte al,", 1, value1);
+        cpu_add_reg(cpu_reg_ip, 1);
+        break;
+    case 0x0d:
+        if (override & cpu_override_dword_operand)
+        {
+            value1 = cpu_imm32(cpu_reg_ip);
+            cpu_or_reg(cpu_reg_eax, value1);
+            if (debug)
+                cpu_print_instruction("or", "dword eax,", 1, value1);
+        }
+        else
+        {
+            value1 = cpu_imm16(cpu_reg_ip);
+            cpu_or_reg(cpu_reg_ax, value1);
+            if (debug)
+                cpu_print_instruction("or", "word ax,", 1, value1);
+        }
+        cpu_add_reg(cpu_reg_ip, 1);
+        break;
     case 0x0e:
         cpu_push_reg(cpu_reg_sp, cpu_reg_cs, 2);
         if (debug)
@@ -1070,31 +1196,40 @@ void cpu_emulate_i8086(uint8_t debug, uint8_t override)
             switch (opcode[0] & 0x07)
             {
             case 0x06:
-                size = 1;
-                break;
-            case 0x07:
-                size = 2;
-                break;
-            }
-            if (override & cpu_override_dword_operand)
-            {
-                if (override & cpu_override_dword_address)
-                    value2 = cpu_r32_rm32(cpu_reg_ip, &value1, 4);
+                if (override & cpu_override_dword_operand)
+                {
+                    if (override & cpu_override_dword_address)
+                        value2 = cpu_r32_rm32(cpu_reg_ip, &value1, 4);
+                    else
+                        value2 = cpu_r32_rm8(cpu_reg_ip, &value1, 2);
+                }
                 else
-                    value2 = cpu_r16_rm32(cpu_reg_ip, &value1, 4);
-            }
-            else
-            {
-                value2 = cpu_r16_rm16(cpu_reg_ip, &value1, 2);
-            }
-            cpu_exec_mov(value1, value2, size);
-            switch (size)
-            {
-            case 1:
+                {
+                    if (override & cpu_override_dword_address)
+                        value2 = cpu_r16_rm32(cpu_reg_ip, &value1, 4);
+                    else
+                        value2 = cpu_r16_rm8(cpu_reg_ip, &value1, 2);
+                }
+                cpu_exec_mov(value1, value2, 1);
                 if (debug)
                     cpu_print_instruction("movzx", "1byte", 2, value1, value2);
                 break;
-            case 2:
+            case 0x07:
+                if (override & cpu_override_dword_operand)
+                {
+                    if (override & cpu_override_dword_address)
+                        value2 = cpu_r32_rm32(cpu_reg_ip, &value1, 4);
+                    else
+                        value2 = cpu_r16_rm32(cpu_reg_ip, &value1, 4);
+                }
+                else
+                {
+                    if (override & cpu_override_dword_address)
+                        value2 = cpu_r16_rm32(cpu_reg_ip, &value1, 4);
+                    else
+                        value2 = cpu_r16_rm16(cpu_reg_ip, &value1, 2);
+                }
+                cpu_exec_mov(value1, value2, 2);
                 if (debug)
                     cpu_print_instruction("movzx", "1word", 2, value1, value2);
                 break;
@@ -2063,26 +2198,15 @@ void cpu_emulate_i8086(uint8_t debug, uint8_t override)
     case 0xc6:
         if (override & cpu_override_dword_address)
         {
-            if (override & cpu_override_dword_operand)
-            {
-                value1 = cpu_r32(cpu_reg_ip);
-                value2 = cpu_imm8(cpu_reg_ip);
-                cpu_exec_mov(value1, value2, 1);
-                if (debug)
-                    cpu_print_instruction("mov", "byte", 2, value1, value2);
-            }
-            else
-            {
-                value1 = cpu_r32(cpu_reg_ip);
-                value2 = cpu_imm8(cpu_reg_ip);
-                cpu_exec_mov(value1, value2, 1);
-                if (debug)
-                    cpu_print_instruction("mov", "byte", 2, value1, value2);
-            }
+            value1 = cpu_rm32(cpu_reg_ip, 4);
+            value2 = cpu_imm8(cpu_reg_ip);
+            cpu_exec_mov(value1, value2, 1);
+            if (debug)
+                cpu_print_instruction("mov", "byte", 2, value1, value2);
         }
         else
         {
-            value1 = cpu_r16(cpu_reg_ip);
+            value1 = cpu_rm16(cpu_reg_ip, 2);
             value2 = cpu_imm8(cpu_reg_ip);
             cpu_exec_mov(value1, value2, 1);
             if (debug)
@@ -2091,9 +2215,9 @@ void cpu_emulate_i8086(uint8_t debug, uint8_t override)
         cpu_add_reg(cpu_reg_ip, 1);
         break;
     case 0xc7:
-        if (override & cpu_override_dword_operand)
+        if (override & cpu_override_dword_address)
         {
-            if (override & cpu_override_dword_address)
+            if (override & cpu_override_dword_operand)
             {
                 value1 = cpu_rm32(cpu_reg_ip, 4);
                 value2 = cpu_imm32(cpu_reg_ip);
@@ -2103,7 +2227,7 @@ void cpu_emulate_i8086(uint8_t debug, uint8_t override)
             }
             else
             {
-                value1 = cpu_rm32(cpu_reg_ip, 4);
+                value1 = cpu_rm32(cpu_reg_ip, 2);
                 value2 = cpu_imm16(cpu_reg_ip);
                 cpu_exec_mov(value1, value2, 2);
                 if (debug)
@@ -2226,13 +2350,13 @@ void cpu_emulate_i8086(uint8_t debug, uint8_t override)
     case 0xec:
         if (debug)
             printf("in al, dx\n");
-        cpu_write_reg(cpu_reg_dx, io_read(cpu_read_reg(cpu_reg_al), 1));
+        cpu_write_reg(cpu_reg_al, io_read(cpu_read_reg(cpu_reg_dx), 1));
         cpu_add_reg(cpu_reg_ip, 1);
         break;
     case 0xed:
         if (debug)
             printf("in ax, dx\n");
-        cpu_write_reg(cpu_reg_dx, io_read(cpu_read_reg(cpu_reg_ax), 2));
+        cpu_write_reg(cpu_reg_ax, io_read(cpu_read_reg(cpu_reg_dx), 2));
         cpu_add_reg(cpu_reg_ip, 1);
         break;
     case 0xee:
