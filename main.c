@@ -1,4 +1,5 @@
 #include "emulator/global.h"
+#include "emulator/vga.h"
 #include "emulator/cpu.h"
 #include "emulator/io.h"
 
@@ -189,6 +190,7 @@ int32_t main(int32_t argc, char **argv)
         sleep(1);
     while (true)
     {
+        vga_service();
         cpu_emulate_i8086(debug_code, 0);
         if (code_delay)
             usleep(code_delay);

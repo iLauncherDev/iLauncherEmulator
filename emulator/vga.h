@@ -25,4 +25,15 @@
 #define VGA_NUM_AC_REGS 21
 #define VGA_NUM_REGS (1 + VGA_NUM_SEQ_REGS + VGA_NUM_CRTC_REGS + VGA_NUM_GC_REGS + VGA_NUM_AC_REGS)
 
+typedef struct vga
+{
+    uint8_t font[32768];
+    uint8_t seq[VGA_NUM_SEQ_REGS];
+    uint8_t crtc[VGA_NUM_CRTC_REGS];
+    uint8_t gc[VGA_NUM_GC_REGS];
+    uint8_t ac[VGA_NUM_AC_REGS];
+} vga_t;
+
+void vga_service();
+void vga_render_frame(uint32_t *rgb_buffer);
 #endif
