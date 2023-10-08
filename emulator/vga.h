@@ -27,7 +27,8 @@
 
 typedef struct vga
 {
-    uint8_t font[32768];
+    uint8_t buffer[524288];
+    uint8_t misc;
     uint8_t seq[VGA_NUM_SEQ_REGS];
     uint8_t crtc[VGA_NUM_CRTC_REGS];
     uint8_t gc[VGA_NUM_GC_REGS];
