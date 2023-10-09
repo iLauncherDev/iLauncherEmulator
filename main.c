@@ -191,7 +191,7 @@ int32_t main(int32_t argc, char **argv)
     while (true)
     {
         if (io_check_flag(0xffff, IO_WRITE_FLAG, 1))
-            printf("0x%lx\n", io_read(0xffff, 1)), io_clear_flag(0xffff, IO_WRITE_FLAG, 1);
+            printf("%c", (uint8_t)io_read(0xffff, 1)), io_clear_flag(0xffff, IO_WRITE_FLAG, 1);
         vga_service();
         cpu_emulate_i8086(debug_code, 0);
         if (code_delay)

@@ -708,32 +708,35 @@ static inline uint8_t cpu_get_segment_override(uint16_t override)
         return cpu_reg_ss;
     if (override & cpu_override_ds)
         return cpu_reg_ds;
-    return 0xff;
+    return cpu_override_ds;
 }
 
 static inline uint64_t cpu_m(uint8_t reg, uint16_t override, uint8_t size)
 {
+    opcode++, cpu_write_reg(reg, cpu_read_reg(reg) + 1);
     uint8_t sreg = cpu_get_segment_override(override);
-    if (sreg == 0xff)
-        goto error;
     cpu_info[cpu_info_index].segmentation = sreg;
     cpu_info[cpu_info_index].reg_type = cpu_type_memory;
     switch (size)
     {
     case 1:
-        return *(uint8_t *)&opcode[1];
+        return *(uint8_t *)opcode;
     case 2:
-        return *(uint16_t *)&opcode[1];
+        return *(uint16_t *)opcode;
     case 4:
-        return *(uint32_t *)&opcode[1];
+        return *(uint32_t *)opcode;
     }
-error:
-    return (uint64_t)-1;
+    return *(uint64_t *)opcode;
 }
 
 static inline uint16_t cpu_m16(uint8_t reg, uint16_t override)
 {
     return (uint16_t)cpu_m(reg, override, 2);
+}
+
+static inline uint32_t cpu_m32(uint8_t reg, uint16_t override)
+{
+    return (uint32_t)cpu_m(reg, override, 4);
 }
 
 static inline uint8_t cpu_r32(uint8_t reg)
@@ -2011,6 +2014,38 @@ void cpu_emulate_i8086(uint8_t debug, uint8_t override)
     case 0x90:
         if (debug)
             printf("nop\n");
+        cpu_add_reg(cpu_reg_ip, 1);
+        break;
+    case 0xa0:
+        if (override & cpu_override_dword_address)
+            value1 = cpu_m32(cpu_reg_ip, override);
+        else
+            value1 = cpu_m16(cpu_reg_ip, override);
+        value2 = cpu_resolve_value(value1, 0, 2);
+        cpu_write_reg(cpu_reg_al, value2);
+        if (debug)
+            printf("mov al, [0x%lx]\n", value1);
+        cpu_add_reg(cpu_reg_ip, 1);
+        break;
+    case 0xa1:
+        if (override & cpu_override_dword_address)
+            value1 = cpu_m32(cpu_reg_ip, override);
+        else
+            value1 = cpu_m16(cpu_reg_ip, override);
+        if (override & cpu_override_dword_operand)
+        {
+            value2 = cpu_resolve_value(value1, 0, 4);
+            cpu_write_reg(cpu_reg_eax, value2);
+            if (debug)
+                printf("mov eax, [0x%lx]\n", value1);
+        }
+        else
+        {
+            value2 = cpu_resolve_value(value1, 0, 2);
+            cpu_write_reg(cpu_reg_ax, value2);
+            if (debug)
+                printf("mov ax, [0x%lx]\n", value1);
+        }
         cpu_add_reg(cpu_reg_ip, 1);
         break;
     case 0xb0:
