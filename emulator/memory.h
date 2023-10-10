@@ -1,46 +1,22 @@
 #pragma once
 #ifndef MEMORY_H
 #define MEMORY_H
-#include <stdint.h>
-#include <stdbool.h>
+#include "global.h"
+#define MEMORY_READ_FLAG (1 << 0)
+#define MEMORY_WRITE_FLAG (1 << 1)
 
-static inline uint64_t memory_read(uint64_t address, uint8_t size)
+typedef struct memory_map
 {
-    if (address >= vm_memory_size)
-        return 0x00000000;
-    switch (size)
-    {
-    case 1:
-        return *((uint8_t *)&vm_memory[address]);
-    case 2:
-        return *((uint16_t *)&vm_memory[address]);
-    case 4:
-        return *((uint32_t *)&vm_memory[address]);
-    default:
-        return *((uint64_t *)&vm_memory[address]);
-    }
-}
+    uint8_t flags;
+    void *buffer;
+    uint64_t address, offset, size;
+    struct memory_map *prev;
+    struct memory_map *next;
+} memory_map_t;
 
-static inline void memory_write(uint64_t address, uint64_t value, uint8_t size)
-{
-    if (address >= 0xfffff - limit(bios_size, (256 * 1024) - 1) && address <= 0xfffff ||
-        address >= vm_memory_size)
-        return;
-    switch (size)
-    {
-    case 1:
-        *((uint8_t *)&vm_memory[address]) = (uint8_t)value;
-        break;
-    case 2:
-        *((uint16_t *)&vm_memory[address]) = (uint16_t)value;
-        break;
-    case 4:
-        *((uint32_t *)&vm_memory[address]) = (uint32_t)value;
-        break;
-    default:
-        *((uint64_t *)&vm_memory[address]) = (uint64_t)value;
-        break;
-    }
-}
-
+uint64_t memory_read(uint64_t address, uint8_t size);
+void memory_write(uint64_t address, uint64_t value, uint8_t size);
+void memory_map_buffer(uint8_t flags, void *buffer, uint64_t address, uint64_t offset, uint64_t size);
+void memory_map_set_offset(uint64_t address, uint64_t offset);
+void memory_map_remove(uint64_t address);
 #endif
