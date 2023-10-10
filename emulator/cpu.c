@@ -5,7 +5,7 @@ extern uint64_t window_framebuffer[];
 cpu_info_t cpu_info[8];
 uint8_t cpu_info_index = 0;
 
-uint8_t *opcode;
+uint64_t opcode;
 uint8_t cpu_state[cpu_reg_end];
 uint8_t regs32[] = {
     cpu_reg_eax,
@@ -619,10 +619,10 @@ static inline void cpu_rm_resolve(uint8_t rm8, uint8_t size)
 
 static inline uint64_t cpu_rm(uint8_t reg, uint8_t size, uint8_t override_size)
 {
-    uint8_t mod = (opcode[1] & 0xc0) >> 0x06;
-    uint8_t rm8 = opcode[1] & 0x07;
+    uint8_t mod = (memory_read(opcode + 1, 1) & 0xc0) >> 0x06;
+    uint8_t rm8 = memory_read(opcode + 1, 1) & 0x07;
     int64_t value = 0;
-    if (opcode[2] == 0x24)
+    if (memory_read(opcode + 2, 1) == 0x24)
         opcode++, cpu_add_reg(reg, 1);
     switch (mod)
     {
@@ -632,11 +632,11 @@ static inline uint64_t cpu_rm(uint8_t reg, uint8_t size, uint8_t override_size)
             switch (override_size)
             {
             case 1 ... 2:
-                value = *(uint16_t *)&opcode[2];
+                value = memory_read(opcode + 2, 2);
                 override_size = 2;
                 break;
             case 4:
-                value = *(uint32_t *)&opcode[2];
+                value = memory_read(opcode + 2, 4);
                 break;
             default:
                 break;
@@ -648,7 +648,7 @@ static inline uint64_t cpu_rm(uint8_t reg, uint8_t size, uint8_t override_size)
         }
         break;
     case 0x01:
-        value = cpu_unsigned2signed(*(uint8_t *)&opcode[2], 1);
+        value = cpu_unsigned2signed(memory_read(opcode + 2, 1), 1);
         cpu_info[cpu_info_index].reg_type = cpu_type_memory;
         cpu_info[cpu_info_index].sign = 1;
         opcode++, cpu_add_reg(reg, 1);
@@ -657,11 +657,11 @@ static inline uint64_t cpu_rm(uint8_t reg, uint8_t size, uint8_t override_size)
         switch (override_size)
         {
         case 1 ... 2:
-            value = *(uint16_t *)&opcode[2];
+            value = memory_read(opcode + 2, 2);
             override_size = 2;
             break;
         case 4:
-            value = *(uint32_t *)&opcode[2];
+            value = memory_read(opcode + 2, 4);
             break;
         default:
             break;
@@ -696,20 +696,20 @@ ret:
 
 static inline uint64_t cpu_r_rm(uint8_t reg, void *r, uint8_t r_size, uint8_t size, uint8_t override_size)
 {
-    uint8_t *opcode_backup = opcode;
+    uint64_t opcode_backup = opcode;
     switch (r_size)
     {
     case 1:
-        *(uint64_t *)r = regs8[(opcode_backup[1] & 0x38) >> 3];
+        *(uint64_t *)r = regs8[(memory_read(opcode_backup + 1, 1) & 0x38) >> 3];
         break;
     case 2:
-        *(uint64_t *)r = regs16[(opcode_backup[1] & 0x38) >> 3];
+        *(uint64_t *)r = regs16[(memory_read(opcode_backup + 1, 1) & 0x38) >> 3];
         break;
     case 4:
-        *(uint64_t *)r = regs32[(opcode_backup[1] & 0x38) >> 3];
+        *(uint64_t *)r = regs32[(memory_read(opcode_backup + 1, 1) & 0x38) >> 3];
         break;
     case 255:
-        *(uint64_t *)r = segregs[(opcode_backup[1] & 0x38) >> 3];
+        *(uint64_t *)r = segregs[(memory_read(opcode_backup + 1, 1) & 0x38) >> 3];
         break;
     default:
         break;
@@ -721,20 +721,20 @@ static inline uint64_t cpu_r_rm(uint8_t reg, void *r, uint8_t r_size, uint8_t si
 
 static inline uint64_t cpu_rm_r(uint8_t reg, void *r, uint8_t r_size, uint8_t size, uint8_t override_size)
 {
-    uint8_t *opcode_backup = opcode;
+    uint64_t opcode_backup = opcode;
     switch (r_size)
     {
     case 1:
-        *(uint64_t *)r = regs8[(opcode_backup[1] & 0x38) >> 3];
+        *(uint64_t *)r = regs8[(memory_read(opcode_backup + 1, 1) & 0x38) >> 3];
         break;
     case 2:
-        *(uint64_t *)r = regs16[(opcode_backup[1] & 0x38) >> 3];
+        *(uint64_t *)r = regs16[(memory_read(opcode_backup + 1, 1) & 0x38) >> 3];
         break;
     case 4:
-        *(uint64_t *)r = regs32[(opcode_backup[1] & 0x38) >> 3];
+        *(uint64_t *)r = regs32[(memory_read(opcode_backup + 1, 1) & 0x38) >> 3];
         break;
     case 255:
-        *(uint64_t *)r = segregs[(opcode_backup[1] & 0x38) >> 3];
+        *(uint64_t *)r = segregs[(memory_read(opcode_backup + 1, 1) & 0x38) >> 3];
         break;
     default:
         break;
@@ -766,16 +766,16 @@ static inline uint64_t cpu_m(uint8_t reg, uint16_t override, uint8_t size)
     switch (size)
     {
     case 1:
-        value = *(uint8_t *)&opcode[1];
+        value = memory_read(opcode + 1, 1);
         break;
     case 2:
-        value = *(uint16_t *)&opcode[1];
+        value = memory_read(opcode + 1, 2);
         break;
     case 4:
-        value = *(uint32_t *)&opcode[1];
+        value = memory_read(opcode + 1, 4);
         break;
     default:
-        value = *(uint64_t *)&opcode[1];
+        value = memory_read(opcode + 1, 8);
         break;
     }
     opcode += size + 1, cpu_add_reg(reg, size + 1);
@@ -796,21 +796,21 @@ static inline uint8_t cpu_r32(uint8_t reg)
 {
     opcode++, cpu_write_reg(reg, cpu_read_reg(reg) + 1);
     cpu_info[cpu_info_index++].reg_type = cpu_type_reg;
-    return regs32[(*opcode & 0x38) & 7];
+    return regs32[(memory_read(opcode, 4) & 0x38) & 7];
 }
 
 static inline uint8_t cpu_r16(uint8_t reg)
 {
     opcode++, cpu_write_reg(reg, cpu_read_reg(reg) + 1);
     cpu_info[cpu_info_index++].reg_type = cpu_type_reg;
-    return regs16[(*opcode & 0x38) & 7];
+    return regs16[(memory_read(opcode, 2) & 0x38) & 7];
 }
 
 static inline uint8_t cpu_r8(uint8_t reg)
 {
     opcode++, cpu_write_reg(reg, cpu_read_reg(reg) + 1);
     cpu_info[cpu_info_index++].reg_type = cpu_type_reg;
-    return regs8[(*opcode & 0x38) & 7];
+    return regs8[(memory_read(opcode, 1) & 0x38) & 7];
 }
 
 static inline uint16_t cpu_rm8_r8(uint8_t reg, void *r, uint8_t override_size)
@@ -925,7 +925,7 @@ static inline uint8_t cpu_rm8(uint8_t reg, uint8_t override_size)
 
 static inline uint32_t cpu_imm32(uint8_t reg)
 {
-    uint32_t imm = *(uint32_t *)&opcode[1];
+    uint32_t imm = memory_read(opcode + 1, 4);
     cpu_info[cpu_info_index++].reg_type = cpu_type_int;
     opcode += 2, cpu_write_reg(reg, cpu_read_reg(reg) + 4);
     return (uint32_t)imm;
@@ -933,7 +933,7 @@ static inline uint32_t cpu_imm32(uint8_t reg)
 
 static inline uint16_t cpu_imm16(uint8_t reg)
 {
-    uint16_t imm = *(uint16_t *)&opcode[1];
+    uint16_t imm = memory_read(opcode + 1, 2);
     cpu_info[cpu_info_index++].reg_type = cpu_type_int;
     opcode += 2, cpu_write_reg(reg, cpu_read_reg(reg) + 2);
     return (uint16_t)imm;
@@ -941,7 +941,7 @@ static inline uint16_t cpu_imm16(uint8_t reg)
 
 static inline uint8_t cpu_imm8(uint8_t reg)
 {
-    uint8_t imm = opcode[1];
+    uint8_t imm = memory_read(opcode + 1, 1);
     cpu_info[cpu_info_index++].reg_type = cpu_type_int;
     opcode++, cpu_write_reg(reg, cpu_read_reg(reg) + 1);
     return (uint8_t)imm;
@@ -949,7 +949,7 @@ static inline uint8_t cpu_imm8(uint8_t reg)
 
 static inline uint32_t cpu_rel32(uint8_t reg)
 {
-    uint32_t rel = *(uint32_t *)&opcode[1];
+    uint32_t rel = memory_read(opcode + 1, 4);
     cpu_info[cpu_info_index++].reg_type = cpu_type_int;
     opcode += 2, cpu_write_reg(reg, cpu_read_reg(reg) + 4);
     return (uint32_t)(cpu_read_reg(reg) + rel + 1);
@@ -957,7 +957,7 @@ static inline uint32_t cpu_rel32(uint8_t reg)
 
 static inline uint16_t cpu_rel16(uint8_t reg)
 {
-    uint16_t rel = *(uint16_t *)&opcode[1];
+    uint16_t rel = memory_read(opcode + 1, 2);
     cpu_info[cpu_info_index++].reg_type = cpu_type_int;
     opcode += 2, cpu_write_reg(reg, cpu_read_reg(reg) + 2);
     return (uint16_t)(cpu_read_reg(reg) + rel + 1);
@@ -965,7 +965,7 @@ static inline uint16_t cpu_rel16(uint8_t reg)
 
 static inline uint8_t cpu_rel8(uint8_t reg)
 {
-    uint8_t rel = opcode[1];
+    uint8_t rel = memory_read(opcode + 1, 1);
     cpu_info[cpu_info_index++].reg_type = cpu_type_int;
     opcode++, cpu_write_reg(reg, cpu_read_reg(reg) + 1);
     return (uint8_t)(cpu_read_reg(reg) + rel + 1);
@@ -975,7 +975,7 @@ static inline uint8_t cpu_sr(uint8_t reg)
 {
     cpu_info[cpu_info_index++].reg_type = cpu_type_reg;
     opcode++, cpu_write_reg(reg, cpu_read_reg(reg) + 1);
-    return segregs[(opcode[1] & 0x38) >> 3];
+    return segregs[(memory_read(opcode + 1, 1) & 0x38) >> 3];
 }
 
 static inline void cpu_print_instruction(char *instruction, char *type,
@@ -1056,11 +1056,11 @@ void cpu_emulate_i8086(uint8_t debug, uint8_t override)
     uint64_t base = (entry->base_high << 24) |
                     (entry->base_middle << 16) |
                     entry->base_low;
-    opcode = &vm_memory[base + cpu_read_reg(cpu_reg_ip)];
+    opcode = base + cpu_read_reg(cpu_reg_ip);
     uint64_t value1;
     uint64_t value2;
     char *operation;
-    switch (*opcode)
+    switch (memory_read(opcode, 1))
     {
     case 0x66 ... 0x67:
         break;
@@ -1076,10 +1076,10 @@ void cpu_emulate_i8086(uint8_t debug, uint8_t override)
         break;
     default:
         if (debug)
-            printf("OPCODE: 0x%x, ESP: 0x%lx; ", *opcode, cpu_read_reg(cpu_reg_esp));
+            printf("OPCODE: 0x%lx, ESP: 0x%lx; ", memory_read(opcode, 1), cpu_read_reg(cpu_reg_esp));
         break;
     }
-    switch (*opcode)
+    switch (memory_read(opcode, 1))
     {
     case 0x06:
         cpu_push_reg(cpu_reg_sp, cpu_reg_es, 2);
@@ -1194,10 +1194,10 @@ void cpu_emulate_i8086(uint8_t debug, uint8_t override)
     case 0x0f:
         opcode++, cpu_add_reg(cpu_reg_ip, 1);
         uint8_t error = 0, size = 0;
-        switch ((opcode[0] & 0x38) >> 3)
+        switch ((memory_read(opcode, 1) & 0x38) >> 3)
         {
         case 0x00:
-            switch ((opcode[1] >> 2) & 0x07)
+            switch ((memory_read(opcode + 1, 1) >> 2) & 0x07)
             {
             case 0x01:
                 value1 = cpu_rel16(cpu_reg_ip);
@@ -1224,7 +1224,7 @@ void cpu_emulate_i8086(uint8_t debug, uint8_t override)
                     printf("jz 0x%lx\n", value1);
                 break;
             case 0x05:
-                switch ((opcode[1] & 0x38) >> 3)
+                switch ((memory_read(opcode + 1, 1) & 0x38) >> 3)
                 {
                 case 0x02:
                     value1 = cpu_rm16(cpu_reg_ip, 2);
@@ -1249,12 +1249,12 @@ void cpu_emulate_i8086(uint8_t debug, uint8_t override)
                     printf("je 0x%lx\n", value1);
                 break;
             default:
-                error = (opcode[1] >> 2) & 0x07;
+                error = (memory_read(opcode + 1, 1) >> 2) & 0x07;
                 goto is_pop_cs;
             }
             break;
         case 0x06:
-            switch (opcode[0] & 0x07)
+            switch (memory_read(opcode, 1) & 0x07)
             {
             case 0x06:
                 if (override & cpu_override_dword_operand)
@@ -1301,7 +1301,7 @@ void cpu_emulate_i8086(uint8_t debug, uint8_t override)
         default:
             cpu_pop_reg(cpu_reg_sp, cpu_reg_cs, 2);
             if (debug)
-                printf("pop word cs; %x, %x\n", (opcode[0] & 0x38) >> 3, (opcode[1] & 0x38) >> 3);
+                printf("pop word cs; %lx, %lx\n", (memory_read(opcode, 1) & 0x38) >> 3, (memory_read(opcode + 1, 1) & 0x38) >> 3);
             cpu_add_reg(cpu_reg_ip, 1);
             break;
         }
@@ -1714,7 +1714,7 @@ void cpu_emulate_i8086(uint8_t debug, uint8_t override)
             printf("je 0x%lx\n", value1);
         break;
     case 0x80:
-        switch ((opcode[1] & 0x38) >> 3)
+        switch ((memory_read(opcode + 1, 1) & 0x38) >> 3)
         {
         case 0x00:
             if (override & cpu_override_dword_address)
@@ -1783,7 +1783,7 @@ void cpu_emulate_i8086(uint8_t debug, uint8_t override)
         cpu_add_reg(cpu_reg_ip, 1);
         break;
     case 0x81:
-        switch ((opcode[1] & 0x38) >> 3)
+        switch ((memory_read(opcode + 1, 1) & 0x38) >> 3)
         {
         case 0x00:
             if (override & cpu_override_dword_operand)
@@ -1900,7 +1900,7 @@ void cpu_emulate_i8086(uint8_t debug, uint8_t override)
         cpu_add_reg(cpu_reg_ip, 1);
         break;
     case 0x83:
-        switch ((opcode[1] & 0x38) >> 3)
+        switch ((memory_read(opcode + 1, 1) & 0x38) >> 3)
         {
         case 0x00:
             if (override & cpu_override_dword_operand)
@@ -2569,7 +2569,7 @@ void cpu_emulate_i8086(uint8_t debug, uint8_t override)
     unknown:
     default:
         if (debug)
-            printf("db 0x%hhx\n", *opcode);
+            printf("db 0x%lx\n", memory_read(opcode, 1));
         cpu_add_reg(cpu_reg_ip, 1);
         break;
     }
