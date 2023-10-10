@@ -29,6 +29,7 @@ void vga_install()
 
 void vga_service()
 {
+    
 }
 
 void vga_render_frame(uint32_t *rgb_buffer)

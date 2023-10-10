@@ -184,6 +184,7 @@ int32_t main(int32_t argc, char **argv)
         return 0;
     }
     gdt_setup();
+    vga_install();
     SDL_Init(SDL_INIT_VIDEO);
     window = SDL_CreateWindow("Emulator", 0, 0,
                               window_framebuffer[1], window_framebuffer[2],

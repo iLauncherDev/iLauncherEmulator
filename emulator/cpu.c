@@ -1197,7 +1197,7 @@ void cpu_emulate_i8086(uint8_t debug, uint8_t override)
         switch ((memory_read(opcode, 1) & 0x38) >> 3)
         {
         case 0x00:
-            switch ((memory_read(opcode + 1, 1) >> 2) & 0x07)
+            switch (memory_read(opcode, 1) & 0x07)
             {
             case 0x01:
                 value1 = cpu_rel16(cpu_reg_ip);

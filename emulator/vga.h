@@ -37,4 +37,5 @@ typedef struct vga
 
 void vga_service();
 void vga_render_frame(uint32_t *rgb_buffer);
+void vga_install();
 #endif

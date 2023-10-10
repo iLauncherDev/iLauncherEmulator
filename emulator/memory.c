@@ -4,8 +4,6 @@ memory_map_t *memory_map = (void *)NULL;
 
 uint64_t memory_read(uint64_t address, uint8_t size)
 {
-    if (address >= vm_memory_size)
-        return 0x00000000;
     uint8_t *buffer = vm_memory;
     memory_map_t *tmp = memory_map;
     if (memory_map)
@@ -22,8 +20,15 @@ uint64_t memory_read(uint64_t address, uint8_t size)
         }
     }
     if (tmp)
+    {
         if (~tmp->flags & MEMORY_READ_FLAG)
             goto end;
+    }
+    else
+    {
+        if (address >= vm_memory_size)
+            goto end;
+    }
     switch (size)
     {
     case 1:
@@ -41,8 +46,6 @@ end:
 
 void memory_write(uint64_t address, uint64_t value, uint8_t size)
 {
-    if (address >= vm_memory_size)
-        return;
     uint8_t *buffer = vm_memory;
     memory_map_t *tmp = memory_map;
     if (memory_map)
@@ -59,8 +62,15 @@ void memory_write(uint64_t address, uint64_t value, uint8_t size)
         }
     }
     if (tmp)
+    {
         if (~tmp->flags & MEMORY_WRITE_FLAG)
             goto end;
+    }
+    else
+    {
+        if (address >= vm_memory_size)
+            goto end;
+    }
     switch (size)
     {
     case 1:
@@ -136,7 +146,11 @@ void memory_map_buffer(uint8_t flags, void *buffer, uint64_t address, uint64_t o
     {
         memory_map_t *tmp = memory_map;
         while (tmp->next)
+        {
+            if (address >= tmp->address && address <= tmp->address + tmp->size)
+                return;
             tmp = tmp->next;
+        }
         tmp->next = (void *)malloc(sizeof(memory_map_t));
         memset(tmp->next, 0, sizeof(memory_map_t));
         tmp->next->prev = tmp;
