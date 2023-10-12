@@ -52,10 +52,10 @@ void memory_write(uint64_t address, uint64_t value, uint8_t size)
     {
         while (tmp)
         {
-            if (address >= tmp->address && address <= tmp->address + tmp->size)
+            if (address >= tmp->address && address < tmp->address + tmp->size)
             {
                 buffer = tmp->buffer;
-                address = (address - tmp->address) + (tmp->offset & (tmp->size - 1));
+                address = address - tmp->address;
                 break;
             }
             tmp = tmp->next;

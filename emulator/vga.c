@@ -24,7 +24,7 @@ void vga_install()
                       vga_device.buffer,
                       0xa0000,
                       0,
-                      0xbffff - 0xa0000);
+                      0xc0000 - 0xa0000);
 }
 
 void vga_service()

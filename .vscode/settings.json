@@ -12,6 +12,7 @@
         "utility": "cpp",
         "memory.h": "c",
         "bios.h": "c",
-        "string": "c"
+        "string": "c",
+        "cstdint": "c"
     }
 }

@@ -46,11 +46,12 @@ uint8_t segregs[] = {
     cpu_reg_gs,
 };
 
-int64_t cpu_unsigned2signed(uint64_t value, uint8_t size)
+uint64_t cpu_unsigned2signed(uint64_t value, uint8_t size)
 {
     int8_t signed8;
     int16_t signed16;
     int32_t signed32;
+    int32_t signed64;
     switch (size)
     {
     case 1:
@@ -62,10 +63,11 @@ int64_t cpu_unsigned2signed(uint64_t value, uint8_t size)
     case 4:
         signed32 = (int32_t)value;
         return (int64_t)signed32;
-    default:
-        break;
+    case 8:
+        signed64 = (int64_t)value;
+        return (int64_t)signed32;
     }
-    return (int64_t)value;
+    return value;
 }
 
 uint64_t cpu_read_reg(uint8_t reg)
