@@ -571,26 +571,26 @@ static inline void cpu_rm_resolve(uint8_t rm8, uint8_t size)
         case 0x00:
             cpu_info[cpu_info_index].reg_type = cpu_type_memory_reg;
             cpu_info[cpu_info_index].reg_type_buffer[0] = 2;
-            cpu_info[cpu_info_index].reg_type_buffer[1] = cpu_reg_bx;
-            cpu_info[cpu_info_index].reg_type_buffer[2] = cpu_reg_si;
+            cpu_info[cpu_info_index].reg_type_buffer[1] = cpu_reg_ebx;
+            cpu_info[cpu_info_index].reg_type_buffer[2] = cpu_reg_esi;
             break;
         case 0x01:
             cpu_info[cpu_info_index].reg_type = cpu_type_memory_reg;
             cpu_info[cpu_info_index].reg_type_buffer[0] = 2;
-            cpu_info[cpu_info_index].reg_type_buffer[1] = cpu_reg_bx;
-            cpu_info[cpu_info_index].reg_type_buffer[2] = cpu_reg_di;
+            cpu_info[cpu_info_index].reg_type_buffer[1] = cpu_reg_ebx;
+            cpu_info[cpu_info_index].reg_type_buffer[2] = cpu_reg_edi;
             break;
         case 0x02:
             cpu_info[cpu_info_index].reg_type = cpu_type_memory_reg;
             cpu_info[cpu_info_index].reg_type_buffer[0] = 2;
-            cpu_info[cpu_info_index].reg_type_buffer[1] = cpu_reg_bp;
-            cpu_info[cpu_info_index].reg_type_buffer[2] = cpu_reg_si;
+            cpu_info[cpu_info_index].reg_type_buffer[1] = cpu_reg_ebp;
+            cpu_info[cpu_info_index].reg_type_buffer[2] = cpu_reg_esi;
             break;
         case 0x03:
             cpu_info[cpu_info_index].reg_type = cpu_type_memory_reg;
             cpu_info[cpu_info_index].reg_type_buffer[0] = 2;
-            cpu_info[cpu_info_index].reg_type_buffer[1] = cpu_reg_bp;
-            cpu_info[cpu_info_index].reg_type_buffer[2] = cpu_reg_di;
+            cpu_info[cpu_info_index].reg_type_buffer[1] = cpu_reg_ebp;
+            cpu_info[cpu_info_index].reg_type_buffer[2] = cpu_reg_edi;
             break;
         case 0x04:
             cpu_info[cpu_info_index].reg_type = cpu_type_memory_reg;
@@ -605,12 +605,12 @@ static inline void cpu_rm_resolve(uint8_t rm8, uint8_t size)
         case 0x06:
             cpu_info[cpu_info_index].reg_type = cpu_type_memory_reg;
             cpu_info[cpu_info_index].reg_type_buffer[0] = 1;
-            cpu_info[cpu_info_index].reg_type_buffer[1] = cpu_reg_bp;
+            cpu_info[cpu_info_index].reg_type_buffer[1] = cpu_reg_ebp;
             break;
         case 0x07:
             cpu_info[cpu_info_index].reg_type = cpu_type_memory_reg;
             cpu_info[cpu_info_index].reg_type_buffer[0] = 1;
-            cpu_info[cpu_info_index].reg_type_buffer[1] = cpu_reg_bx;
+            cpu_info[cpu_info_index].reg_type_buffer[1] = cpu_reg_ebx;
             break;
         }
         break;
