@@ -624,8 +624,6 @@ static inline uint64_t cpu_rm(uint8_t reg, uint8_t size, uint8_t override_size)
     uint8_t mod = (memory_read(opcode + 1, 1) & 0xc0) >> 0x06;
     uint8_t rm8 = memory_read(opcode + 1, 1) & 0x07;
     int64_t value = 0;
-    if (memory_read(opcode + 2, 1) == 0x24)
-        opcode++, cpu_add_reg(reg, 1);
     switch (mod)
     {
     case 0x00:
@@ -983,6 +981,7 @@ static inline uint8_t cpu_sr(uint8_t reg)
 static inline void cpu_print_instruction(char *instruction, char *type,
                                          uint8_t regs, ...)
 {
+    int64_t cache;
     int16_t print_pos = -1;
     va_list args;
     va_start(args, regs);
@@ -1029,16 +1028,26 @@ static inline void cpu_print_instruction(char *instruction, char *type,
             printf("[0x%lx]", value);
             break;
         case cpu_type_memory_reg:
+            cache = cpu_unsigned2signed(value, cpu_info[index].sign);
             if (cpu_info[index].reg_type_buffer[0])
-                cpu_info[index].reg_type_buffer[0] == 1 ? printf("[%s + 0x%lx]",
-                                                                 cpu_regs_string[cpu_info[index].reg_type_buffer[1]],
-                                                                 value)
-                                                        : printf("[%s + %s + 0x%lx]",
-                                                                 cpu_regs_string[cpu_info[index].reg_type_buffer[1]],
-                                                                 cpu_regs_string[cpu_info[index].reg_type_buffer[2]],
-                                                                 value);
+            {
+                printf("[");
+                for (uint8_t i = 0; i < cpu_info[index].reg_type_buffer[0]; i++)
+                {
+                    printf("%s", cpu_regs_string[cpu_info[index].reg_type_buffer[i + 1]]);
+                    if (cpu_info[index].reg_type_buffer[0] - i > 1)
+                        printf(" + ");
+                    else
+                        break;
+                }
+                printf(" %s 0x%lx]",
+                       cache > 0 ? "+" : "-",
+                       cache > 0 ? cache : -cache);
+            }
             else
+            {
                 printf("[%s]", cpu_regs_string[value]);
+            }
             break;
         default:
             break;

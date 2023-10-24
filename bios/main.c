@@ -9,10 +9,8 @@ static inline void print(char *string)
 void main()
 {
     char message[] = "Hello World\n";
-    outb(0xffff, 'a');
-    outb(0xffff, '\n');
-    print(message);
     while (true)
     {
+        print(message);
     }
 }

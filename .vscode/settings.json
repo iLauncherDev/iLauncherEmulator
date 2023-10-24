@@ -13,6 +13,7 @@
         "memory.h": "c",
         "bios.h": "c",
         "string": "c",
-        "cstdint": "c"
+        "cstdint": "c",
+        "optional": "c"
     }
 }

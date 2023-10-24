@@ -1,6 +1,6 @@
 #pragma once
-#ifndef IO_H
-#define IO_H
+#ifndef IO_BIOS_H
+#define IO_BIOS_H
 #include <bios.h>
 
 
