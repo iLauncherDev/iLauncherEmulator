@@ -1,6 +1,7 @@
 #include <bios.h>
+#include <io.h>
 
-static inline void print(char *string)
+void print(char *string)
 {
     for (uint32_t i = 0; string[i]; i++)
         outb(0xffff, string[i]);
@@ -8,9 +9,7 @@ static inline void print(char *string)
 
 void main()
 {
-    char message[] = "Hello World\n";
+    char message[] = "iLauncherBios\n";
     while (true)
-    {
         print(message);
-    }
 }

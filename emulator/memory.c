@@ -2,6 +2,38 @@
 
 memory_map_t *memory_map = (void *)NULL;
 
+void *memory_read_address(uint64_t address)
+{
+    uint8_t *buffer = vm_memory;
+    memory_map_t *tmp = memory_map;
+    if (memory_map)
+    {
+        while (tmp)
+        {
+            if (address >= tmp->address && address <= tmp->address + tmp->size)
+            {
+                buffer = tmp->buffer;
+                address = (address - tmp->address) + (tmp->offset & (tmp->size - 1));
+                break;
+            }
+            tmp = tmp->next;
+        }
+    }
+    if (tmp)
+    {
+        if (~tmp->flags & MEMORY_READ_FLAG)
+            goto end;
+    }
+    else
+    {
+        if (address >= vm_memory_size)
+            goto end;
+    }
+    return (void *)&buffer[address];
+end:
+    return (void *)NULL;
+}
+
 uint64_t memory_read(uint64_t address, uint8_t size)
 {
     uint8_t *buffer = vm_memory;

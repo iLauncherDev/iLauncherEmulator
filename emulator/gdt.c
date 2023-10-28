@@ -12,6 +12,11 @@ void gdt_set_entry(uint8_t num, uint32_t base, uint32_t limit, uint8_t access, u
     gdt[num].access = access;
 }
 
+void gdt_read_seg_address(uint16_t seg)
+{
+    
+}
+
 void gdt_setup()
 {
     cpu_write_reg(cpu_reg_gdtr, vm_memory_size);
