@@ -305,8 +305,10 @@ typedef struct cpu
     uint8_t cpu_info_index;
 } cpu_t;
 
-uint64_t cpu_big_endian(void *ptr, uint8_t bits);
-uint64_t cpu_little_endian(void *ptr, uint8_t bits);
+uint64_t cpu_big_endian_read(void *ptr, uint8_t bits);
+void cpu_big_endian_write(void *ptr, uint8_t bits, uint64_t value);
+uint64_t cpu_little_endian_read(void *ptr, uint8_t bits);
+void cpu_little_endian_write(void *ptr, uint8_t bits, uint64_t value);
 uint64_t cpu_read_reg(uint8_t reg);
 void cpu_write_reg(uint8_t reg, uint64_t value);
 void cpu_reset();
