@@ -46,7 +46,7 @@ uint8_t segregs[] = {
     cpu_reg_gs,
 };
 
-uint64_t cpu_big_endian(void *ptr, uint8_t bits)
+uint64_t cpu_big_endian_read(void *ptr, uint8_t bits)
 {
     if (!ptr || !bits)
         goto end;
