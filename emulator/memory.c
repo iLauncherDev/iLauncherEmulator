@@ -2,39 +2,49 @@
 
 memory_map_t *memory_map = (void *)NULL;
 
-void *memory_read_address(uint64_t address)
+uint64_t memory_big_endian_read(void *ptr, uint8_t bits)
 {
-    uint8_t *buffer = vm_memory;
-    memory_map_t *tmp = memory_map;
-    if (memory_map)
-    {
-        while (tmp)
-        {
-            if (address >= tmp->address && address <= tmp->address + tmp->size)
-            {
-                buffer = tmp->buffer;
-                address = (address - tmp->address) + (tmp->offset & (tmp->size - 1));
-                break;
-            }
-            tmp = tmp->next;
-        }
-    }
-    if (tmp)
-    {
-        if (~tmp->flags & MEMORY_READ_FLAG)
-            goto end;
-    }
-    else
-    {
-        if (address >= vm_memory_size)
-            goto end;
-    }
-    return (void *)&buffer[address];
+    if (!ptr || !bits)
+        goto end;
+    uint64_t value = 0;
+    for (uint8_t i = bits; i > 8; i -= 8)
+        value |= *(uint8_t *)ptr++ << (i - 8);
 end:
-    return (void *)NULL;
+    return value;
 }
 
-uint64_t memory_read(uint64_t address, uint8_t size)
+void memory_big_endian_write(void *ptr, uint8_t bits, uint64_t value)
+{
+    if (!ptr || !bits)
+        goto end;
+    for (uint8_t i = bits; i > 8; i -= 8)
+        *(uint8_t *)ptr++ = value >> (i - 8);
+end:
+    return;
+}
+
+uint64_t memory_little_endian_read(void *ptr, uint8_t bits)
+{
+    if (!ptr || !bits)
+        goto end;
+    uint64_t value = 0;
+    for (uint8_t i = 0; i < bits; i += 8)
+        value |= *(uint8_t *)ptr++ << i;
+end:
+    return value;
+}
+
+void memory_little_endian_write(void *ptr, uint8_t bits, uint64_t value)
+{
+    if (!ptr || !bits)
+        goto end;
+    for (uint8_t i = 0; i < bits; i += 8)
+        *(uint8_t *)ptr++ = value >> i;
+end:
+    return;
+}
+
+uint64_t memory_read(uint64_t address, uint8_t size, uint8_t big_endian)
 {
     uint8_t *buffer = vm_memory;
     memory_map_t *tmp = memory_map;
@@ -45,8 +55,7 @@ uint64_t memory_read(uint64_t address, uint8_t size)
             if (address >= tmp->address && address <= tmp->address + tmp->size)
             {
                 buffer = tmp->buffer;
-                address = (address - tmp->address) + (tmp->offset & (tmp->size - 1));
-                break;
+                address = (address - tmp->address) + tmp->offset;
             }
             tmp = tmp->next;
         }
@@ -61,22 +70,15 @@ uint64_t memory_read(uint64_t address, uint8_t size)
         if (address >= vm_memory_size)
             goto end;
     }
-    switch (size)
-    {
-    case 1:
-        return *((uint8_t *)&buffer[address]);
-    case 2:
-        return *((uint16_t *)&buffer[address]);
-    case 4:
-        return *((uint32_t *)&buffer[address]);
-    default:
-        return *((uint64_t *)&buffer[address]);
-    }
+    if (big_endian)
+        return memory_big_endian_read(&buffer[address], size << 3);
+    else
+        return memory_little_endian_read(&buffer[address], size << 3);
 end:
     return 0x00;
 }
 
-void memory_write(uint64_t address, uint64_t value, uint8_t size)
+void memory_write(uint64_t address, uint64_t value, uint8_t size, uint8_t big_endian)
 {
     uint8_t *buffer = vm_memory;
     memory_map_t *tmp = memory_map;
@@ -87,8 +89,7 @@ void memory_write(uint64_t address, uint64_t value, uint8_t size)
             if (address >= tmp->address && address < tmp->address + tmp->size)
             {
                 buffer = tmp->buffer;
-                address = address - tmp->address;
-                break;
+                address = (address - tmp->address) + tmp->offset;
             }
             tmp = tmp->next;
         }
@@ -103,21 +104,10 @@ void memory_write(uint64_t address, uint64_t value, uint8_t size)
         if (address >= vm_memory_size)
             goto end;
     }
-    switch (size)
-    {
-    case 1:
-        *((uint8_t *)&buffer[address]) = (uint8_t)value;
-        break;
-    case 2:
-        *((uint16_t *)&buffer[address]) = (uint16_t)value;
-        break;
-    case 4:
-        *((uint32_t *)&buffer[address]) = (uint32_t)value;
-        break;
-    default:
-        *((uint64_t *)&buffer[address]) = (uint64_t)value;
-        break;
-    }
+    if (big_endian)
+        return memory_big_endian_write(&buffer[address], size << 3, value);
+    else
+        return memory_little_endian_write(&buffer[address], size << 3, value);
 end:
     return;
 }

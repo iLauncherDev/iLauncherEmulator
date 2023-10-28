@@ -179,7 +179,7 @@ int32_t main(int32_t argc, char **argv)
     {
         printf("Address: 0x%lx\n", 0xfffff - limit(bios_size, (256 * 1024) - 1));
         for (size_t i = 0; i < bios_size; i++)
-            printf("%lx ", memory_read(i + (0xfffff - limit(bios_size, (256 * 1024) - 1)), 1));
+            printf("%lx ", memory_read(i + (0xfffff - limit(bios_size, (256 * 1024) - 1)), 1, 0));
         printf("\n");
         return 0;
     }
@@ -196,8 +196,8 @@ int32_t main(int32_t argc, char **argv)
         sleep(1);
     while (true)
     {
-        if (io_check_flag(0xffff, IO_WRITE_FLAG, 1))
-            printf("%c", (uint8_t)io_read(0xffff, 1)), io_clear_flag(0xffff, IO_WRITE_FLAG, 1);
+        if (io_check_flag(0x3f8, IO_WRITE_FLAG, 1))
+            printf("%c", (uint8_t)io_read(0x3f8, 1)), io_clear_flag(0x3f8, IO_WRITE_FLAG, 1);
         vga_service();
         cpu_emulate_i8086(debug_code, 0);
         if (code_delay)

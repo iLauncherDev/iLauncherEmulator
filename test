@@ -70,7 +70,7 @@
 000000D6  0F843600          jz near 0x110
 000000DA  67668B4508        mov eax,[ebp+0x8]
 000000DF  67668B4DFC        mov ecx,[ebp-0x4]
-000000E4  6766C70424FFFF00  mov dword [dword esp],0xffff
+000000E4  6766C70424F80300  mov dword [dword esp],0x3f8
          -00
 000000ED  67660FB60408      movzx eax,byte [dword eax+ecx]
 000000F3  676689442404      mov [dword esp+0x4],eax
@@ -86,25 +86,30 @@
 0000011C  8DB40000          lea si,[si+0x0]
 00000120  6655              push ebp
 00000122  6689E5            mov ebp,esp
-00000125  6683EC18          sub esp,byte +0x18
-00000129  6766A174010E00    mov eax,[dword 0xe0174]
-00000130  67668945F1        mov [ebp-0xf],eax
-00000135  6766A178010E00    mov eax,[dword 0xe0178]
-0000013C  67668945F5        mov [ebp-0xb],eax
-00000141  6766A17C010E00    mov eax,[dword 0xe017c]
-00000148  67668945F9        mov [ebp-0x7],eax
-0000014D  67A180010E00      mov ax,[dword 0xe0180]
-00000153  678945FD          mov [ebp-0x3],ax
-00000157  67A082010E00      mov al,[dword 0xe0182]
-0000015D  678845FF          mov [ebp-0x1],al
-00000161  67668D45F1        lea eax,[ebp-0xf]
-00000166  6766890424        mov [dword esp],eax
-0000016B  66E83FFFFFFF      call dword 0xb0
-00000171  E9EDFF            jmp 0x161
-00000174  694C61756E        imul cx,[si+0x61],word 0x6e75
-00000179  636865            arpl [bx+si+0x65],bp
-0000017C  7242              jc 0x1c0
-0000017E  696F730A00        imul bp,[bx+0x73],word 0xa
+00000125  6683EC08          sub esp,byte +0x8
+00000129  E90000            jmp 0x12c
+0000012C  66B800F00000      mov eax,0xf000
+00000132  6766C7004F4B4159  mov dword [eax],0x59414b4f
+0000013A  66B800F00000      mov eax,0xf000
+00000140  6766890424        mov [dword esp],eax
+00000145  66E865FFFFFF      call dword 0xb0
+0000014B  66B800F00000      mov eax,0xf000
+00000151  6766C7000A000000  mov dword [eax],0xa
+00000159  66B800F00000      mov eax,0xf000
+0000015F  6766890424        mov [dword esp],eax
+00000164  66E846FFFFFF      call dword 0xb0
+0000016A  E9BFFF            jmp 0x12c
+0000016D  0000              add [bx+si],al
+0000016F  0000              add [bx+si],al
+00000171  0000              add [bx+si],al
+00000173  0000              add [bx+si],al
+00000175  0000              add [bx+si],al
+00000177  0000              add [bx+si],al
+00000179  0000              add [bx+si],al
+0000017B  0000              add [bx+si],al
+0000017D  0000              add [bx+si],al
+0000017F  0000              add [bx+si],al
+00000181  0000              add [bx+si],al
 00000183  0000              add [bx+si],al
 00000185  0000              add [bx+si],al
 00000187  0000              add [bx+si],al

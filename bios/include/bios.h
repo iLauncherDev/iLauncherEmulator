@@ -14,4 +14,16 @@ typedef unsigned int uint32_t;
 typedef signed char int8_t;
 typedef signed short int16_t;
 typedef signed int int32_t;
+
+static inline void memcpy(void *dest, void *src, uint32_t size)
+{
+    while (size--)
+        *(uint8_t *)dest++ = *(uint8_t *)src++;
+}
+
+static inline void memset(void *dest, uint8_t value, uint32_t size)
+{
+    while (size--)
+        *(uint8_t *)dest++ = value;
+}
 #endif

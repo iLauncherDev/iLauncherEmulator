@@ -293,7 +293,7 @@ typedef struct cpu_info
     uint8_t segmentation;
     uint8_t sign;
     uint8_t reg_type;
-    uint8_t reg_type_buffer[3];
+    uint8_t reg_type_buffer[8];
 } cpu_info_t;
 
 typedef struct cpu
