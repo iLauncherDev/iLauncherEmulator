@@ -11,7 +11,7 @@ uint8_t scancode_ready[4096] = {false};
 uint8_t debug_code = false, dump_bios = false;
 uint32_t ticks;
 
-uint64_t window_framebuffer[] = {
+global_uint64_t window_framebuffer[] = {
     0xfffff,
     640,
     480,
@@ -19,7 +19,7 @@ uint64_t window_framebuffer[] = {
     0,
 };
 
-uint64_t vm_memory_size, bios_size;
+global_uint64_t vm_memory_size, bios_size;
 uint8_t *vm_memory;
 
 void framebuffer_draw(void *input, void *output,
@@ -111,7 +111,7 @@ void *timer()
     return (void *)NULL;
 }
 
-int64_t cpu_unsigned2signed(uint64_t value, uint8_t size);
+global_int64_t cpu_unsigned2signed(global_uint64_t value, uint8_t size);
 
 int32_t main(int32_t argc, char **argv)
 {
@@ -165,9 +165,7 @@ int32_t main(int32_t argc, char **argv)
     if (vm_memory_size < 0x400000)
         vm_memory_size = 0x400000;
     vm_memory = malloc(vm_memory_size + bios_size + 0xff);
-    for (uint64_t i = 0; i < vm_memory_size + 0xff; i++)
-        vm_memory[i] = 0;
-    printf("Allocated %luMB In RAM\n", vm_memory_size / 1024 / 1024);
+    printf("Allocated %lluMB In RAM\n", vm_memory_size / 1024 / 1024);
     if (bios_bin)
         fread(&vm_memory[vm_memory_size + 0xff], bios_size, 1, bios_bin);
     memory_map_buffer(MEMORY_READ_FLAG,
@@ -177,9 +175,9 @@ int32_t main(int32_t argc, char **argv)
                       bios_size);
     if (dump_bios)
     {
-        printf("Address: 0x%lx\n", 0xfffff - limit(bios_size, (256 * 1024) - 1));
+        printf("Address: 0x%llx\n", 0xfffff - limit(bios_size, (256 * 1024) - 1));
         for (size_t i = 0; i < bios_size; i++)
-            printf("%lx ", memory_read(i + (0xfffff - limit(bios_size, (256 * 1024) - 1)), 1, 0));
+            printf("%llx ", memory_read(i + (0xfffff - limit(bios_size, (256 * 1024) - 1)), 1, 0));
         printf("\n");
         return 0;
     }

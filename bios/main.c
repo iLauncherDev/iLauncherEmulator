@@ -1,5 +1,6 @@
 #include <bios.h>
 #include <io.h>
+#include <bios_string.h>
 
 void print(char *string)
 {
@@ -9,11 +10,10 @@ void print(char *string)
 
 void main()
 {
+    char message[] = "iLauncherBios\n";
+    memcpy((void *)0xf000, message, sizeof(message));
     while (true)
     {
-        *(uint32_t *)0xf000 = 'YAKO';
-        print((char *)0xf000);
-        *(uint32_t *)0xf000 = '\n';
         print((char *)0xf000);
     }
 }

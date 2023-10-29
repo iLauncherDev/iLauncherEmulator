@@ -1,22 +1,10 @@
 {
     "files.associations": {
-        "random": "c",
         "compare": "c",
-        "stdint.h": "c",
-        "ratio": "cpp",
-        "system_error": "cpp",
-        "array": "cpp",
-        "functional": "cpp",
-        "tuple": "cpp",
-        "type_traits": "cpp",
-        "utility": "cpp",
-        "memory.h": "c",
-        "bios.h": "c",
-        "string": "c",
         "cstdint": "c",
-        "optional": "c",
-        "string_view": "cpp",
-        "bit": "c",
-        "initializer_list": "c"
+        "array": "c",
+        "string_view": "c",
+        "initializer_list": "c",
+        "string.h": "c"
     }
 }

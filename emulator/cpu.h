@@ -108,6 +108,18 @@ typedef enum cpu_regs
     cpu_override_ss = 1 << 7,
 } cpu_regs_t;
 
+static char *cpu_sizes_string[] = {
+    "byte",
+    "byte",
+    "word",
+    "word",
+    "dword",
+    "dword",
+    "dword",
+    "dword",
+    "qword",
+};
+
 static char *cpu_regs_string[] = {
     "gs",
     (char *)NULL,
@@ -291,7 +303,7 @@ static char *cpu_regs_string[] = {
 typedef struct cpu_info
 {
     uint8_t segmentation;
-    uint8_t sign;
+    uint8_t sign, size;
     uint8_t reg_type;
     uint8_t reg_type_buffer[8];
 } cpu_info_t;
@@ -299,18 +311,18 @@ typedef struct cpu_info
 typedef struct cpu
 {
     uint8_t state, *opcode;
-    uint64_t pc;
+    global_uint64_t pc;
     uint8_t regs[cpu_reg_end];
     cpu_info_t cpu_info[8];
     uint8_t cpu_info_index;
 } cpu_t;
 
-uint64_t cpu_big_endian_read(void *ptr, uint8_t bits);
-void cpu_big_endian_write(void *ptr, uint8_t bits, uint64_t value);
-uint64_t cpu_little_endian_read(void *ptr, uint8_t bits);
-void cpu_little_endian_write(void *ptr, uint8_t bits, uint64_t value);
-uint64_t cpu_read_reg(uint8_t reg);
-void cpu_write_reg(uint8_t reg, uint64_t value);
+global_uint64_t cpu_big_endian_read(void *ptr, uint8_t bits);
+void cpu_big_endian_write(void *ptr, uint8_t bits, global_uint64_t value);
+global_uint64_t cpu_little_endian_read(void *ptr, uint8_t bits);
+void cpu_little_endian_write(void *ptr, uint8_t bits, global_uint64_t value);
+global_uint64_t cpu_read_reg(uint8_t reg);
+void cpu_write_reg(uint8_t reg, global_uint64_t value);
 void cpu_reset();
 void cpu_setup_precalcs();
 void cpu_dump_state();

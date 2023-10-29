@@ -2,18 +2,18 @@
 
 memory_map_t *memory_map = (void *)NULL;
 
-uint64_t memory_big_endian_read(void *ptr, uint8_t bits)
+global_uint64_t memory_big_endian_read(void *ptr, uint8_t bits)
 {
     if (!ptr || !bits)
         goto end;
-    uint64_t value = 0;
+    global_uint64_t value = 0;
     for (uint8_t i = bits; i > 8; i -= 8)
         value |= *(uint8_t *)ptr++ << (i - 8);
 end:
     return value;
 }
 
-void memory_big_endian_write(void *ptr, uint8_t bits, uint64_t value)
+void memory_big_endian_write(void *ptr, uint8_t bits, global_uint64_t value)
 {
     if (!ptr || !bits)
         goto end;
@@ -23,18 +23,18 @@ end:
     return;
 }
 
-uint64_t memory_little_endian_read(void *ptr, uint8_t bits)
+global_uint64_t memory_little_endian_read(void *ptr, uint8_t bits)
 {
     if (!ptr || !bits)
         goto end;
-    uint64_t value = 0;
+    global_uint64_t value = 0;
     for (uint8_t i = 0; i < bits; i += 8)
         value |= *(uint8_t *)ptr++ << i;
 end:
     return value;
 }
 
-void memory_little_endian_write(void *ptr, uint8_t bits, uint64_t value)
+void memory_little_endian_write(void *ptr, uint8_t bits, global_uint64_t value)
 {
     if (!ptr || !bits)
         goto end;
@@ -44,7 +44,7 @@ end:
     return;
 }
 
-uint64_t memory_read(uint64_t address, uint8_t size, uint8_t big_endian)
+global_uint64_t memory_read(global_uint64_t address, uint8_t size, uint8_t big_endian)
 {
     uint8_t *buffer = vm_memory;
     memory_map_t *tmp = memory_map;
@@ -78,7 +78,7 @@ end:
     return 0x00;
 }
 
-void memory_write(uint64_t address, uint64_t value, uint8_t size, uint8_t big_endian)
+void memory_write(global_uint64_t address, global_uint64_t value, uint8_t size, uint8_t big_endian)
 {
     uint8_t *buffer = vm_memory;
     memory_map_t *tmp = memory_map;
@@ -112,7 +112,7 @@ end:
     return;
 }
 
-void memory_map_set_offset(uint64_t address, uint64_t offset)
+void memory_map_set_offset(global_uint64_t address, global_uint64_t offset)
 {
     memory_map_t *tmp = memory_map;
     if (memory_map)
@@ -129,7 +129,7 @@ void memory_map_set_offset(uint64_t address, uint64_t offset)
     }
 }
 
-void memory_map_remove(uint64_t address)
+void memory_map_remove(global_uint64_t address)
 {
     memory_map_t *tmp = memory_map;
     if (memory_map)
@@ -162,7 +162,7 @@ void memory_map_remove(uint64_t address)
     }
 }
 
-void memory_map_buffer(uint8_t flags, void *buffer, uint64_t address, uint64_t offset, uint64_t size)
+void memory_map_buffer(uint8_t flags, void *buffer, global_uint64_t address, global_uint64_t offset, global_uint64_t size)
 {
     if (memory_map)
     {

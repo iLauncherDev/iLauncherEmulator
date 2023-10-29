@@ -18,7 +18,7 @@ typedef struct gdt_entry_t
 typedef struct gdtr_t
 {
     uint16_t limit;
-    uint64_t base;
+    global_uint64_t base;
 } __attribute__((packed)) gdtr_t;
 
 extern gdtr_t *gdtr;
