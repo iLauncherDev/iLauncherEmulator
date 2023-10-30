@@ -11,6 +11,8 @@ void print(char *string)
 void main()
 {
     char message[] = "iLauncherBios\n";
+    uint8_t a = 0;
+    a += -1;
     memcpy((void *)0xf000, message, sizeof(message));
     while (true)
     {
