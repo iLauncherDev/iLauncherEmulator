@@ -211,11 +211,7 @@ static inline global_uint64_t cpu_resolve_address(global_uint64_t value, uint8_t
 static inline void cpu_exec_mov(global_uint64_t value1, global_uint64_t value2, uint8_t size)
 {
     value2 = cpu_resolve_value(value2, 1, size);
-    gdt_entry_t *entry = (gdt_entry_t *)(&vm_memory[((gdtr_t *)&vm_memory[cpu_read_reg(cpu_reg_gdtr)])->base] +
-                                         cpu_read_reg(cpu_reg_ds));
-    global_uint64_t base = (entry->base_high << 24) |
-                           (entry->base_middle << 16) |
-                           entry->base_low;
+    global_uint64_t base = gdt_read_seg_offset(cpu_reg_ds);
     global_uint64_t buffer_address = 0;
     switch (cpu_info[0].reg_type)
     {
@@ -241,11 +237,7 @@ static inline void cpu_exec_mov(global_uint64_t value1, global_uint64_t value2, 
 static inline void cpu_exec_lea(global_uint64_t value1, global_uint64_t value2, uint8_t size)
 {
     value2 = cpu_resolve_address(value2, 1, size);
-    gdt_entry_t *entry = (gdt_entry_t *)(&vm_memory[((gdtr_t *)&vm_memory[cpu_read_reg(cpu_reg_gdtr)])->base] +
-                                         cpu_read_reg(cpu_reg_ds));
-    global_uint64_t base = (entry->base_high << 24) |
-                           (entry->base_middle << 16) |
-                           entry->base_low;
+    global_uint64_t base = gdt_read_seg_offset(cpu_reg_ds);
     global_uint64_t buffer_address = 0;
     switch (cpu_info[0].reg_type)
     {
@@ -383,59 +375,62 @@ static inline void cpu_exec_jnif_near(uint8_t reg, uint8_t condition, global_uin
 
 static inline void cpu_push_reg(uint8_t stack, uint8_t reg, uint8_t size)
 {
+    global_uint64_t base = gdt_read_seg_offset(cpu_reg_ss);
     cpu_write_reg(stack, cpu_read_reg(stack) - size);
     switch (size)
     {
     case 1:
-        *((uint8_t *)&vm_memory[cpu_read_reg(stack)]) = cpu_read_reg(reg);
+        *((uint8_t *)&vm_memory[base + cpu_read_reg(stack)]) = cpu_read_reg(reg);
         break;
     case 2:
-        *((uint16_t *)&vm_memory[cpu_read_reg(stack)]) = cpu_read_reg(reg);
+        *((uint16_t *)&vm_memory[base + cpu_read_reg(stack)]) = cpu_read_reg(reg);
         break;
     case 4:
-        *((uint32_t *)&vm_memory[cpu_read_reg(stack)]) = cpu_read_reg(reg);
+        *((uint32_t *)&vm_memory[base + cpu_read_reg(stack)]) = cpu_read_reg(reg);
         break;
     default:
-        *((global_uint64_t *)&vm_memory[cpu_read_reg(stack)]) = cpu_read_reg(reg);
+        *((global_uint64_t *)&vm_memory[base + cpu_read_reg(stack)]) = cpu_read_reg(reg);
         break;
     }
 }
 
 static inline void cpu_push_int(uint8_t stack, global_uint64_t value, uint8_t size)
 {
+    global_uint64_t base = gdt_read_seg_offset(cpu_reg_ss);
     cpu_write_reg(stack, cpu_read_reg(stack) - size);
     switch (size)
     {
     case 1:
-        *((uint8_t *)&vm_memory[cpu_read_reg(stack)]) = value;
+        *((uint8_t *)&vm_memory[base + cpu_read_reg(stack)]) = value;
         break;
     case 2:
-        *((uint16_t *)&vm_memory[cpu_read_reg(stack)]) = value;
+        *((uint16_t *)&vm_memory[base + cpu_read_reg(stack)]) = value;
         break;
     case 4:
-        *((uint32_t *)&vm_memory[cpu_read_reg(stack)]) = value;
+        *((uint32_t *)&vm_memory[base + cpu_read_reg(stack)]) = value;
         break;
     default:
-        *((global_uint64_t *)&vm_memory[cpu_read_reg(stack)]) = value;
+        *((global_uint64_t *)&vm_memory[base + cpu_read_reg(stack)]) = value;
         break;
     }
 }
 
 static inline void cpu_pop_reg(uint8_t stack, uint8_t reg, uint8_t size)
 {
+    global_uint64_t base = gdt_read_seg_offset(cpu_reg_ss);
     switch (size)
     {
     case 1:
-        cpu_write_reg(reg, *((uint8_t *)&vm_memory[cpu_read_reg(stack)]));
+        cpu_write_reg(reg, *((uint8_t *)&vm_memory[base + cpu_read_reg(stack)]));
         break;
     case 2:
-        cpu_write_reg(reg, *((uint16_t *)&vm_memory[cpu_read_reg(stack)]));
+        cpu_write_reg(reg, *((uint16_t *)&vm_memory[base + cpu_read_reg(stack)]));
         break;
     case 4:
-        cpu_write_reg(reg, *((uint32_t *)&vm_memory[cpu_read_reg(stack)]));
+        cpu_write_reg(reg, *((uint32_t *)&vm_memory[base + cpu_read_reg(stack)]));
         break;
     default:
-        cpu_write_reg(reg, *((global_uint64_t *)&vm_memory[cpu_read_reg(stack)]));
+        cpu_write_reg(reg, *((global_uint64_t *)&vm_memory[base + cpu_read_reg(stack)]));
         break;
     }
     cpu_write_reg(stack, cpu_read_reg(stack) + size);
@@ -1042,11 +1037,7 @@ static inline void cpu_print_instruction(char *instruction, char *type,
 
 void cpu_emulate_i8086(uint8_t debug, uint8_t override)
 {
-    gdt_entry_t *entry = (gdt_entry_t *)(&vm_memory[((gdtr_t *)&vm_memory[cpu_read_reg(cpu_reg_gdtr)])->base] +
-                                         cpu_read_reg(cpu_reg_cs));
-    global_uint64_t base = (entry->base_high << 24) |
-                           (entry->base_middle << 16) |
-                           entry->base_low;
+    global_uint64_t base = gdt_read_seg_offset(cpu_reg_cs);
     opcode = base + cpu_read_reg(cpu_reg_ip);
     global_uint64_t value1;
     global_uint64_t value2;
@@ -2070,171 +2061,27 @@ void cpu_emulate_i8086(uint8_t debug, uint8_t override)
         }
         cpu_add_reg(cpu_reg_ip, 1);
         break;
-    case 0xb0:
-        cpu_write_reg(cpu_reg_al, cpu_imm8(cpu_reg_ip, 0));
+    case 0xb0 ... 0xb7:
+        value1 = regs8[opcode_byte & 0x07];
+        cpu_write_reg(value1, cpu_imm8(cpu_reg_ip, 0));
         if (debug)
-            printf("mov byte al, 0x%llx\n", cpu_read_reg(cpu_reg_al));
+            printf("mov byte %s, 0x%llx\n", cpu_regs_string[value1], cpu_read_reg(value1));
         cpu_add_reg(cpu_reg_ip, 1);
         break;
-    case 0xb1:
-        cpu_write_reg(cpu_reg_cl, cpu_imm8(cpu_reg_ip, 0));
-        if (debug)
-            printf("mov byte cl, 0x%llx\n", cpu_read_reg(cpu_reg_cl));
-        cpu_add_reg(cpu_reg_ip, 1);
-        break;
-    case 0xb2:
-        cpu_write_reg(cpu_reg_dl, cpu_imm8(cpu_reg_ip, 0));
-        if (debug)
-            printf("mov byte dl, 0x%llx\n", cpu_read_reg(cpu_reg_dl));
-        cpu_add_reg(cpu_reg_ip, 1);
-        break;
-    case 0xb3:
-        cpu_write_reg(cpu_reg_bl, cpu_imm8(cpu_reg_ip, 0));
-        if (debug)
-            printf("mov byte bl, 0x%llx\n", cpu_read_reg(cpu_reg_bl));
-        cpu_add_reg(cpu_reg_ip, 1);
-        break;
-    case 0xb4:
-        cpu_write_reg(cpu_reg_ah, cpu_imm8(cpu_reg_ip, 0));
-        if (debug)
-            printf("mov byte ah, 0x%llx\n", cpu_read_reg(cpu_reg_ah));
-        cpu_add_reg(cpu_reg_ip, 1);
-        break;
-    case 0xb5:
-        cpu_write_reg(cpu_reg_ch, cpu_imm8(cpu_reg_ip, 0));
-        if (debug)
-            printf("mov byte ch, 0x%llx\n", cpu_read_reg(cpu_reg_ch));
-        cpu_add_reg(cpu_reg_ip, 1);
-        break;
-    case 0xb6:
-        cpu_write_reg(cpu_reg_dh, cpu_imm8(cpu_reg_ip, 0));
-        if (debug)
-            printf("mov byte dh, 0x%llx\n", cpu_read_reg(cpu_reg_dh));
-        cpu_add_reg(cpu_reg_ip, 1);
-        break;
-    case 0xb7:
-        cpu_write_reg(cpu_reg_bh, cpu_imm8(cpu_reg_ip, 0));
-        if (debug)
-            printf("mov byte bh, 0x%llx\n", cpu_read_reg(cpu_reg_bh));
-        cpu_add_reg(cpu_reg_ip, 1);
-        break;
-    case 0xb8:
+    case 0xb8 ... 0xbf:
         if (override & cpu_override_dword_operand)
         {
-            cpu_write_reg(cpu_reg_eax, cpu_imm32(cpu_reg_ip, 0));
+            value1 = regs32[opcode_byte & 0x07];
+            cpu_write_reg(value1, cpu_imm32(cpu_reg_ip, 0));
             if (debug)
-                printf("mov dword eax, 0x%llx\n", cpu_read_reg(cpu_reg_eax));
+                printf("mov dword %s, 0x%llx\n", cpu_regs_string[value1], cpu_read_reg(value1));
         }
         else
         {
-            cpu_write_reg(cpu_reg_ax, cpu_imm16(cpu_reg_ip, 0));
+            value1 = regs16[opcode_byte & 0x07];
+            cpu_write_reg(value1, cpu_imm16(cpu_reg_ip, 0));
             if (debug)
-                printf("mov word ax, 0x%llx\n", cpu_read_reg(cpu_reg_ax));
-        }
-        cpu_add_reg(cpu_reg_ip, 1);
-        break;
-    case 0xb9:
-        if (override & cpu_override_dword_operand)
-        {
-            cpu_write_reg(cpu_reg_ecx, cpu_imm32(cpu_reg_ip, 0));
-            if (debug)
-                printf("mov dword ecx, 0x%llx\n", cpu_read_reg(cpu_reg_ecx));
-        }
-        else
-        {
-            cpu_write_reg(cpu_reg_cx, cpu_imm16(cpu_reg_ip, 0));
-            if (debug)
-                printf("mov word cx, 0x%llx\n", cpu_read_reg(cpu_reg_cx));
-        }
-        cpu_add_reg(cpu_reg_ip, 1);
-        break;
-    case 0xba:
-        if (override & cpu_override_dword_operand)
-        {
-            cpu_write_reg(cpu_reg_edx, cpu_imm32(cpu_reg_ip, 0));
-            if (debug)
-                printf("mov dword edx, 0x%llx\n", cpu_read_reg(cpu_reg_edx));
-        }
-        else
-        {
-            cpu_write_reg(cpu_reg_dx, cpu_imm16(cpu_reg_ip, 0));
-            if (debug)
-                printf("mov word dx, 0x%llx\n", cpu_read_reg(cpu_reg_dx));
-        }
-        cpu_add_reg(cpu_reg_ip, 1);
-        break;
-    case 0xbb:
-        if (override & cpu_override_dword_operand)
-        {
-            cpu_write_reg(cpu_reg_ebx, cpu_imm32(cpu_reg_ip, 0));
-            if (debug)
-                printf("mov dword ebx, 0x%llx\n", cpu_read_reg(cpu_reg_ebx));
-        }
-        else
-        {
-            cpu_write_reg(cpu_reg_bx, cpu_imm16(cpu_reg_ip, 0));
-            if (debug)
-                printf("mov word bx, 0x%llx\n", cpu_read_reg(cpu_reg_bx));
-        }
-        cpu_add_reg(cpu_reg_ip, 1);
-        break;
-    case 0xbc:
-        if (override & cpu_override_dword_operand)
-        {
-            cpu_write_reg(cpu_reg_esp, cpu_imm32(cpu_reg_ip, 0));
-            if (debug)
-                printf("mov dword esp, 0x%llx\n", cpu_read_reg(cpu_reg_esp));
-        }
-        else
-        {
-            cpu_write_reg(cpu_reg_sp, cpu_imm16(cpu_reg_ip, 0));
-            if (debug)
-                printf("mov word sp, 0x%llx\n", cpu_read_reg(cpu_reg_sp));
-        }
-        cpu_add_reg(cpu_reg_ip, 1);
-        break;
-    case 0xbd:
-        if (override & cpu_override_dword_operand)
-        {
-            cpu_write_reg(cpu_reg_ebp, cpu_imm32(cpu_reg_ip, 0));
-            if (debug)
-                printf("mov dword ebp, 0x%llx\n", cpu_read_reg(cpu_reg_ebp));
-        }
-        else
-        {
-            cpu_write_reg(cpu_reg_bp, cpu_imm16(cpu_reg_ip, 0));
-            if (debug)
-                printf("mov word bp, 0x%llx\n", cpu_read_reg(cpu_reg_bp));
-        }
-        cpu_add_reg(cpu_reg_ip, 1);
-        break;
-    case 0xbe:
-        if (override & cpu_override_dword_operand)
-        {
-            cpu_write_reg(cpu_reg_esi, cpu_imm32(cpu_reg_ip, 0));
-            if (debug)
-                printf("mov dword esi, 0x%llx\n", cpu_read_reg(cpu_reg_esi));
-        }
-        else
-        {
-            cpu_write_reg(cpu_reg_si, cpu_imm16(cpu_reg_ip, 0));
-            if (debug)
-                printf("mov word si, 0x%llx\n", cpu_read_reg(cpu_reg_si));
-        }
-        cpu_add_reg(cpu_reg_ip, 1);
-        break;
-    case 0xbf:
-        if (override & cpu_override_dword_operand)
-        {
-            cpu_write_reg(cpu_reg_edi, cpu_imm32(cpu_reg_ip, 0));
-            if (debug)
-                printf("mov dword edi, 0x%llx\n", cpu_read_reg(cpu_reg_edi));
-        }
-        else
-        {
-            cpu_write_reg(cpu_reg_di, cpu_imm16(cpu_reg_ip, 0));
-            if (debug)
-                printf("mov word di, 0x%llx\n", cpu_read_reg(cpu_reg_di));
+                printf("mov word %s, 0x%llx\n", cpu_regs_string[value1], cpu_read_reg(value1));
         }
         cpu_add_reg(cpu_reg_ip, 1);
         break;

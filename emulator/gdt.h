@@ -23,5 +23,6 @@ typedef struct gdtr_t
 
 extern gdtr_t *gdtr;
 
+global_uint64_t gdt_read_seg_offset(uint16_t seg);
 void gdt_setup();
 #endif
