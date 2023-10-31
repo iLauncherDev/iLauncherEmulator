@@ -179,7 +179,18 @@ static inline global_uint64_t cpu_resolve_value(global_uint64_t value, uint8_t i
         return memory_read(base + value, size, 0);
     case cpu_type_memory_reg:
         for (uint8_t i = 0; i < cpu_info[index].reg_type_buffer[0]; i++)
+        {
+            switch (cpu_info[0].reg_type_buffer[i + 1])
+            {
+            case cpu_reg_esp:
+                buffer_address += gdt_read_seg_offset(cpu_reg_ss);
+                break;
+            case cpu_reg_sp:
+                buffer_address += gdt_read_seg_offset(cpu_reg_ss);
+                break;
+            }
             buffer_address += cpu_read_reg(cpu_info[index].reg_type_buffer[i + 1]);
+        }
         if (cpu_info[index].reg_type_buffer[0])
             return memory_read(base + buffer_address +
                                    cpu_unsigned2signed(value, cpu_info[index].sign ? cpu_info[index].size : 0),
@@ -199,7 +210,18 @@ static inline global_uint64_t cpu_resolve_address(global_uint64_t value, uint8_t
     {
     case cpu_type_memory_reg:
         for (uint8_t i = 0; i < cpu_info[index].reg_type_buffer[0]; i++)
+        {
+            switch (cpu_info[0].reg_type_buffer[i + 1])
+            {
+            case cpu_reg_esp:
+                buffer_address += gdt_read_seg_offset(cpu_reg_ss);
+                break;
+            case cpu_reg_sp:
+                buffer_address += gdt_read_seg_offset(cpu_reg_ss);
+                break;
+            }
             buffer_address += cpu_read_reg(cpu_info[index].reg_type_buffer[i + 1]);
+        }
         if (cpu_info[index].reg_type_buffer[0])
             return buffer_address + cpu_unsigned2signed(value, cpu_info[index].sign ? cpu_info[index].size : 0);
         else
@@ -220,7 +242,18 @@ static inline void cpu_exec_mov(global_uint64_t value1, global_uint64_t value2, 
         break;
     case cpu_type_memory_reg:
         for (uint8_t i = 0; i < cpu_info[0].reg_type_buffer[0]; i++)
+        {
+            switch (cpu_info[0].reg_type_buffer[i + 1])
+            {
+            case cpu_reg_esp:
+                buffer_address += gdt_read_seg_offset(cpu_reg_ss);
+                break;
+            case cpu_reg_sp:
+                buffer_address += gdt_read_seg_offset(cpu_reg_ss);
+                break;
+            }
             buffer_address += cpu_read_reg(cpu_info[0].reg_type_buffer[i + 1]);
+        }
         if (cpu_info[0].reg_type_buffer[0])
             memory_write(base + buffer_address +
                              cpu_unsigned2signed(value1, cpu_info[0].sign ? cpu_info[0].size : 0),
@@ -246,7 +279,18 @@ static inline void cpu_exec_lea(global_uint64_t value1, global_uint64_t value2, 
         break;
     case cpu_type_memory_reg:
         for (uint8_t i = 0; i < cpu_info[0].reg_type_buffer[0]; i++)
+        {
+            switch (cpu_info[0].reg_type_buffer[i + 1])
+            {
+            case cpu_reg_esp:
+                buffer_address += gdt_read_seg_offset(cpu_reg_ss);
+                break;
+            case cpu_reg_sp:
+                buffer_address += gdt_read_seg_offset(cpu_reg_ss);
+                break;
+            }
             buffer_address += cpu_read_reg(cpu_info[0].reg_type_buffer[i + 1]);
+        }
         if (cpu_info[0].reg_type_buffer[0])
             memory_write(base + buffer_address +
                              cpu_unsigned2signed(value1, cpu_info[0].sign ? cpu_info[0].size : 0),
