@@ -193,7 +193,7 @@ static inline global_uint64_t cpu_resolve_value(global_uint64_t value, uint8_t i
         }
         if (cpu_info[index].reg_type_buffer[0])
             return memory_read(base + buffer_address +
-                                   cpu_unsigned2signed(value, cpu_info[index].sign ? cpu_info[index].size : 0),
+                                   (cpu_info[index].sign ? cpu_unsigned2signed(value, cpu_info[index].size) : value),
                                size, 0);
         else
             return memory_read(base + cpu_read_reg(value), size, 0);
@@ -223,7 +223,7 @@ static inline global_uint64_t cpu_resolve_address(global_uint64_t value, uint8_t
             buffer_address += cpu_read_reg(cpu_info[index].reg_type_buffer[i + 1]);
         }
         if (cpu_info[index].reg_type_buffer[0])
-            return buffer_address + cpu_unsigned2signed(value, cpu_info[index].sign ? cpu_info[index].size : 0);
+            return buffer_address + (cpu_info[index].sign ? cpu_unsigned2signed(value, cpu_info[index].size) : value);
         else
             return cpu_read_reg(value);
     };
@@ -256,7 +256,7 @@ static inline void cpu_exec_mov(global_uint64_t value1, global_uint64_t value2, 
         }
         if (cpu_info[0].reg_type_buffer[0])
             memory_write(base + buffer_address +
-                             cpu_unsigned2signed(value1, cpu_info[0].sign ? cpu_info[0].size : 0),
+                             (cpu_info[0].sign ? cpu_unsigned2signed(value1, cpu_info[0].size) : value1),
                          value2, size, 0);
         else
             memory_write(base + cpu_read_reg(value1), value2, size, 0);
@@ -293,7 +293,7 @@ static inline void cpu_exec_lea(global_uint64_t value1, global_uint64_t value2, 
         }
         if (cpu_info[0].reg_type_buffer[0])
             memory_write(base + buffer_address +
-                             cpu_unsigned2signed(value1, cpu_info[0].sign ? cpu_info[0].size : 0),
+                             (cpu_info[0].sign ? cpu_unsigned2signed(value1, cpu_info[0].size) : value1),
                          value2, size, 0);
         else
             memory_write(base + cpu_read_reg(value1), value2, size, 0);
@@ -309,7 +309,9 @@ static inline void cpu_exec_add(global_uint64_t value1, global_uint64_t value2, 
     global_uint64_t resolved_value1 = cpu_resolve_value(value1, 0, size);
     value2 = cpu_resolve_value(value2, 1, size);
     cpu_info[1].reg_type = cpu_type_int;
-    cpu_exec_mov(value1, resolved_value1 + cpu_unsigned2signed(value2, cpu_info[0].sign), size);
+    cpu_exec_mov(value1,
+                 resolved_value1 + (cpu_info[1].sign ? cpu_unsigned2signed(value2, cpu_info[1].size) : value2),
+                 size);
 }
 
 static inline void cpu_exec_sub(global_uint64_t value1, global_uint64_t value2, uint8_t size)
@@ -317,7 +319,7 @@ static inline void cpu_exec_sub(global_uint64_t value1, global_uint64_t value2, 
     global_uint64_t resolved_value1 = cpu_resolve_value(value1, 0, size);
     value2 = cpu_resolve_value(value2, 1, size);
     cpu_info[1].reg_type = cpu_type_int;
-    cpu_exec_mov(value1, resolved_value1 - cpu_unsigned2signed(value2, cpu_info[0].sign), size);
+    cpu_exec_mov(value1, resolved_value1 - (cpu_info[1].sign ? cpu_unsigned2signed(value2, cpu_info[1].size) : value2), size);
 }
 
 static inline void cpu_exec_mul(global_uint64_t value1, global_uint64_t value2, uint8_t size)
@@ -325,7 +327,7 @@ static inline void cpu_exec_mul(global_uint64_t value1, global_uint64_t value2, 
     global_uint64_t resolved_value1 = cpu_resolve_value(value1, 0, size);
     value2 = cpu_resolve_value(value2, 1, size);
     cpu_info[1].reg_type = cpu_type_int;
-    cpu_exec_mov(value1, resolved_value1 * cpu_unsigned2signed(value2, cpu_info[0].sign), size);
+    cpu_exec_mov(value1, resolved_value1 * (cpu_info[1].sign ? cpu_unsigned2signed(value2, cpu_info[1].size) : value2), size);
 }
 
 static inline void cpu_exec_div(global_uint64_t value1, global_uint64_t value2, uint8_t size)
@@ -334,7 +336,7 @@ static inline void cpu_exec_div(global_uint64_t value1, global_uint64_t value2, 
     value2 = cpu_resolve_value(value2, 1, size);
     cpu_info[1].reg_type = cpu_type_int;
     if (value2 != 0)
-        cpu_exec_mov(value1, resolved_value1 / cpu_unsigned2signed(value2, cpu_info[0].sign), size);
+        cpu_exec_mov(value1, resolved_value1 / (cpu_info[1].sign ? cpu_unsigned2signed(value2, cpu_info[1].size) : value2), size);
     else
         cpu_exec_mov(value1, 0, size);
 }
@@ -344,7 +346,7 @@ static inline void cpu_exec_and(global_uint64_t value1, global_uint64_t value2, 
     global_uint64_t resolved_value1 = cpu_resolve_value(value1, 0, size);
     value2 = cpu_resolve_value(value2, 1, size);
     cpu_info[1].reg_type = cpu_type_int;
-    cpu_exec_mov(value1, resolved_value1 & cpu_unsigned2signed(value2, cpu_info[0].sign), size);
+    cpu_exec_mov(value1, resolved_value1 & (cpu_info[1].sign ? cpu_unsigned2signed(value2, cpu_info[1].size) : value2), size);
 }
 
 static inline void cpu_exec_or(global_uint64_t value1, global_uint64_t value2, uint8_t size)
@@ -352,7 +354,7 @@ static inline void cpu_exec_or(global_uint64_t value1, global_uint64_t value2, u
     global_uint64_t resolved_value1 = cpu_resolve_value(value1, 0, size);
     value2 = cpu_resolve_value(value2, 1, size);
     cpu_info[1].reg_type = cpu_type_int;
-    cpu_exec_mov(value1, resolved_value1 | cpu_unsigned2signed(value2, cpu_info[0].sign), size);
+    cpu_exec_mov(value1, resolved_value1 | (cpu_info[1].sign ? cpu_unsigned2signed(value2, cpu_info[1].size) : value2), size);
 }
 
 static inline void cpu_exec_xor(global_uint64_t value1, global_uint64_t value2, uint8_t size)
@@ -360,7 +362,7 @@ static inline void cpu_exec_xor(global_uint64_t value1, global_uint64_t value2, 
     global_uint64_t resolved_value1 = cpu_resolve_value(value1, 0, size);
     value2 = cpu_resolve_value(value2, 1, size);
     cpu_info[1].reg_type = cpu_type_int;
-    cpu_exec_mov(value1, resolved_value1 ^ cpu_unsigned2signed(value2, cpu_info[0].sign), size);
+    cpu_exec_mov(value1, resolved_value1 ^ (cpu_info[1].sign ? cpu_unsigned2signed(value2, cpu_info[1].size) : value2), size);
 }
 
 static inline uint8_t cpu_resolve_flags(uint8_t size)
@@ -1428,243 +1430,37 @@ void cpu_emulate_i8086(uint8_t debug, uint8_t override)
         cpu_add_reg(cpu_reg_ip, 1);
         cpu_emulate_i8086(debug, override | cpu_override_ds);
         break;
-    case 0x50:
+    case 0x50 ... 0x57:
         if (override & cpu_override_dword_operand)
         {
-            cpu_push_reg(cpu_reg_esp, cpu_reg_eax, 4);
+            value1 = regs32[opcode_byte & 0x07];
+            cpu_push_reg(cpu_reg_sp, value1, 4);
             if (debug)
-                printf("push dword eax\n");
+                printf("push dword %s\n", cpu_regs_string[value1]);
         }
         else
         {
-            cpu_push_reg(cpu_reg_sp, cpu_reg_ax, 2);
+            value1 = regs16[opcode_byte & 0x07];
+            cpu_push_reg(cpu_reg_sp, value1, 2);
             if (debug)
-                printf("push word ax\n");
+                printf("push word %s\n", cpu_regs_string[value1]);
         }
         cpu_add_reg(cpu_reg_ip, 1);
         break;
-    case 0x51:
+    case 0x58 ... 0x5f:
         if (override & cpu_override_dword_operand)
         {
-            cpu_push_reg(cpu_reg_esp, cpu_reg_ecx, 4);
+            value1 = regs32[opcode_byte & 0x07];
+            cpu_pop_reg(cpu_reg_sp, value1, 4);
             if (debug)
-                printf("push dword ecx\n");
+                printf("pop dword %s\n", cpu_regs_string[value1]);
         }
         else
         {
-            cpu_push_reg(cpu_reg_sp, cpu_reg_cx, 2);
+            value1 = regs16[opcode_byte & 0x07];
+            cpu_pop_reg(cpu_reg_sp, value1, 2);
             if (debug)
-                printf("push word cx\n");
-        }
-        cpu_add_reg(cpu_reg_ip, 1);
-        break;
-    case 0x52:
-        if (override & cpu_override_dword_operand)
-        {
-            cpu_push_reg(cpu_reg_esp, cpu_reg_edx, 4);
-            if (debug)
-                printf("push dword edx\n");
-        }
-        else
-        {
-            cpu_push_reg(cpu_reg_sp, cpu_reg_dx, 2);
-            if (debug)
-                printf("push word dx\n");
-        }
-        cpu_add_reg(cpu_reg_ip, 1);
-        break;
-    case 0x53:
-        if (override & cpu_override_dword_operand)
-        {
-            cpu_push_reg(cpu_reg_esp, cpu_reg_ebx, 4);
-            if (debug)
-                printf("push dword ebx\n");
-        }
-        else
-        {
-            cpu_push_reg(cpu_reg_sp, cpu_reg_bx, 2);
-            if (debug)
-                printf("push word bx\n");
-        }
-        cpu_add_reg(cpu_reg_ip, 1);
-        break;
-    case 0x54:
-        if (override & cpu_override_dword_operand)
-        {
-            cpu_push_reg(cpu_reg_esp, cpu_reg_esp, 4);
-            if (debug)
-                printf("push dword esp\n");
-        }
-        else
-        {
-            cpu_push_reg(cpu_reg_sp, cpu_reg_sp, 2);
-            if (debug)
-                printf("push word sp\n");
-        }
-        cpu_add_reg(cpu_reg_ip, 1);
-        break;
-    case 0x55:
-        if (override & cpu_override_dword_operand)
-        {
-            cpu_push_reg(cpu_reg_esp, cpu_reg_ebp, 4);
-            if (debug)
-                printf("push dword ebp\n");
-        }
-        else
-        {
-            cpu_push_reg(cpu_reg_sp, cpu_reg_bp, 2);
-            if (debug)
-                printf("push word bp\n");
-        }
-        cpu_add_reg(cpu_reg_ip, 1);
-        break;
-    case 0x56:
-        if (override & cpu_override_dword_operand)
-        {
-            cpu_push_reg(cpu_reg_esp, cpu_reg_esi, 4);
-            if (debug)
-                printf("push dword esi\n");
-        }
-        else
-        {
-            cpu_push_reg(cpu_reg_sp, cpu_reg_si, 2);
-            if (debug)
-                printf("push word si\n");
-        }
-        cpu_add_reg(cpu_reg_ip, 1);
-        break;
-    case 0x57:
-        if (override & cpu_override_dword_operand)
-        {
-            cpu_push_reg(cpu_reg_esp, cpu_reg_edi, 4);
-            if (debug)
-                printf("push dword edi\n");
-        }
-        else
-        {
-            cpu_push_reg(cpu_reg_sp, cpu_reg_di, 2);
-            if (debug)
-                printf("push word di\n");
-        }
-        cpu_add_reg(cpu_reg_ip, 1);
-        break;
-    case 0x58:
-        if (override & cpu_override_dword_operand)
-        {
-            cpu_pop_reg(cpu_reg_esp, cpu_reg_eax, 4);
-            if (debug)
-                printf("pop dword eax\n");
-        }
-        else
-        {
-            cpu_pop_reg(cpu_reg_sp, cpu_reg_ax, 2);
-            if (debug)
-                printf("pop word ax\n");
-        }
-        cpu_add_reg(cpu_reg_ip, 1);
-        break;
-    case 0x59:
-        if (override & cpu_override_dword_operand)
-        {
-            cpu_pop_reg(cpu_reg_esp, cpu_reg_ecx, 4);
-            if (debug)
-                printf("pop dword ecx\n");
-        }
-        else
-        {
-            cpu_pop_reg(cpu_reg_sp, cpu_reg_cx, 2);
-            if (debug)
-                printf("pop word cx\n");
-        }
-        cpu_add_reg(cpu_reg_ip, 1);
-        break;
-    case 0x5a:
-        if (override & cpu_override_dword_operand)
-        {
-            cpu_pop_reg(cpu_reg_esp, cpu_reg_edx, 4);
-            if (debug)
-                printf("pop dword edx\n");
-        }
-        else
-        {
-            cpu_pop_reg(cpu_reg_sp, cpu_reg_dx, 2);
-            if (debug)
-                printf("pop word dx\n");
-        }
-        cpu_add_reg(cpu_reg_ip, 1);
-        break;
-    case 0x5b:
-        if (override & cpu_override_dword_operand)
-        {
-            cpu_pop_reg(cpu_reg_esp, cpu_reg_ebx, 4);
-            if (debug)
-                printf("pop dword ebx\n");
-        }
-        else
-        {
-            cpu_pop_reg(cpu_reg_sp, cpu_reg_bx, 2);
-            if (debug)
-                printf("pop word bx\n");
-        }
-        cpu_add_reg(cpu_reg_ip, 1);
-        break;
-    case 0x5c:
-        if (override & cpu_override_dword_operand)
-        {
-            cpu_pop_reg(cpu_reg_esp, cpu_reg_esp, 4);
-            if (debug)
-                printf("pop dword esp\n");
-        }
-        else
-        {
-            cpu_pop_reg(cpu_reg_sp, cpu_reg_sp, 2);
-            if (debug)
-                printf("pop word sp\n");
-        }
-        cpu_add_reg(cpu_reg_ip, 1);
-        break;
-    case 0x5d:
-        if (override & cpu_override_dword_operand)
-        {
-            cpu_pop_reg(cpu_reg_esp, cpu_reg_ebp, 4);
-            if (debug)
-                printf("pop dword ebp\n");
-        }
-        else
-        {
-            cpu_pop_reg(cpu_reg_sp, cpu_reg_bp, 2);
-            if (debug)
-                printf("pop word bp\n");
-        }
-        cpu_add_reg(cpu_reg_ip, 1);
-        break;
-    case 0x5e:
-        if (override & cpu_override_dword_operand)
-        {
-            cpu_pop_reg(cpu_reg_esp, cpu_reg_esi, 4);
-            if (debug)
-                printf("pop dword esi\n");
-        }
-        else
-        {
-            cpu_pop_reg(cpu_reg_sp, cpu_reg_si, 2);
-            if (debug)
-                printf("pop word si\n");
-        }
-        cpu_add_reg(cpu_reg_ip, 1);
-        break;
-    case 0x5f:
-        if (override & cpu_override_dword_operand)
-        {
-            cpu_pop_reg(cpu_reg_esp, cpu_reg_edi, 4);
-            if (debug)
-                printf("pop dword edi\n");
-        }
-        else
-        {
-            cpu_pop_reg(cpu_reg_sp, cpu_reg_di, 2);
-            if (debug)
-                printf("pop word di\n");
+                printf("pop word %s\n", cpu_regs_string[value1]);
         }
         cpu_add_reg(cpu_reg_ip, 1);
         break;
