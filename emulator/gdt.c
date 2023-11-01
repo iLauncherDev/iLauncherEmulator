@@ -14,25 +14,15 @@ void gdt_set_entry(uint8_t num, uint32_t base, uint32_t limit, uint8_t access, u
 
 global_uint64_t gdt_read_seg_offset(uint16_t seg)
 {
-    gdt_entry_t *entry = (gdt_entry_t *)(&vm_memory[((gdtr_t *)&vm_memory[cpu_read_reg(cpu_reg_gdtr)])->base] +
-                                         cpu_read_reg(seg));
-    return ((entry->base_high << 24) | (entry->base_middle << 16) | entry->base_low) << 4;
+    return cpu_read_reg(seg) << 4;
 }
 
 void gdt_setup()
 {
-    cpu_write_reg(cpu_reg_gdtr, vm_memory_size);
-    cpu_write_reg(cpu_reg_gdtr_next, cpu_read_reg(cpu_reg_gdtr));
-    gdtr_t *gdtr = (gdtr_t *)&vm_memory[cpu_read_reg(cpu_reg_gdtr)];
-    gdtr->limit = sizeof(gdt_entry_t) * 5 - 1;
-    gdtr->base = cpu_read_reg(cpu_reg_gdtr) + sizeof(gdtr_t);
-    gdt_set_entry(0, 0, 0, 0, 0);
-    gdt_set_entry(1, (0xfffff - bios_size) >> 4, 0xffffffff, 0x9A, 0x0F);
-    gdt_set_entry(2, 0x00000000, 0xffffffff, 0x92, 0x0F);
-    cpu_write_reg(cpu_reg_gs, 0x10);
-    cpu_write_reg(cpu_reg_fs, 0x10);
-    cpu_write_reg(cpu_reg_es, 0x10);
-    cpu_write_reg(cpu_reg_ds, 0x10);
-    cpu_write_reg(cpu_reg_cs, 0x08);
-    cpu_write_reg(cpu_reg_ss, 0x10);
+    cpu_write_reg(cpu_reg_gs, 0x00);
+    cpu_write_reg(cpu_reg_fs, 0x00);
+    cpu_write_reg(cpu_reg_es, 0x00);
+    cpu_write_reg(cpu_reg_ds, 0x00);
+    cpu_write_reg(cpu_reg_cs, (0xfffff - limit(bios_size, (256 * 1024) - 1)) >> 4);
+    cpu_write_reg(cpu_reg_ss, 0x00);
 }

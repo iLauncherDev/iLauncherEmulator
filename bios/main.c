@@ -8,14 +8,16 @@ void print(char *string)
         outb(0x3f8, string[i]);
 }
 
+uint32_t multi(uint32_t a, uint32_t b)
+{
+    uint32_t ret = 0;
+    while (b--)
+        ret += a;
+    return ret;
+}
+
 void main()
 {
-    char message[] = "iLauncherBios\n";
-    uint8_t a = 0;
-    a += -1;
-    memcpy((void *)0xf000, message, sizeof(message));
-    while (true)
-    {
-        print((char *)0xf000);
-    }
+    char test[] = "iLauncherBios\n";
+    print(test);
 }

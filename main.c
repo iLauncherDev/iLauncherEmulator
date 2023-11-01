@@ -12,7 +12,7 @@ uint8_t debug_code = false, dump_bios = false;
 uint32_t ticks;
 
 global_uint64_t window_framebuffer[] = {
-    0xfffff,
+    0x100000,
     640,
     480,
     4,
@@ -183,6 +183,11 @@ int32_t main(int32_t argc, char **argv)
     }
     gdt_setup();
     vga_install();
+    io_write(0xfff0, window_framebuffer[0] >> 16, 2);
+    io_write(0xfff2, window_framebuffer[0], 2);
+    io_write(0xfff4, window_framebuffer[1], 2);
+    io_write(0xfff6, window_framebuffer[2], 2);
+    io_write(0xfff8, window_framebuffer[3], 2);
     SDL_Init(SDL_INIT_VIDEO);
     window = SDL_CreateWindow("Emulator", 0, 0,
                               window_framebuffer[1], window_framebuffer[2],

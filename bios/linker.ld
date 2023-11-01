@@ -12,13 +12,6 @@ SECTIONS {
 		text_end = .;
 	}
 
-	.rodata ALIGN(0x1000) :
-	{
-		rodata_start = .;
-		*(.rodata)
-		rodata_end = .;
-	}
-
 	.data ALIGN(0x1000) : AT(0xc0000)
 	{
 		data_start = .;
@@ -26,7 +19,14 @@ SECTIONS {
 		data_end = .;
 	}
 
-	.bss ALIGN(0x1000) : AT(data_end)
+	.rodata ALIGN(0x1000) : AT(data_end)
+	{
+		rodata_start = .;
+		*(.rodata)
+		rodata_end = .;
+	}
+
+	.bss ALIGN(0x1000) : AT(rodata_end)
 	{
 		bss_start = .;
 		*(COMMON)
