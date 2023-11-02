@@ -18,6 +18,9 @@ uint32_t multi(uint32_t a, uint32_t b)
 
 void main()
 {
-    char test[] = "iLauncherBios\n";
-    print(test);
+    while (true)
+    {
+        for (uint16_t y = 0; y < inw(0xfff6); y++)
+            memset((void *)(inl(0xfff0) + multi(inw(0xfff4), y)), 0xff, inw(0xfff4) << 2);
+    }
 }

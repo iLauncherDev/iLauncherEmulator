@@ -92,6 +92,8 @@ void *window_update()
             exit(0);
             scancode_ready[SDL_SCANCODE_Q] = false;
         }
+        window_framebuffer[1] = io_read(0xfff4, 2);
+        window_framebuffer[2] = io_read(0xfff6, 2);
         framebuffer_draw(&vm_memory[window_framebuffer[0]], window_surface->pixels,
                          window_framebuffer[1], window_framebuffer[2],
                          window_surface->w, window_surface->h,
@@ -183,8 +185,7 @@ int32_t main(int32_t argc, char **argv)
     }
     gdt_setup();
     vga_install();
-    io_write(0xfff0, window_framebuffer[0] >> 16, 2);
-    io_write(0xfff2, window_framebuffer[0], 2);
+    io_write(0xfff0, window_framebuffer[0], 4);
     io_write(0xfff4, window_framebuffer[1], 2);
     io_write(0xfff6, window_framebuffer[2], 2);
     io_write(0xfff8, window_framebuffer[3], 2);
@@ -199,8 +200,8 @@ int32_t main(int32_t argc, char **argv)
         sleep(1);
     while (true)
     {
-        if (io_check_flag(0x3f8, IO_WRITE_FLAG, 1))
-            printf("%c", (uint8_t)io_read(0x3f8, 1)), io_clear_flag(0x3f8, IO_WRITE_FLAG, 1);
+        if (io_read(0x3f8, 1))
+            printf("%c", (uint8_t)io_read(0x3f8, 1));
         vga_service();
         cpu_emulate_i8086(debug_code, 0);
         if (code_delay)
