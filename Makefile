@@ -1,5 +1,5 @@
 CC := clang
-CC_FLAGS := `sdl2-config --cflags --libs` -Werror -lm
+CC_FLAGS := `sdl2-config --cflags --libs` -Ofast -Werror -lm
 CC_FLAGS_BIOS := -c -m16 -ffreestanding -I bios/include
 EMUFILES := $(shell find *.c) $(shell find emulator -name "*.c")
 BIOSFILES := $(shell find bios -name "*.c")

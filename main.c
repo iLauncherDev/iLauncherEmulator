@@ -200,8 +200,8 @@ int32_t main(int32_t argc, char **argv)
         sleep(1);
     while (true)
     {
-        if (io_read(0x3f8, 1))
-            printf("%c", (uint8_t)io_read(0x3f8, 1));
+        if (io_check_flag(0x3f8, IO_WRITE_FLAG, 1))
+            printf("%c", (uint8_t)io_read(0x3f8, 1)), io_clear_flag(0x3f8, IO_READ_FLAG | IO_WRITE_FLAG, 1);
         vga_service();
         cpu_emulate_i8086(debug_code, 0);
         if (code_delay)

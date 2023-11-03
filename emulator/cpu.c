@@ -331,78 +331,122 @@ static inline void cpu_exec_lea(global_uint64_t value1, global_uint64_t value2, 
 static inline void cpu_exec_add(global_uint64_t value1, global_uint64_t value2, uint8_t size)
 {
     global_uint64_t resolved_value1 = cpu_resolve_value(value1, 0, size);
+    uint8_t old_type = cpu_info[1].reg_type;
     value2 = cpu_resolve_value(value2, 1, size);
     cpu_info[1].reg_type = cpu_type_int;
     cpu_exec_mov(value1,
-                 resolved_value1 + (cpu_info[1].sign ? cpu_unsigned2signed(value2, cpu_info[1].size) : value2),
+                 resolved_value1 +
+                     (cpu_info[1].sign ? cpu_unsigned2signed(value2, cpu_info[1].size) : value2),
                  size);
+    cpu_info[1].reg_type = old_type;
 }
 
 static inline void cpu_exec_sub(global_uint64_t value1, global_uint64_t value2, uint8_t size)
 {
     global_uint64_t resolved_value1 = cpu_resolve_value(value1, 0, size);
+    uint8_t old_type = cpu_info[1].reg_type;
     value2 = cpu_resolve_value(value2, 1, size);
     cpu_info[1].reg_type = cpu_type_int;
-    cpu_exec_mov(value1, resolved_value1 - (cpu_info[1].sign ? cpu_unsigned2signed(value2, cpu_info[1].size) : value2), size);
+    cpu_exec_mov(value1,
+                 resolved_value1 -
+                     (cpu_info[1].sign ? cpu_unsigned2signed(value2, cpu_info[1].size) : value2),
+                 size);
+    cpu_info[1].reg_type = old_type;
 }
 
 static inline void cpu_exec_mul(global_uint64_t value1, global_uint64_t value2, uint8_t size)
 {
     global_uint64_t resolved_value1 = cpu_resolve_value(value1, 0, size);
+    uint8_t old_type = cpu_info[1].reg_type;
     value2 = cpu_resolve_value(value2, 1, size);
     cpu_info[1].reg_type = cpu_type_int;
-    cpu_exec_mov(value1, resolved_value1 * (cpu_info[1].sign ? cpu_unsigned2signed(value2, cpu_info[1].size) : value2), size);
+    cpu_exec_mov(value1,
+                 resolved_value1 *
+                     (cpu_info[1].sign ? cpu_unsigned2signed(value2, cpu_info[1].size) : value2),
+                 size);
+    cpu_info[1].reg_type = old_type;
 }
 
 static inline void cpu_exec_div(global_uint64_t value1, global_uint64_t value2, uint8_t size)
 {
     global_uint64_t resolved_value1 = cpu_resolve_value(value1, 0, size);
+    uint8_t old_type = cpu_info[1].reg_type;
     value2 = cpu_resolve_value(value2, 1, size);
     cpu_info[1].reg_type = cpu_type_int;
     if (value2 != 0)
-        cpu_exec_mov(value1, resolved_value1 / (cpu_info[1].sign ? cpu_unsigned2signed(value2, cpu_info[1].size) : value2), size);
+        cpu_exec_mov(value1,
+                     resolved_value1 /
+                         (cpu_info[1].sign ? cpu_unsigned2signed(value2, cpu_info[1].size) : value2),
+                     size);
     else
-        cpu_exec_mov(value1, 0, size);
+        cpu_exec_mov(value1,
+                     0,
+                     size);
+    cpu_info[1].reg_type = old_type;
 }
 
 static inline void cpu_exec_and(global_uint64_t value1, global_uint64_t value2, uint8_t size)
 {
     global_uint64_t resolved_value1 = cpu_resolve_value(value1, 0, size);
+    uint8_t old_type = cpu_info[1].reg_type;
     value2 = cpu_resolve_value(value2, 1, size);
     cpu_info[1].reg_type = cpu_type_int;
-    cpu_exec_mov(value1, resolved_value1 & (cpu_info[1].sign ? cpu_unsigned2signed(value2, cpu_info[1].size) : value2), size);
+    cpu_exec_mov(value1,
+                 resolved_value1 &
+                     (cpu_info[1].sign ? cpu_unsigned2signed(value2, cpu_info[1].size) : value2),
+                 size);
+    cpu_info[1].reg_type = old_type;
 }
 
 static inline void cpu_exec_or(global_uint64_t value1, global_uint64_t value2, uint8_t size)
 {
     global_uint64_t resolved_value1 = cpu_resolve_value(value1, 0, size);
+    uint8_t old_type = cpu_info[1].reg_type;
     value2 = cpu_resolve_value(value2, 1, size);
     cpu_info[1].reg_type = cpu_type_int;
-    cpu_exec_mov(value1, resolved_value1 | (cpu_info[1].sign ? cpu_unsigned2signed(value2, cpu_info[1].size) : value2), size);
+    cpu_exec_mov(value1,
+                 resolved_value1 |
+                     (cpu_info[1].sign ? cpu_unsigned2signed(value2, cpu_info[1].size) : value2),
+                 size);
+    cpu_info[1].reg_type = old_type;
 }
 
 static inline void cpu_exec_xor(global_uint64_t value1, global_uint64_t value2, uint8_t size)
 {
     global_uint64_t resolved_value1 = cpu_resolve_value(value1, 0, size);
+    uint8_t old_type = cpu_info[1].reg_type;
     value2 = cpu_resolve_value(value2, 1, size);
     cpu_info[1].reg_type = cpu_type_int;
-    cpu_exec_mov(value1, resolved_value1 ^ (cpu_info[1].sign ? cpu_unsigned2signed(value2, cpu_info[1].size) : value2), size);
+    cpu_exec_mov(value1,
+                 resolved_value1 ^
+                     (cpu_info[1].sign ? cpu_unsigned2signed(value2, cpu_info[1].size) : value2),
+                 size);
+    cpu_info[1].reg_type = old_type;
 }
 
 static inline void cpu_exec_shl(global_uint64_t value1, global_uint64_t value2, uint8_t size)
 {
     global_uint64_t resolved_value1 = cpu_resolve_value(value1, 0, size);
+    uint8_t old_type = cpu_info[1].reg_type;
     value2 = cpu_resolve_value(value2, 1, size);
     cpu_info[1].reg_type = cpu_type_int;
-    cpu_exec_mov(value1, resolved_value1 << (cpu_info[1].sign ? cpu_unsigned2signed(value2, cpu_info[1].size) : value2), size);
+    cpu_exec_mov(value1,
+                 resolved_value1 << (cpu_info[1].sign ? cpu_unsigned2signed(value2, cpu_info[1].size) : value2),
+                 size);
+    cpu_info[1].reg_type = old_type;
 }
 
 static inline void cpu_exec_shr(global_uint64_t value1, global_uint64_t value2, uint8_t size)
 {
     global_uint64_t resolved_value1 = cpu_resolve_value(value1, 0, size);
+    uint8_t old_type = cpu_info[1].reg_type;
     value2 = cpu_resolve_value(value2, 1, size);
     cpu_info[1].reg_type = cpu_type_int;
-    cpu_exec_mov(value1, resolved_value1 >> (cpu_info[1].sign ? cpu_unsigned2signed(value2, cpu_info[1].size) : value2), size);
+    cpu_exec_mov(value1,
+                 resolved_value1 >>
+                     (cpu_info[1].sign ? cpu_unsigned2signed(value2, cpu_info[1].size) : value2),
+                 size);
+    cpu_info[1].reg_type = old_type;
 }
 
 static inline uint8_t cpu_resolve_flags(uint8_t size)
@@ -657,8 +701,9 @@ static inline void cpu_rm_resolve(uint8_t reg, uint8_t rm8, uint8_t size)
 
 static inline global_uint64_t cpu_rm(uint8_t reg, uint8_t size, uint8_t override_size)
 {
-    uint8_t mod = (memory_read(opcode + 1, 1, 0) & 0xc0) >> 0x06;
-    uint8_t rm8 = memory_read(opcode + 1, 1, 0) & 0x07;
+    uint8_t cache = memory_read(opcode + 1, 1, 0);
+    uint8_t mod = (cache & 0xc0) >> 0x06;
+    uint8_t rm8 = cache & 0x07;
     global_int64_t value = 0;
     switch (mod)
     {
@@ -705,14 +750,14 @@ static inline global_uint64_t cpu_rm(uint8_t reg, uint8_t size, uint8_t override
             goto ret;
         }
         cpu_rm_resolve(reg, rm8, size);
-        break;
+        goto ret;
     case 0x01:
         cpu_rm_resolve(reg, rm8, size);
         value = cpu_unsigned2signed(memory_read(opcode + 2, 1, 0), 1);
         cpu_info[cpu_info_index].size = 1;
         cpu_info[cpu_info_index].sign = 1;
         opcode++, cpu_add_reg(reg, 1);
-        break;
+        goto ret;
     case 0x02:
         cpu_rm_resolve(reg, rm8, size);
         switch (override_size)
@@ -730,23 +775,21 @@ static inline global_uint64_t cpu_rm(uint8_t reg, uint8_t size, uint8_t override
         opcode += override_size, cpu_add_reg(reg, override_size);
         cpu_info[cpu_info_index].size = override_size;
         cpu_info[cpu_info_index].sign = 1;
-        break;
+        goto ret;
     case 0x03:
         switch (size)
         {
         case 1:
             value = regs8[rm8];
-            cpu_info[cpu_info_index].reg_type = cpu_type_reg;
             break;
         case 2:
             value = regs16[rm8];
-            cpu_info[cpu_info_index].reg_type = cpu_type_reg;
             break;
         case 4:
             value = regs32[rm8];
-            cpu_info[cpu_info_index].reg_type = cpu_type_reg;
             break;
         }
+        cpu_info[cpu_info_index].reg_type = cpu_type_reg;
         goto ret;
     }
 ret:
@@ -756,20 +799,20 @@ ret:
 
 static inline global_uint64_t cpu_r_rm(uint8_t reg, void *r, uint8_t r_size, uint8_t size, uint8_t override_size)
 {
-    global_uint64_t opcode_backup = opcode;
+    uint8_t cache = (memory_read(opcode + 1, 1, 0) & 0x38) >> 3;
     switch (r_size)
     {
     case 1:
-        *(global_uint64_t *)r = regs8[(memory_read(opcode_backup + 1, 1, 0) & 0x38) >> 3];
+        *(global_uint64_t *)r = regs8[cache];
         break;
     case 2:
-        *(global_uint64_t *)r = regs16[(memory_read(opcode_backup + 1, 1, 0) & 0x38) >> 3];
+        *(global_uint64_t *)r = regs16[cache];
         break;
     case 4:
-        *(global_uint64_t *)r = regs32[(memory_read(opcode_backup + 1, 1, 0) & 0x38) >> 3];
+        *(global_uint64_t *)r = regs32[cache];
         break;
     case 255:
-        *(global_uint64_t *)r = segregs[(memory_read(opcode_backup + 1, 1, 0) & 0x38) >> 3];
+        *(global_uint64_t *)r = segregs[cache];
         break;
     default:
         break;
@@ -781,20 +824,20 @@ static inline global_uint64_t cpu_r_rm(uint8_t reg, void *r, uint8_t r_size, uin
 
 static inline global_uint64_t cpu_rm_r(uint8_t reg, void *r, uint8_t r_size, uint8_t size, uint8_t override_size)
 {
-    global_uint64_t opcode_backup = opcode;
+    uint8_t cache = (memory_read(opcode + 1, 1, 0) & 0x38) >> 3;
     switch (r_size)
     {
     case 1:
-        *(global_uint64_t *)r = regs8[(memory_read(opcode_backup + 1, 1, 0) & 0x38) >> 3];
+        *(global_uint64_t *)r = regs8[cache];
         break;
     case 2:
-        *(global_uint64_t *)r = regs16[(memory_read(opcode_backup + 1, 1, 0) & 0x38) >> 3];
+        *(global_uint64_t *)r = regs16[cache];
         break;
     case 4:
-        *(global_uint64_t *)r = regs32[(memory_read(opcode_backup + 1, 1, 0) & 0x38) >> 3];
+        *(global_uint64_t *)r = regs32[cache];
         break;
     case 255:
-        *(global_uint64_t *)r = segregs[(memory_read(opcode_backup + 1, 1, 0) & 0x38) >> 3];
+        *(global_uint64_t *)r = segregs[cache];
         break;
     default:
         break;
@@ -1140,7 +1183,7 @@ void cpu_emulate_i8086(uint8_t debug, uint8_t override)
         else
             value1 = cpu_rm16_r16(cpu_reg_ip, &value2, 2), size = 2;
         cpu_exec_add(value1, value2, size);
-        cpu_add_reg(cpu_reg_ip, 2);
+        cpu_add_reg(cpu_reg_ip, 1);
         if (debug)
             cpu_print_instruction("add", cpu_sizes_string[size], 2, value1, value2);
         break;
@@ -1256,10 +1299,11 @@ void cpu_emulate_i8086(uint8_t debug, uint8_t override)
         break;
     case 0x0f:
         opcode++, cpu_add_reg(cpu_reg_ip, 1);
-        switch ((memory_read(opcode, 1, 0) & 0x38) >> 3)
+        opcode_byte = memory_read(opcode, 1, 0);
+        switch ((opcode_byte & 0x38) >> 3)
         {
         case 0x00:
-            switch (memory_read(opcode, 1, 0) & 0x07)
+            switch (opcode_byte & 0x07)
             {
             case 0x01:
                 value1 = cpu_rel16(cpu_reg_ip);
@@ -1318,7 +1362,7 @@ void cpu_emulate_i8086(uint8_t debug, uint8_t override)
             cpu_add_reg(cpu_reg_ip, 1);
             break;
         case 0x06:
-            switch (memory_read(opcode, 1, 0) & 0x07)
+            switch (opcode_byte & 0x07)
             {
             case 0x06:
                 if (override & cpu_override_dword_operand)

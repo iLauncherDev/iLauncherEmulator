@@ -2,46 +2,124 @@
 
 memory_map_t *memory_map = (void *)NULL;
 
-global_uint64_t memory_big_endian_read(void *ptr, uint8_t bits)
+global_uint64_t memory_big_endian_read(void *ptr, uint8_t size)
 {
-    if (!ptr || !bits)
-        goto end;
-    global_uint64_t value = 0;
-    for (uint8_t i = bits; i > 8; i -= 8)
-        value |= *(uint8_t *)ptr++ << (i - 8);
-end:
-    return value;
+    if (!ptr || !size)
+        return 0;
+    switch (size)
+    {
+    case 1:
+        return (global_uint64_t)(((uint8_t *)ptr)[0]);
+    case 2:
+        return ((global_uint64_t)(((uint8_t *)ptr)[0]) << 8) |
+               (global_uint64_t)(((uint8_t *)ptr)[1]);
+    case 4:
+        return ((global_uint64_t)(((uint8_t *)ptr)[0]) << 24) |
+               ((global_uint64_t)(((uint8_t *)ptr)[1]) << 16) |
+               ((global_uint64_t)(((uint8_t *)ptr)[2]) << 8) |
+               (global_uint64_t)(((uint8_t *)ptr)[3]);
+    default:
+        return ((global_uint64_t)(((uint8_t *)ptr)[0]) << 56) |
+               ((global_uint64_t)(((uint8_t *)ptr)[1]) << 48) |
+               ((global_uint64_t)(((uint8_t *)ptr)[2]) << 40) |
+               ((global_uint64_t)(((uint8_t *)ptr)[3]) << 32) |
+               ((global_uint64_t)(((uint8_t *)ptr)[4]) << 24) |
+               ((global_uint64_t)(((uint8_t *)ptr)[5]) << 16) |
+               ((global_uint64_t)(((uint8_t *)ptr)[6]) << 8) |
+               (global_uint64_t)(((uint8_t *)ptr)[7]);
+    }
 }
 
-void memory_big_endian_write(void *ptr, uint8_t bits, global_uint64_t value)
+void memory_big_endian_write(void *ptr, uint8_t size, global_uint64_t value)
 {
-    if (!ptr || !bits)
-        goto end;
-    for (uint8_t i = bits; i > 8; i -= 8)
-        *(uint8_t *)ptr++ = value >> (i - 8);
-end:
-    return;
+    if (!ptr || !size)
+        return;
+    switch (size)
+    {
+    case 1:
+        ((uint8_t *)ptr)[0] = value & 0xff;
+        break;
+    case 2:
+        ((uint8_t *)ptr)[0] = (value >> 8) & 0xff;
+        ((uint8_t *)ptr)[1] = value & 0xff;
+        break;
+    case 4:
+        ((uint8_t *)ptr)[0] = (value >> 24) & 0xff;
+        ((uint8_t *)ptr)[1] = (value >> 16) & 0xff;
+        ((uint8_t *)ptr)[2] = (value >> 8) & 0xff;
+        ((uint8_t *)ptr)[3] = value & 0xff;
+        break;
+    default:
+        ((uint8_t *)ptr)[0] = (value >> 56) & 0xff;
+        ((uint8_t *)ptr)[1] = (value >> 48) & 0xff;
+        ((uint8_t *)ptr)[2] = (value >> 40) & 0xff;
+        ((uint8_t *)ptr)[3] = (value >> 32) & 0xff;
+        ((uint8_t *)ptr)[4] = (value >> 24) & 0xff;
+        ((uint8_t *)ptr)[5] = (value >> 16) & 0xff;
+        ((uint8_t *)ptr)[6] = (value >> 8) & 0xff;
+        ((uint8_t *)ptr)[7] = value & 0xff;
+        break;
+    }
 }
 
-global_uint64_t memory_little_endian_read(void *ptr, uint8_t bits)
+global_uint64_t memory_little_endian_read(void *ptr, uint8_t size)
 {
-    if (!ptr || !bits)
-        goto end;
-    global_uint64_t value = 0;
-    for (uint8_t i = 0; i < bits; i += 8)
-        value |= *(uint8_t *)ptr++ << i;
-end:
-    return value;
+    if (!ptr || !size)
+        return 0;
+    switch (size)
+    {
+    case 1:
+        return (global_uint64_t)(((uint8_t *)ptr)[0]);
+    case 2:
+        return (global_uint64_t)(((uint8_t *)ptr)[0]) |
+               ((global_uint64_t)(((uint8_t *)ptr)[1]) << 8);
+    case 4:
+        return (global_uint64_t)(((uint8_t *)ptr)[0]) |
+               ((global_uint64_t)(((uint8_t *)ptr)[1]) << 8) |
+               ((global_uint64_t)(((uint8_t *)ptr)[2]) << 16) |
+               ((global_uint64_t)(((uint8_t *)ptr)[3]) << 24);
+    default:
+        return (global_uint64_t)(((uint8_t *)ptr)[0]) |
+               ((global_uint64_t)(((uint8_t *)ptr)[1]) << 8) |
+               ((global_uint64_t)(((uint8_t *)ptr)[2]) << 16) |
+               ((global_uint64_t)(((uint8_t *)ptr)[3]) << 24) |
+               ((global_uint64_t)(((uint8_t *)ptr)[4]) << 32) |
+               ((global_uint64_t)(((uint8_t *)ptr)[5]) << 40) |
+               ((global_uint64_t)(((uint8_t *)ptr)[6]) << 48) |
+               ((global_uint64_t)(((uint8_t *)ptr)[7]) << 56);
+    }
 }
 
-void memory_little_endian_write(void *ptr, uint8_t bits, global_uint64_t value)
+void memory_little_endian_write(void *ptr, uint8_t size, global_uint64_t value)
 {
-    if (!ptr || !bits)
-        goto end;
-    for (uint8_t i = 0; i < bits; i += 8)
-        *(uint8_t *)ptr++ = value >> i;
-end:
-    return;
+    if (!ptr || !size)
+        return;
+    switch (size)
+    {
+    case 1:
+        ((uint8_t *)ptr)[0] = value & 0xff;
+        break;
+    case 2:
+        ((uint8_t *)ptr)[0] = value & 0xff;
+        ((uint8_t *)ptr)[1] = (value >> 8) & 0xff;
+        break;
+    case 4:
+        ((uint8_t *)ptr)[0] = value & 0xff;
+        ((uint8_t *)ptr)[1] = (value >> 8) & 0xff;
+        ((uint8_t *)ptr)[2] = (value >> 16) & 0xff;
+        ((uint8_t *)ptr)[3] = (value >> 24) & 0xff;
+        break;
+    default:
+        ((uint8_t *)ptr)[0] = value & 0xff;
+        ((uint8_t *)ptr)[1] = (value >> 8) & 0xff;
+        ((uint8_t *)ptr)[2] = (value >> 16) & 0xff;
+        ((uint8_t *)ptr)[3] = (value >> 24) & 0xff;
+        ((uint8_t *)ptr)[4] = (value >> 32) & 0xff;
+        ((uint8_t *)ptr)[5] = (value >> 40) & 0xff;
+        ((uint8_t *)ptr)[6] = (value >> 48) & 0xff;
+        ((uint8_t *)ptr)[7] = (value >> 56) & 0xff;
+        break;
+    }
 }
 
 global_uint64_t memory_read(global_uint64_t address, uint8_t size, uint8_t big_endian)
@@ -71,9 +149,9 @@ global_uint64_t memory_read(global_uint64_t address, uint8_t size, uint8_t big_e
             goto end;
     }
     if (big_endian)
-        return memory_big_endian_read(&buffer[address], size << 3);
+        return memory_big_endian_read(&buffer[address], size);
     else
-        return memory_little_endian_read(&buffer[address], size << 3);
+        return memory_little_endian_read(&buffer[address], size);
 end:
     return 0x00;
 }
@@ -105,9 +183,9 @@ void memory_write(global_uint64_t address, global_uint64_t value, uint8_t size, 
             goto end;
     }
     if (big_endian)
-        return memory_big_endian_write(&buffer[address], size << 3, value);
+        return memory_big_endian_write(&buffer[address], size, value);
     else
-        return memory_little_endian_write(&buffer[address], size << 3, value);
+        return memory_little_endian_write(&buffer[address], size, value);
 end:
     return;
 }
