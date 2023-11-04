@@ -33,7 +33,7 @@ typedef struct cpu
     global_uint64_t (*read_reg)(struct cpu *cpu, uint16_t reg);
     void (*write_reg)(struct cpu *cpu, uint16_t reg, global_uint64_t value);
     void (*reset)(struct cpu *cpu);
-    void (*emulate)(struct cpu *cpu);
+    uint8_t (*emulate)(struct cpu *cpu);
     uint8_t *regs;
     cpu_info_t cpu_info[8];
     uint8_t info_index;
