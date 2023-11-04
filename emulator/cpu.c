@@ -5,7 +5,6 @@ extern global_uint64_t window_framebuffer[];
 cpu_info_t cpu_info[8];
 uint8_t cpu_info_index = 0;
 
-global_uint64_t opcode;
 uint8_t cpu_state[cpu_reg_end];
 uint8_t regs32[] = {
     cpu_reg_eax,
@@ -72,8 +71,6 @@ global_uint64_t cpu_unsigned2signed(global_uint64_t value, uint8_t size)
 
 global_uint64_t cpu_read_reg(uint8_t reg)
 {
-    if (reg == cpu_reg_ip)
-        reg = cpu_reg_eip;
     if (reg >= cpu_reg_gdtr && reg < cpu_reg_end && ((reg - cpu_reg_gdtr) & 8) == 0)
     {
         return *(global_uint64_t *)&cpu_state[reg];
@@ -100,8 +97,6 @@ global_uint64_t cpu_read_reg(uint8_t reg)
 
 void cpu_write_reg(uint8_t reg, global_uint64_t value)
 {
-    if (reg == cpu_reg_ip)
-        reg = cpu_reg_eip;
     if (reg >= cpu_reg_gdtr && reg < cpu_reg_end && ((reg - cpu_reg_gdtr) & 8) == 0)
     {
         *(global_uint64_t *)&cpu_state[reg] = value;
@@ -585,6 +580,7 @@ static inline void cpu_rm_resolve(uint8_t reg, uint8_t rm8, uint8_t size)
     switch (size)
     {
     case 1 ... 2:
+        cpu_info[cpu_info_index].size = 2;
         switch (rm8)
         {
         case 0x00:
@@ -634,6 +630,7 @@ static inline void cpu_rm_resolve(uint8_t reg, uint8_t rm8, uint8_t size)
         }
         break;
     case 4:
+        cpu_info[cpu_info_index].size = 4;
         switch (rm8)
         {
         case 0x00:
@@ -662,18 +659,18 @@ static inline void cpu_rm_resolve(uint8_t reg, uint8_t rm8, uint8_t size)
             break;
         case 0x04:
             cpu_info[cpu_info_index].reg_type = cpu_type_memory_reg;
-            switch (memory_read(opcode + 2, 1, 0))
+            switch (memory_read(gdt_read_seg_offset(cpu_reg_cs) + cpu_read_reg(reg) + 2, 1, 0))
             {
             case 0x08:
                 cpu_info[cpu_info_index].reg_type_buffer[0] = 2;
                 cpu_info[cpu_info_index].reg_type_buffer[1] = cpu_reg_eax;
                 cpu_info[cpu_info_index].reg_type_buffer[2] = cpu_reg_ecx;
-                opcode++, cpu_add_reg(reg, 1);
+                cpu_add_reg(reg, 1);
                 break;
             case 0x24:
                 cpu_info[cpu_info_index].reg_type_buffer[0] = 1;
                 cpu_info[cpu_info_index].reg_type_buffer[1] = cpu_reg_esp;
-                opcode++, cpu_add_reg(reg, 1);
+                cpu_add_reg(reg, 1);
                 break;
             }
             break;
@@ -701,8 +698,8 @@ static inline void cpu_rm_resolve(uint8_t reg, uint8_t rm8, uint8_t size)
 
 static inline global_uint64_t cpu_rm(uint8_t reg, uint8_t size, uint8_t override_size)
 {
-    uint8_t cache = memory_read(opcode + 1, 1, 0);
-    uint8_t mod = (cache & 0xc0) >> 0x06;
+    uint8_t cache = memory_read(gdt_read_seg_offset(cpu_reg_cs) + cpu_read_reg(reg) + 1, 1, 0);
+    uint8_t mod = (cache & 0xc0) >> 6;
     uint8_t rm8 = cache & 0x07;
     global_int64_t value = 0;
     switch (mod)
@@ -715,16 +712,19 @@ static inline global_uint64_t cpu_rm(uint8_t reg, uint8_t size, uint8_t override
             {
             case 1:
                 value = regs8[rm8];
+                cpu_info[cpu_info_index].size = 1;
                 cpu_info[cpu_info_index].reg_type_buffer[0] = 0;
                 cpu_info[cpu_info_index].reg_type = cpu_type_memory_reg;
                 break;
             case 2:
                 value = regs16[rm8];
+                cpu_info[cpu_info_index].size = 2;
                 cpu_info[cpu_info_index].reg_type_buffer[0] = 0;
                 cpu_info[cpu_info_index].reg_type = cpu_type_memory_reg;
                 break;
             case 4:
                 value = regs32[rm8];
+                cpu_info[cpu_info_index].size = 4;
                 cpu_info[cpu_info_index].reg_type_buffer[0] = 0;
                 cpu_info[cpu_info_index].reg_type = cpu_type_memory_reg;
                 break;
@@ -734,16 +734,16 @@ static inline global_uint64_t cpu_rm(uint8_t reg, uint8_t size, uint8_t override
             switch (override_size)
             {
             case 1 ... 2:
-                value = memory_read(opcode + 2, 2, 0);
+                value = memory_read(gdt_read_seg_offset(cpu_reg_cs) + cpu_read_reg(reg) + 2, 2, 0);
                 override_size = 2;
                 break;
             case 4:
-                value = memory_read(opcode + 2, 4, 0);
+                value = memory_read(gdt_read_seg_offset(cpu_reg_cs) + cpu_read_reg(reg) + 2, 4, 0);
                 break;
             default:
                 break;
             }
-            opcode += override_size, cpu_add_reg(reg, override_size);
+            cpu_add_reg(reg, override_size);
             cpu_info[cpu_info_index].reg_type = cpu_type_memory;
             cpu_info[cpu_info_index].size = override_size;
             cpu_info[cpu_info_index].sign = 1;
@@ -753,26 +753,26 @@ static inline global_uint64_t cpu_rm(uint8_t reg, uint8_t size, uint8_t override
         goto ret;
     case 0x01:
         cpu_rm_resolve(reg, rm8, size);
-        value = cpu_unsigned2signed(memory_read(opcode + 2, 1, 0), 1);
+        value = cpu_unsigned2signed(memory_read(gdt_read_seg_offset(cpu_reg_cs) + cpu_read_reg(reg) + 2, 1, 0), 1);
         cpu_info[cpu_info_index].size = 1;
         cpu_info[cpu_info_index].sign = 1;
-        opcode++, cpu_add_reg(reg, 1);
+        cpu_add_reg(reg, 1);
         goto ret;
     case 0x02:
         cpu_rm_resolve(reg, rm8, size);
         switch (override_size)
         {
         case 1 ... 2:
-            value = memory_read(opcode + 2, 2, 0);
+            value = memory_read(gdt_read_seg_offset(cpu_reg_cs) + cpu_read_reg(reg) + 2, 2, 0);
             override_size = 2;
             break;
         case 4:
-            value = memory_read(opcode + 2, 4, 0);
+            value = memory_read(gdt_read_seg_offset(cpu_reg_cs) + cpu_read_reg(reg) + 2, 4, 0);
             break;
         default:
             break;
         }
-        opcode += override_size, cpu_add_reg(reg, override_size);
+        cpu_add_reg(reg, override_size);
         cpu_info[cpu_info_index].size = override_size;
         cpu_info[cpu_info_index].sign = 1;
         goto ret;
@@ -789,30 +789,36 @@ static inline global_uint64_t cpu_rm(uint8_t reg, uint8_t size, uint8_t override
             value = regs32[rm8];
             break;
         }
+        cpu_info[cpu_info_index].size = size;
         cpu_info[cpu_info_index].reg_type = cpu_type_reg;
         goto ret;
     }
 ret:
-    opcode++, cpu_add_reg(reg, 1), cpu_info_index++;
+    cpu_add_reg(reg, 1), cpu_info_index++;
     return value;
 }
 
 static inline global_uint64_t cpu_r_rm(uint8_t reg, void *r, uint8_t r_size, uint8_t size, uint8_t override_size)
 {
-    uint8_t cache = (memory_read(opcode + 1, 1, 0) & 0x38) >> 3;
+    uint8_t cache = (memory_read(gdt_read_seg_offset(cpu_reg_cs) + cpu_read_reg(reg) + 1, 1, 0) & 0x38) >> 3;
+    cpu_info[cpu_info_index].sign = 0;
     switch (r_size)
     {
     case 1:
         *(global_uint64_t *)r = regs8[cache];
+        cpu_info[cpu_info_index].size = 1;
         break;
     case 2:
         *(global_uint64_t *)r = regs16[cache];
+        cpu_info[cpu_info_index].size = 2;
         break;
     case 4:
         *(global_uint64_t *)r = regs32[cache];
+        cpu_info[cpu_info_index].size = 4;
         break;
     case 255:
         *(global_uint64_t *)r = segregs[cache];
+        cpu_info[cpu_info_index].size = 2;
         break;
     default:
         break;
@@ -824,25 +830,30 @@ static inline global_uint64_t cpu_r_rm(uint8_t reg, void *r, uint8_t r_size, uin
 
 static inline global_uint64_t cpu_rm_r(uint8_t reg, void *r, uint8_t r_size, uint8_t size, uint8_t override_size)
 {
-    uint8_t cache = (memory_read(opcode + 1, 1, 0) & 0x38) >> 3;
+    uint8_t cache = (memory_read(gdt_read_seg_offset(cpu_reg_cs) + cpu_read_reg(reg) + 1, 1, 0) & 0x38) >> 3;
+    global_uint64_t rm = cpu_rm(reg, size, override_size);
+    cpu_info[cpu_info_index].sign = 0;
     switch (r_size)
     {
     case 1:
         *(global_uint64_t *)r = regs8[cache];
+        cpu_info[cpu_info_index].size = 1;
         break;
     case 2:
         *(global_uint64_t *)r = regs16[cache];
+        cpu_info[cpu_info_index].size = 2;
         break;
     case 4:
         *(global_uint64_t *)r = regs32[cache];
+        cpu_info[cpu_info_index].size = 4;
         break;
     case 255:
         *(global_uint64_t *)r = segregs[cache];
+        cpu_info[cpu_info_index].size = 2;
         break;
     default:
         break;
     }
-    global_uint64_t rm = cpu_rm(reg, size, override_size);
     cpu_info[cpu_info_index++].reg_type = cpu_type_reg;
     return rm;
 }
@@ -867,8 +878,8 @@ static inline global_uint64_t cpu_m(uint8_t reg, uint16_t override, uint8_t size
     cpu_info[cpu_info_index].segmentation = sreg;
     cpu_info[cpu_info_index].size = size;
     cpu_info[cpu_info_index++].reg_type = cpu_type_memory;
-    value = memory_read(opcode + 1, size, 0);
-    opcode += size, cpu_add_reg(reg, size);
+    value = memory_read(gdt_read_seg_offset(cpu_reg_cs) + cpu_read_reg(reg) + 1, size, 0);
+    cpu_add_reg(reg, size);
     return value;
 }
 
@@ -884,23 +895,34 @@ static inline uint32_t cpu_m32(uint8_t reg, uint16_t override)
 
 static inline uint8_t cpu_r32(uint8_t reg)
 {
-    opcode++, cpu_write_reg(reg, cpu_read_reg(reg) + 1);
+    cpu_write_reg(reg, cpu_read_reg(reg) + 1);
+    cpu_info[cpu_info_index].size = 4;
     cpu_info[cpu_info_index++].reg_type = cpu_type_reg;
-    return regs32[(memory_read(opcode, 4, 0) & 0x38) & 7];
+    return regs32[(memory_read(gdt_read_seg_offset(cpu_reg_cs) + cpu_read_reg(reg), 4, 0) & 0x38) & 7];
 }
 
 static inline uint8_t cpu_r16(uint8_t reg)
 {
-    opcode++, cpu_write_reg(reg, cpu_read_reg(reg) + 1);
+    cpu_write_reg(reg, cpu_read_reg(reg) + 1);
+    cpu_info[cpu_info_index].size = 2;
     cpu_info[cpu_info_index++].reg_type = cpu_type_reg;
-    return regs16[(memory_read(opcode, 2, 0) & 0x38) & 7];
+    return regs16[(memory_read(gdt_read_seg_offset(cpu_reg_cs) + cpu_read_reg(reg), 2, 0) & 0x38) & 7];
 }
 
 static inline uint8_t cpu_r8(uint8_t reg)
 {
-    opcode++, cpu_write_reg(reg, cpu_read_reg(reg) + 1);
+    cpu_write_reg(reg, cpu_read_reg(reg) + 1);
+    cpu_info[cpu_info_index].size = 1;
     cpu_info[cpu_info_index++].reg_type = cpu_type_reg;
-    return regs8[(memory_read(opcode, 1, 0) & 0x38) & 7];
+    return regs8[(memory_read(gdt_read_seg_offset(cpu_reg_cs) + cpu_read_reg(reg), 1, 0) & 0x38) & 7];
+}
+
+static inline uint8_t cpu_sr(uint8_t reg)
+{
+    cpu_write_reg(reg, cpu_read_reg(reg) + 1);
+    cpu_info[cpu_info_index].size = 2;
+    cpu_info[cpu_info_index++].reg_type = cpu_type_reg;
+    return segregs[(memory_read(gdt_read_seg_offset(cpu_reg_cs) + cpu_read_reg(reg), 1, 0) & 0x38) >> 3];
 }
 
 static inline uint16_t cpu_rm8_r8(uint8_t reg, void *r, uint8_t override_size)
@@ -1015,63 +1037,56 @@ static inline uint8_t cpu_rm8(uint8_t reg, uint8_t override_size)
 
 static inline uint32_t cpu_imm32(uint8_t reg, uint8_t sign)
 {
-    uint32_t imm = memory_read(opcode + 1, 4, 0);
+    uint32_t imm = memory_read(gdt_read_seg_offset(cpu_reg_cs) + cpu_read_reg(reg) + 1, 4, 0);
     cpu_info[cpu_info_index].size = 4;
     cpu_info[cpu_info_index].sign = sign;
     cpu_info[cpu_info_index++].reg_type = cpu_type_int;
-    opcode += 2, cpu_write_reg(reg, cpu_read_reg(reg) + 4);
+    cpu_write_reg(reg, cpu_read_reg(reg) + 4);
     return (uint32_t)imm;
 }
 
 static inline uint16_t cpu_imm16(uint8_t reg, uint8_t sign)
 {
-    uint16_t imm = memory_read(opcode + 1, 2, 0);
+    uint16_t imm = memory_read(gdt_read_seg_offset(cpu_reg_cs) + cpu_read_reg(reg) + 1, 2, 0);
     cpu_info[cpu_info_index].size = 2;
     cpu_info[cpu_info_index].sign = sign;
     cpu_info[cpu_info_index++].reg_type = cpu_type_int;
-    opcode += 2, cpu_write_reg(reg, cpu_read_reg(reg) + 2);
+    cpu_write_reg(reg, cpu_read_reg(reg) + 2);
     return (uint16_t)imm;
 }
 
 static inline uint8_t cpu_imm8(uint8_t reg, uint8_t sign)
 {
-    uint8_t imm = memory_read(opcode + 1, 1, 0);
+    uint8_t imm = memory_read(gdt_read_seg_offset(cpu_reg_cs) + cpu_read_reg(reg) + 1, 1, 0);
     cpu_info[cpu_info_index].size = 1;
     cpu_info[cpu_info_index].sign = sign;
     cpu_info[cpu_info_index++].reg_type = cpu_type_int;
-    opcode++, cpu_write_reg(reg, cpu_read_reg(reg) + 1);
+    cpu_write_reg(reg, cpu_read_reg(reg) + 1);
     return (uint8_t)imm;
 }
 
 static inline uint32_t cpu_rel32(uint8_t reg)
 {
-    uint32_t rel = memory_read(opcode + 1, 4, 0);
+    uint32_t rel = memory_read(gdt_read_seg_offset(cpu_reg_cs) + cpu_read_reg(reg) + 1, 4, 0);
     cpu_info[cpu_info_index++].reg_type = cpu_type_int;
-    opcode += 2, cpu_write_reg(reg, cpu_read_reg(reg) + 4);
+    cpu_write_reg(reg, cpu_read_reg(reg) + 4);
     return (uint32_t)(cpu_read_reg(reg) + rel + 1);
 }
 
 static inline uint16_t cpu_rel16(uint8_t reg)
 {
-    uint16_t rel = memory_read(opcode + 1, 2, 0);
+    uint16_t rel = memory_read(gdt_read_seg_offset(cpu_reg_cs) + cpu_read_reg(reg) + 1, 2, 0);
     cpu_info[cpu_info_index++].reg_type = cpu_type_int;
-    opcode += 2, cpu_write_reg(reg, cpu_read_reg(reg) + 2);
+    cpu_write_reg(reg, cpu_read_reg(reg) + 2);
     return (uint16_t)(cpu_read_reg(reg) + rel + 1);
 }
 
 static inline uint8_t cpu_rel8(uint8_t reg)
 {
-    uint8_t rel = memory_read(opcode + 1, 1, 0);
+    uint8_t rel = memory_read(gdt_read_seg_offset(cpu_reg_cs) + cpu_read_reg(reg) + 1, 1, 0);
     cpu_info[cpu_info_index++].reg_type = cpu_type_int;
-    opcode++, cpu_write_reg(reg, cpu_read_reg(reg) + 1);
+    cpu_write_reg(reg, cpu_read_reg(reg) + 1);
     return (uint8_t)(cpu_read_reg(reg) + rel + 1);
-}
-
-static inline uint8_t cpu_sr(uint8_t reg)
-{
-    cpu_info[cpu_info_index++].reg_type = cpu_type_reg;
-    opcode++, cpu_write_reg(reg, cpu_read_reg(reg) + 1);
-    return segregs[(memory_read(opcode + 1, 1, 0) & 0x38) >> 3];
 }
 
 static inline void cpu_print_instruction(char *instruction, char *type,
@@ -1149,12 +1164,10 @@ static inline void cpu_print_instruction(char *instruction, char *type,
 
 void cpu_emulate_i8086(uint8_t debug, uint8_t override)
 {
-    global_uint64_t base = gdt_read_seg_offset(cpu_reg_cs);
-    opcode = base + cpu_read_reg(cpu_reg_ip);
     global_uint64_t value1;
     global_uint64_t value2;
     uint8_t size;
-    uint8_t opcode_byte = memory_read(opcode, 1, 0);
+    uint8_t opcode_byte = memory_read(gdt_read_seg_offset(cpu_reg_cs) + cpu_read_reg(cpu_reg_ip), 1, 0);
     char *operation;
     switch (opcode_byte)
     {
@@ -1298,8 +1311,8 @@ void cpu_emulate_i8086(uint8_t debug, uint8_t override)
         cpu_add_reg(cpu_reg_ip, 1);
         break;
     case 0x0f:
-        opcode++, cpu_add_reg(cpu_reg_ip, 1);
-        opcode_byte = memory_read(opcode, 1, 0);
+        cpu_add_reg(cpu_reg_ip, 1);
+        opcode_byte = memory_read(gdt_read_seg_offset(cpu_reg_cs) + cpu_read_reg(cpu_reg_ip), 1, 0);
         switch ((opcode_byte & 0x38) >> 3)
         {
         case 0x00:
@@ -1619,7 +1632,7 @@ void cpu_emulate_i8086(uint8_t debug, uint8_t override)
             printf("je 0x%llx\n", value1);
         break;
     case 0x80:
-        opcode_byte = memory_read(opcode + 1, 1, 0);
+        opcode_byte = memory_read(gdt_read_seg_offset(cpu_reg_cs) + cpu_read_reg(cpu_reg_ip) + 1, 1, 0);
         if (override & cpu_override_dword_address)
             value1 = cpu_rm32(cpu_reg_ip, 4);
         else
@@ -1664,7 +1677,7 @@ void cpu_emulate_i8086(uint8_t debug, uint8_t override)
         cpu_add_reg(cpu_reg_ip, 1);
         break;
     case 0x81:
-        opcode_byte = memory_read(opcode + 1, 1, 0);
+        opcode_byte = memory_read(gdt_read_seg_offset(cpu_reg_cs) + cpu_read_reg(cpu_reg_ip) + 1, 1, 0);
         if (override & cpu_override_dword_address)
             value1 = cpu_rm32(cpu_reg_ip, 4), size = 4;
         else
@@ -1712,7 +1725,7 @@ void cpu_emulate_i8086(uint8_t debug, uint8_t override)
         cpu_add_reg(cpu_reg_ip, 1);
         break;
     case 0x83:
-        opcode_byte = memory_read(opcode + 1, 1, 0);
+        opcode_byte = memory_read(gdt_read_seg_offset(cpu_reg_cs) + cpu_read_reg(cpu_reg_ip) + 1, 1, 0);
         if (override & cpu_override_dword_operand)
             value1 = cpu_rm32(cpu_reg_ip, 4), size = 4;
         else

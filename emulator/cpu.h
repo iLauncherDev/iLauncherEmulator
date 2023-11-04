@@ -79,9 +79,8 @@ typedef enum cpu_regs
 
     cpu_reg_gdtr = cpu_reg_r15d + 4,
     cpu_reg_gdtr_next = cpu_reg_gdtr + 8,
-    cpu_reg_gdtr_end = cpu_reg_gdtr_next + 8,
 
-    cpu_reg_end,
+    cpu_reg_end = cpu_reg_gdtr_next + 8,
 
     cpu_type_reg,
     cpu_type_int,
