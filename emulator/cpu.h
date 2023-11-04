@@ -309,17 +309,16 @@ typedef struct cpu_info
 
 typedef struct cpu
 {
-    uint8_t state, *opcode;
+    uint16_t state;
     global_uint64_t pc;
-    uint8_t regs[cpu_reg_end];
+    global_uint64_t (*read_reg)(struct cpu *cpu, uint16_t reg);
+    void (*write_reg)(struct cpu *cpu, uint16_t reg, global_uint64_t value);
+    void (*reset)(struct cpu *cpu);
+    uint8_t *regs;
     cpu_info_t cpu_info[8];
-    uint8_t cpu_info_index;
+    uint8_t info_index;
 } cpu_t;
 
-global_uint64_t cpu_big_endian_read(void *ptr, uint8_t bits);
-void cpu_big_endian_write(void *ptr, uint8_t bits, global_uint64_t value);
-global_uint64_t cpu_little_endian_read(void *ptr, uint8_t bits);
-void cpu_little_endian_write(void *ptr, uint8_t bits, global_uint64_t value);
 global_uint64_t cpu_read_reg(uint8_t reg);
 void cpu_write_reg(uint8_t reg, global_uint64_t value);
 void cpu_reset();

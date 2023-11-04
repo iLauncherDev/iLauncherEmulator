@@ -1,7 +1,6 @@
 #include "cpu.h"
 
-extern global_uint64_t window_framebuffer[];
-
+cpu_t cpu;
 cpu_info_t cpu_info[8];
 uint8_t cpu_info_index = 0;
 
@@ -2005,30 +2004,6 @@ void cpu_emulate_i8086(uint8_t debug, uint8_t override)
             if (debug)
                 cpu_print_instruction("mov", "word", 2, value1, value2);
         }
-        cpu_add_reg(cpu_reg_ip, 1);
-        break;
-    case 0xcd:
-        value2 = cpu_imm8(cpu_reg_ip, 0);
-        uint16_t ax, bx, cx, dx;
-        switch (value2)
-        {
-        case 0x20:
-            ax = cpu_read_reg(cpu_reg_ax),
-            bx = cpu_read_reg(cpu_reg_bx),
-            cx = cpu_read_reg(cpu_reg_cx),
-            dx = cpu_read_reg(cpu_reg_dx);
-            *(uint32_t *)&vm_memory[window_framebuffer[0] + (cx * window_framebuffer[1] + dx) * sizeof(uint32_t)] = (bx << 16) | ax;
-            break;
-        case 0x21:
-            memory_write(0xfff0, window_framebuffer[1], 2, 0);
-            memory_write(0xfff2, window_framebuffer[2], 2, 0);
-            memory_write(0xfff4, window_framebuffer[3], 2, 0);
-            break;
-        default:
-            break;
-        }
-        if (debug)
-            printf("int byte 0x%llx\n", (unsigned long long)value2);
         cpu_add_reg(cpu_reg_ip, 1);
         break;
     case 0xe4:
