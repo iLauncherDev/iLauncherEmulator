@@ -5,325 +5,42 @@
 #include "global.h"
 #include "memory.h"
 #include "io.h"
-#include "gdt.h"
 
-typedef enum cpu_regs
+typedef enum cpu_defines
 {
-    cpu_reg_gs = 0,
-    cpu_reg_fs = cpu_reg_gs + 2,
-    cpu_reg_es = cpu_reg_fs + 2,
-    cpu_reg_ds = cpu_reg_es + 2,
-    cpu_reg_cs = cpu_reg_ds + 2,
-    cpu_reg_ss = cpu_reg_cs + 2,
-
-    cpu_reg_al = cpu_reg_ss + 2,
-    cpu_reg_ah = cpu_reg_al + 1,
-    cpu_reg_bl = cpu_reg_ah + 1,
-    cpu_reg_bh = cpu_reg_bl + 1,
-    cpu_reg_cl = cpu_reg_bh + 1,
-    cpu_reg_ch = cpu_reg_cl + 1,
-    cpu_reg_dl = cpu_reg_ch + 1,
-    cpu_reg_dh = cpu_reg_dl + 1,
-    cpu_reg_bpl = cpu_reg_dh + 1,
-    cpu_reg_sil = cpu_reg_bpl + 2,
-    cpu_reg_dil = cpu_reg_sil + 2,
-    cpu_reg_spl = cpu_reg_dil + 2,
-    cpu_reg_ipl = cpu_reg_spl + 2,
-    cpu_reg_flagsl = cpu_reg_ipl + 2,
-    cpu_reg_r8b = cpu_reg_flagsl + 2,
-    cpu_reg_r9b = cpu_reg_r8b + 2,
-    cpu_reg_r10b = cpu_reg_r9b + 2,
-    cpu_reg_r11b = cpu_reg_r10b + 2,
-    cpu_reg_r12b = cpu_reg_r11b + 2,
-    cpu_reg_r13b = cpu_reg_r12b + 2,
-    cpu_reg_r14b = cpu_reg_r13b + 2,
-    cpu_reg_r15b = cpu_reg_r14b + 2,
-
-    cpu_reg_ax = cpu_reg_r15b + 2,
-    cpu_reg_bx = cpu_reg_ax + 2,
-    cpu_reg_cx = cpu_reg_bx + 2,
-    cpu_reg_dx = cpu_reg_cx + 2,
-    cpu_reg_bp = cpu_reg_dx + 2,
-    cpu_reg_si = cpu_reg_bp + 2,
-    cpu_reg_di = cpu_reg_si + 2,
-    cpu_reg_sp = cpu_reg_di + 2,
-    cpu_reg_ip = cpu_reg_sp + 2,
-    cpu_reg_flags = cpu_reg_ip + 2,
-    cpu_reg_r8w = cpu_reg_flags + 2,
-    cpu_reg_r9w = cpu_reg_r8w + 2,
-    cpu_reg_r10w = cpu_reg_r9w + 2,
-    cpu_reg_r11w = cpu_reg_r10w + 2,
-    cpu_reg_r12w = cpu_reg_r11w + 2,
-    cpu_reg_r13w = cpu_reg_r12w + 2,
-    cpu_reg_r14w = cpu_reg_r13w + 2,
-    cpu_reg_r15w = cpu_reg_r14w + 2,
-
-    cpu_reg_eax = cpu_reg_r15w + 2,
-    cpu_reg_ebx = cpu_reg_eax + 4,
-    cpu_reg_ecx = cpu_reg_ebx + 4,
-    cpu_reg_edx = cpu_reg_ecx + 4,
-    cpu_reg_ebp = cpu_reg_edx + 4,
-    cpu_reg_esi = cpu_reg_ebp + 4,
-    cpu_reg_edi = cpu_reg_esi + 4,
-    cpu_reg_esp = cpu_reg_edi + 4,
-    cpu_reg_eip = cpu_reg_esp + 4,
-    cpu_reg_eflags = cpu_reg_eip + 4,
-    cpu_reg_r8d = cpu_reg_eflags + 4,
-    cpu_reg_r9d = cpu_reg_r8d + 4,
-    cpu_reg_r10d = cpu_reg_r9d + 4,
-    cpu_reg_r11d = cpu_reg_r10d + 4,
-    cpu_reg_r12d = cpu_reg_r11d + 4,
-    cpu_reg_r13d = cpu_reg_r12d + 4,
-    cpu_reg_r14d = cpu_reg_r13d + 4,
-    cpu_reg_r15d = cpu_reg_r14d + 4,
-
-    cpu_reg_gdtr = cpu_reg_r15d + 4,
-    cpu_reg_gdtr_next = cpu_reg_gdtr + 8,
-
-    cpu_reg_end = cpu_reg_gdtr_next + 8,
+    cpu_flag_debug = 1 << 0,
+    cpu_flag_crash = 1 << 1,
 
     cpu_type_reg,
     cpu_type_int,
     cpu_type_memory_reg,
     cpu_type_memory,
-
-    cpu_flags_CF = 1 << 0,
-    cpu_flags_PF = 1 << 2,
-    cpu_flags_AF = 1 << 4,
-    cpu_flags_ZF = 1 << 6,
-    cpu_flags_SF = 1 << 7,
-    cpu_flags_TF = 1 << 8,
-    cpu_flags_IF = 1 << 9,
-    cpu_flags_DF = 1 << 10,
-    cpu_flags_OF = 1 << 11,
-
-    cpu_override_dword_operand = 1 << 0,
-    cpu_override_dword_address = 1 << 1,
-    cpu_override_gs = 1 << 2,
-    cpu_override_fs = 1 << 3,
-    cpu_override_es = 1 << 4,
-    cpu_override_ds = 1 << 5,
-    cpu_override_cs = 1 << 6,
-    cpu_override_ss = 1 << 7,
-} cpu_regs_t;
-
-static char *cpu_sizes_string[] = {
-    "byte",
-    "byte",
-    "word",
-    "word",
-    "dword",
-    "dword",
-    "dword",
-    "dword",
-    "qword",
-};
-
-static char *cpu_regs_string[] = {
-    "gs",
-    (char *)NULL,
-    "fs",
-    (char *)NULL,
-    "es",
-    (char *)NULL,
-    "ds",
-    (char *)NULL,
-    "cs",
-    (char *)NULL,
-    "ss",
-    (char *)NULL,
-
-    "al",
-    "ah",
-    "bl",
-    "bh",
-    "cl",
-    "ch",
-    "dl",
-    "dh",
-    "bpl",
-    (char *)NULL,
-    "sil",
-    (char *)NULL,
-    "dil",
-    (char *)NULL,
-    "spl",
-    (char *)NULL,
-    "ipl",
-    (char *)NULL,
-    "flagsl",
-    (char *)NULL,
-    "r8b",
-    (char *)NULL,
-    "r9b",
-    (char *)NULL,
-    "r10b",
-    (char *)NULL,
-    "r11b",
-    (char *)NULL,
-    "r12b",
-    (char *)NULL,
-    "r13b",
-    (char *)NULL,
-    "r14b",
-    (char *)NULL,
-    "r15b",
-    (char *)NULL,
-
-    "ax",
-    (char *)NULL,
-    "bx",
-    (char *)NULL,
-    "cx",
-    (char *)NULL,
-    "dx",
-    (char *)NULL,
-    "bp",
-    (char *)NULL,
-    "si",
-    (char *)NULL,
-    "di",
-    (char *)NULL,
-    "sp",
-    (char *)NULL,
-    "ip",
-    (char *)NULL,
-    "flags",
-    (char *)NULL,
-    "r8w",
-    (char *)NULL,
-    "r9w",
-    (char *)NULL,
-    "r10w",
-    (char *)NULL,
-    "r11w",
-    (char *)NULL,
-    "r12w",
-    (char *)NULL,
-    "r13w",
-    (char *)NULL,
-    "r14w",
-    (char *)NULL,
-    "r15w",
-    (char *)NULL,
-
-    "eax",
-    (char *)NULL,
-    (char *)NULL,
-    (char *)NULL,
-    "ebx",
-    (char *)NULL,
-    (char *)NULL,
-    (char *)NULL,
-    "ecx",
-    (char *)NULL,
-    (char *)NULL,
-    (char *)NULL,
-    "edx",
-    (char *)NULL,
-    (char *)NULL,
-    (char *)NULL,
-    "ebp",
-    (char *)NULL,
-    (char *)NULL,
-    (char *)NULL,
-    "esi",
-    (char *)NULL,
-    (char *)NULL,
-    (char *)NULL,
-    "edi",
-    (char *)NULL,
-    (char *)NULL,
-    (char *)NULL,
-    "esp",
-    (char *)NULL,
-    (char *)NULL,
-    (char *)NULL,
-    "eip",
-    (char *)NULL,
-    (char *)NULL,
-    (char *)NULL,
-    "eflags",
-    (char *)NULL,
-    (char *)NULL,
-    (char *)NULL,
-    "r8d",
-    (char *)NULL,
-    (char *)NULL,
-    (char *)NULL,
-    "r9d",
-    (char *)NULL,
-    (char *)NULL,
-    (char *)NULL,
-    "r10d",
-    (char *)NULL,
-    (char *)NULL,
-    (char *)NULL,
-    "r11d",
-    (char *)NULL,
-    (char *)NULL,
-    (char *)NULL,
-    "r12d",
-    (char *)NULL,
-    (char *)NULL,
-    (char *)NULL,
-    "r13d",
-    (char *)NULL,
-    (char *)NULL,
-    (char *)NULL,
-    "r14d",
-    (char *)NULL,
-    (char *)NULL,
-    (char *)NULL,
-    "r15d",
-    (char *)NULL,
-    (char *)NULL,
-    (char *)NULL,
-
-    "gdtr",
-    (char *)NULL,
-    (char *)NULL,
-    (char *)NULL,
-    (char *)NULL,
-    (char *)NULL,
-    (char *)NULL,
-    (char *)NULL,
-
-    (char *)NULL,
-    (char *)NULL,
-    (char *)NULL,
-    (char *)NULL,
-    (char *)NULL,
-    (char *)NULL,
-    (char *)NULL,
-    (char *)NULL,
-};
+} cpu_defines_t;
 
 typedef struct cpu_info
 {
-    uint8_t segmentation;
-    uint8_t sign, size;
+    uint16_t flags;
+    uint8_t size;
     uint8_t reg_type;
     uint8_t reg_type_buffer[8];
 } cpu_info_t;
 
 typedef struct cpu
 {
-    uint16_t state;
+    uint8_t cache[256];
+    uint16_t flags, override;
     global_uint64_t pc;
     global_uint64_t (*read_reg)(struct cpu *cpu, uint16_t reg);
     void (*write_reg)(struct cpu *cpu, uint16_t reg, global_uint64_t value);
     void (*reset)(struct cpu *cpu);
+    void (*emulate)(struct cpu *cpu);
     uint8_t *regs;
     cpu_info_t cpu_info[8];
     uint8_t info_index;
 } cpu_t;
 
-global_uint64_t cpu_read_reg(uint8_t reg);
-void cpu_write_reg(uint8_t reg, global_uint64_t value);
-void cpu_reset();
-void cpu_setup_precalcs();
-void cpu_dump_state();
-void cpu_emulate_i8086(uint8_t debug, uint8_t override);
-
+global_uint64_t cpu_read_reg(cpu_t *cpu, uint8_t reg);
+void cpu_write_reg(cpu_t *cpu, uint8_t reg, global_uint64_t value);
+void cpu_reset(cpu_t *cpu);
+void cpu_emulate(cpu_t *cpu);
 #endif

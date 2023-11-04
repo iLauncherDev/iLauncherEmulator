@@ -1,6 +1,7 @@
 #include "emulator/global.h"
 #include "emulator/vga.h"
 #include "emulator/cpu.h"
+#include "emulator/cpu_x86.h"
 #include "emulator/io.h"
 
 SDL_Window *window;
@@ -183,7 +184,6 @@ int32_t main(int32_t argc, char **argv)
         printf("\n");
         return 0;
     }
-    gdt_setup();
     vga_install();
     io_write(0xfff0, window_framebuffer[0], 4);
     io_write(0xfff4, window_framebuffer[1], 2);
@@ -198,12 +198,15 @@ int32_t main(int32_t argc, char **argv)
     pthread_create(&window_update_thread, NULL, window_update, NULL);
     while (!window_framebuffer[0])
         sleep(1);
+    cpu_t *i8086 = x86_setup();
+    if (debug_code)
+        i8086->flags |= cpu_flag_debug;
     while (true)
     {
         if (io_check_flag(0x3f8, IO_WRITE_FLAG, 1))
             printf("%c", (uint8_t)io_read(0x3f8, 1)), io_clear_flag(0x3f8, IO_READ_FLAG | IO_WRITE_FLAG, 1);
         vga_service();
-        cpu_emulate_i8086(debug_code, 0);
+        cpu_emulate(i8086);
         if (code_delay)
             usleep(code_delay);
     }
