@@ -1,10 +1,7 @@
-00000000  BC0030            mov sp,0x3000
-00000003  E86A01            call 0x170
-00000006  EBFE              jmp short 0x6
-00000008  6690              xchg eax,eax
-0000000A  6690              xchg eax,eax
-0000000C  6690              xchg eax,eax
-0000000E  6690              xchg eax,eax
+00000000  66BC00300000      mov esp,0x3000
+00000006  E80600            call 0xf
+00000009  66E9F7FFFFFF      jmp dword 0x6
+0000000F  C3                ret
 00000010  6655              push ebp
 00000012  6689E5            mov ebp,esp
 00000015  678A450C          mov al,[ebp+0xc]
