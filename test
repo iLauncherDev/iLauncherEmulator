@@ -1,7 +1,7 @@
 00000000  BC0030            mov sp,0x3000
-00000003  89E5              mov bp,sp
-00000005  E86801            call 0x170
-00000008  EBFE              jmp short 0x8
+00000003  E86A01            call 0x170
+00000006  EBFE              jmp short 0x6
+00000008  6690              xchg eax,eax
 0000000A  6690              xchg eax,eax
 0000000C  6690              xchg eax,eax
 0000000E  6690              xchg eax,eax

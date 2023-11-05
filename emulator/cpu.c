@@ -1,6 +1,6 @@
 #include "cpu.h"
 
-global_uint64_t cpu_read_reg(cpu_t *cpu, uint8_t reg)
+global_uint64_t cpu_read_reg(cpu_t *cpu, uint16_t reg)
 {
     if (!cpu)
         goto end;
@@ -10,7 +10,7 @@ end:
     return 0;
 }
 
-void cpu_write_reg(cpu_t *cpu, uint8_t reg, global_uint64_t value)
+void cpu_write_reg(cpu_t *cpu, uint16_t reg, global_uint64_t value)
 {
     if (!cpu)
         goto end;
@@ -37,7 +37,7 @@ void cpu_emulate(cpu_t *cpu)
     if (cpu->emulate)
     {
         if (cpu->emulate(cpu) && cpu->flags & cpu_flag_debug)
-            printf("Unknown opcode: 0x%llx\n", memory_read(cpu->pc++, 1, 0));
+            printf("Unknown opcode: 0x%llx\n", memory_read(cpu->pc - 1, 1, 0));
     }
     cpu->info_index = 0;
 end:
