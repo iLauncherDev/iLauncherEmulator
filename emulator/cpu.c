@@ -36,7 +36,7 @@ void cpu_emulate(cpu_t *cpu)
         goto end;
     if (cpu->emulate)
     {
-        if (cpu->emulate(cpu) && cpu->flags & cpu_flag_debug)
+        if (cpu->emulate(cpu))
             printf("Unknown opcode: 0x%llx\n", memory_read(cpu->pc - 1, 1, 0));
     }
     cpu->info_index = 0;

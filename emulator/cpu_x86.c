@@ -65,13 +65,23 @@ void x86_write_reg(cpu_t *cpu, uint16_t reg, global_uint64_t value)
 
 bool x86_check_override(cpu_t *cpu, uint16_t override)
 {
-    uint16_t value = (cpu->cache[x86_cache_overrideh] << 8) | cpu->cache[x86_cache_overridel];
-    bool is_defined = value & override ? true : false;
-    if (is_defined)
-        value &= ~override;
-    cpu->cache[x86_cache_overridel] = value & 0xff;
-    cpu->cache[x86_cache_overrideh] = (value >> 8) & 0xff;
-    return is_defined;
+    return ((cpu->cache[x86_cache_overrideh] << 8) |
+            cpu->cache[x86_cache_overridel]) &
+                   override
+               ? true
+               : false;
+}
+
+void x86_clear_override(cpu_t *cpu, uint16_t override)
+{
+    cpu->cache[x86_cache_overrideh] &= ~((override >> 8) & 0xff);
+    cpu->cache[x86_cache_overridel] &= ~(override & 0xff);
+}
+
+void x86_set_override(cpu_t *cpu, uint16_t override)
+{
+    cpu->cache[x86_cache_overrideh] |= (override >> 8) & 0xff;
+    cpu->cache[x86_cache_overridel] |= override & 0xff;
 }
 
 void x86_push_reg(cpu_t *cpu, uint16_t stack_reg, uint16_t reg, uint8_t size)
@@ -143,28 +153,6 @@ void x86_rm_write(cpu_t *cpu, global_uint64_t value, uint8_t size)
     }
 }
 
-void x86_rm_printf(cpu_t *cpu, uint8_t size)
-{
-    switch (cpu->cache[x86_cache_mod])
-    {
-    case 0x00 ... 0x02:
-        if (cpu->cache[x86_cache_rm] == 0x06 && !cpu->cache[x86_cache_mod])
-            printf("[0x%llx]", *(global_uint64_t *)&cpu->cache[x86_cache_address]);
-        else
-            printf("[%s %c 0x%llx]",
-                   x86_rm16_strings[cpu->cache[x86_cache_rm]],
-                   *(global_int64_t *)&cpu->cache[x86_cache_address] > -1 ? '+'
-                                                                          : '-',
-                   *(global_int64_t *)&cpu->cache[x86_cache_address] > -1
-                       ? *(global_uint64_t *)&cpu->cache[x86_cache_address]
-                       : -(*(global_uint64_t *)&cpu->cache[x86_cache_address]));
-        break;
-    case 0x03:
-        printf("%s", x86_regs_strings[*(global_uint64_t *)&cpu->cache[x86_cache_address]]);
-        break;
-    }
-}
-
 void x86_decode(cpu_t *cpu, uint16_t reg, uint8_t size)
 {
     if (x86_check_override(cpu, x86_override_dword_address))
@@ -221,6 +209,8 @@ void x86_decode(cpu_t *cpu, uint16_t reg, uint8_t size)
         cpu_write_reg(cpu, reg, cpu->pc - x86_get_address(cpu_read_reg(cpu, x86_reg_cs), 0));
         break;
     case 0x03:
+        if (x86_check_override(cpu, x86_override_dword_operand))
+            size = 4;
         switch (size)
         {
         case 0x00 ... 0x01:
@@ -351,6 +341,18 @@ global_uint64_t x86_simm(cpu_t *cpu, uint16_t reg, uint8_t size)
     return 0x00;
 }
 
+void x86_cmp(cpu_t *cpu, global_uint64_t value1, global_uint64_t value2, uint16_t flags_reg)
+{
+    if (value1 == value2)
+        cpu_write_reg(cpu, flags_reg, cpu_read_reg(cpu, flags_reg) | x86_flags_ZF);
+    else
+        cpu_write_reg(cpu, flags_reg, cpu_read_reg(cpu, flags_reg) & ~x86_flags_ZF);
+    if (value1 < value2)
+        cpu_write_reg(cpu, flags_reg, cpu_read_reg(cpu, flags_reg) | x86_flags_CF);
+    else
+        cpu_write_reg(cpu, flags_reg, cpu_read_reg(cpu, flags_reg) & ~x86_flags_CF);
+}
+
 void x86_reset(cpu_t *cpu)
 {
     memset(cpu->regs, 0, x86_reg_end);
@@ -381,25 +383,26 @@ void x86_opcode_88_89(cpu_t *cpu, uint16_t reg)
         cache_reg = x86_reg_al + cpu->cache[x86_cache_reg];
         x86_rm_write(cpu, cpu_read_reg(cpu, cache_reg), 1);
     }
-    if (cpu->flags & cpu_flag_debug)
-        printf("mov "), x86_rm_printf(cpu, 2), printf(", %s", x86_regs_strings[cache_reg]);
+    x86_clear_override(cpu, x86_override_dword_address | x86_override_dword_operand);
 }
 
 void x86_opcode_80_83(cpu_t *cpu, uint16_t reg)
 {
-    uint8_t b8083[4] = {1, 2, 2, 2};
-    uint8_t size = b8083[cpu->cache[x86_cache_opcode] & 0x03];
-    x86_decode(cpu, reg, size);
+    uint8_t type = cpu->cache[x86_cache_opcode] & 0x03;
+    uint8_t b8083[2][4] = {
+        {1, 2, 2, 2},
+        {1, 2, 1, 1},
+    };
+    x86_decode(cpu, reg, b8083[0][type]);
     global_uint64_t value;
+    value = x86_simm(cpu, reg, b8083[1][type]);
     switch (cpu->cache[x86_cache_reg])
     {
     case 0x00:
-        value = x86_simm(cpu, reg, size);
-        x86_rm_write(cpu, x86_rm_read(cpu, size) + (global_int64_t)value, size);
-        if (cpu->flags & cpu_flag_debug)
-            printf("add "), x86_rm_printf(cpu, size), printf(", 0x%llx", value);
+        x86_rm_write(cpu, x86_rm_read(cpu, b8083[0][type]) + (global_int64_t)value, b8083[0][type]);
         break;
     }
+    x86_clear_override(cpu, x86_override_dword_address | x86_override_dword_operand);
 }
 
 void x86_opcode_b0_bf(cpu_t *cpu, uint16_t reg, uint8_t size)
@@ -411,26 +414,26 @@ void x86_opcode_b0_bf(cpu_t *cpu, uint16_t reg, uint8_t size)
     {
     case 0x01:
         cpu_write_reg(cpu, x86_reg_al + cache_reg, x86_imm(cpu, reg, 1));
-        if (cpu->flags & cpu_flag_debug)
-            printf("mov byte %s, 0x%llx",
-                   x86_regs_strings[x86_reg_al + cache_reg],
-                   cpu_read_reg(cpu, x86_reg_al + cache_reg));
         break;
     case 0x02:
         cpu_write_reg(cpu, x86_reg_ax + (cache_reg << 1), x86_imm(cpu, reg, 2));
-        if (cpu->flags & cpu_flag_debug)
-            printf("mov word %s, 0x%llx",
-                   x86_regs_strings[x86_reg_ax + (cache_reg << 1)],
-                   cpu_read_reg(cpu, x86_reg_ax + (cache_reg << 1)));
         break;
     case 0x04:
         cpu_write_reg(cpu, x86_reg_eax + (cache_reg << 2), x86_imm(cpu, reg, 4));
-        if (cpu->flags & cpu_flag_debug)
-            printf("mov dword %s, 0x%llx",
-                   x86_regs_strings[x86_reg_eax + (cache_reg << 2)],
-                   cpu_read_reg(cpu, x86_reg_eax + (cache_reg << 2)));
         break;
     }
+    x86_clear_override(cpu, x86_override_dword_address | x86_override_dword_operand);
+}
+
+void x86_opcode_50_57(cpu_t *cpu, uint16_t reg)
+{
+    uint8_t cache_reg = cpu->cache[x86_cache_opcode] & 0x07, stack = 0;
+    if (x86_check_override(cpu, x86_override_dword_operand))
+        cache_reg = (cache_reg << 2) + x86_reg_eax, stack = x86_reg_esp, cpu->cache[x86_cache_address] = 4;
+    else
+        cache_reg = (cache_reg << 1) + x86_reg_ax, stack = x86_reg_sp, cpu->cache[x86_cache_address] = 2;
+    x86_push_reg(cpu, stack, cache_reg, cpu->cache[x86_cache_address]);
+    x86_clear_override(cpu, x86_override_dword_address | x86_override_dword_operand);
 }
 
 uint8_t x86_emulate(cpu_t *cpu)
@@ -438,8 +441,11 @@ uint8_t x86_emulate(cpu_t *cpu)
     cpu->cache[x86_cache_opcode] = memory_read(cpu->pc++, 1, 0);
     switch (cpu->cache[x86_cache_opcode])
     {
+    case 0x50 ... 0x57:
+        x86_opcode_50_57(cpu, x86_reg_ip);
+        break;
     case 0x66 ... 0x67:
-        cpu->cache[x86_cache_overridel] |= 1 << (cpu->cache[x86_cache_opcode] & 0x01);
+        x86_set_override(cpu, 1 << (cpu->cache[x86_cache_opcode] & 0x01));
         return x86_emulate(cpu);
     case 0x80 ... 0x83:
         x86_opcode_80_83(cpu, x86_reg_ip);
@@ -463,10 +469,7 @@ uint8_t x86_emulate(cpu_t *cpu)
         x86_push_reg(cpu, x86_reg_sp, x86_reg_ip, cpu->cache[x86_cache_address_old]);
         x86_jump_near(cpu, x86_reg_ip,
                       *(global_uint64_t *)&cpu->cache[x86_cache_address], cpu->cache[x86_cache_address_old]);
-        if (cpu->flags & cpu_flag_debug)
-            printf("call %s 0x%llx",
-                   x86_sizes_strings[cpu->cache[x86_cache_address_old]],
-                   *(global_uint64_t *)&cpu->cache[x86_cache_address]);
+        x86_clear_override(cpu, x86_override_dword_address | x86_override_dword_operand);
         break;
     case 0xe9:
         if (x86_check_override(cpu, x86_override_dword_operand))
@@ -477,17 +480,13 @@ uint8_t x86_emulate(cpu_t *cpu)
                                                                      cpu->cache[x86_cache_address_old]);
         x86_jump_near(cpu, x86_reg_ip,
                       *(global_uint64_t *)&cpu->cache[x86_cache_address], cpu->cache[x86_cache_address_old]);
-        if (cpu->flags & cpu_flag_debug)
-            printf("jmp %s 0x%llx",
-                   x86_sizes_strings[cpu->cache[x86_cache_address_old]],
-                   *(global_uint64_t *)&cpu->cache[x86_cache_address]);
+
+        x86_clear_override(cpu, x86_override_dword_address | x86_override_dword_operand);
         break;
     case 0xeb:
         *(global_uint64_t *)&cpu->cache[x86_cache_address] = x86_rel(cpu, x86_reg_ip, 1);
         x86_jump_near(cpu, x86_reg_ip, *(global_uint64_t *)&cpu->cache[x86_cache_address], 1);
-        if (cpu->flags & cpu_flag_debug)
-            printf("jmp short 0x%llx",
-                   *(global_uint64_t *)&cpu->cache[x86_cache_address]);
+        x86_clear_override(cpu, x86_override_dword_address | x86_override_dword_operand);
         break;
     case 0xc3:
         if (x86_check_override(cpu, x86_override_dword_operand))
@@ -497,22 +496,11 @@ uint8_t x86_emulate(cpu_t *cpu)
         x86_jump_near(cpu, x86_reg_ip,
                       x86_pop(cpu, x86_reg_sp, cpu->cache[x86_cache_address_old]),
                       cpu->cache[x86_cache_address_old]);
-        if (cpu->flags & cpu_flag_debug)
-            switch (cpu->cache[x86_cache_address_old])
-            {
-            case 0x02:
-                printf("ret");
-                break;
-            case 0x04:
-                printf("retd");
-                break;
-            }
+        x86_clear_override(cpu, x86_override_dword_address | x86_override_dword_operand);
         break;
     default:
         return 1;
     }
-    if (cpu->flags & cpu_flag_debug)
-        printf("\n");
     return 0;
 }
 

@@ -5,9 +5,7 @@ extern main
 
 start:
     mov esp, 0x3000
+    call dword main
 .loop:
-    call word test
+    hlt
     jmp dword .loop
-
-test:
-    ret

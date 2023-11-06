@@ -199,14 +199,40 @@ int32_t main(int32_t argc, char **argv)
     while (!window_framebuffer[0])
         sleep(1);
     cpu_t *i8086 = x86_setup();
-    if (debug_code)
-        i8086->flags |= cpu_flag_debug;
+    uint16_t regs[] = {
+        x86_reg_eax,
+        x86_reg_ecx,
+        x86_reg_edx,
+        x86_reg_ebx,
+        x86_reg_esp,
+        x86_reg_ebp,
+        x86_reg_esi,
+        x86_reg_edi,
+        x86_reg_eip,
+        x86_reg_eflags,
+        x86_reg_r8d,
+        x86_reg_r9d,
+        x86_reg_r10d,
+        x86_reg_r11d,
+        x86_reg_r12d,
+        x86_reg_r13d,
+        x86_reg_r14d,
+        x86_reg_r15d,
+        0,
+    };
     while (true)
     {
         if (io_check_flag(0x3f8, IO_WRITE_FLAG, 1))
             printf("%c", (uint8_t)io_read(0x3f8, 1)), io_clear_flag(0x3f8, IO_READ_FLAG | IO_WRITE_FLAG, 1);
         vga_service();
         cpu_emulate(i8086);
+        if (debug_code)
+        {
+            printf("Regs:\n");
+            for (uint8_t i = 0; regs[i]; i++)
+                printf("%s = 0x%llx ", x86_regs_strings[regs[i]], cpu_read_reg(i8086, regs[i]));
+            printf("\n");
+        }
         if (code_delay)
             usleep(code_delay);
     }

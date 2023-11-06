@@ -288,16 +288,5 @@ static const char *x86_regs_strings[x86_reg_end] = {
     (char *)NULL,
 };
 
-static const char *x86_rm16_strings[8] = {
-    "bx + si",
-    "bx + di",
-    "bp + si",
-    "bp + di",
-    "si",
-    "di",
-    "bp",
-    "bx",
-};
-
 struct cpu *x86_setup();
 #endif
