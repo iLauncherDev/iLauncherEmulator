@@ -4,8 +4,7 @@ section .text
 extern main
 
 start:
-    mov esp, 0x3000
-    call dword main
+    mov sp, 0x3000
+    call main
 .loop:
-    hlt
-    jmp dword .loop
+    jmp .loop
