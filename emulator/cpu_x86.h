@@ -105,6 +105,48 @@ typedef enum x86_regs
     x86_override_ss = 1 << 7,
 } x86_regs_t;
 
+static const uint8_t x86_regs32[] = {
+    x86_reg_eax,
+    x86_reg_ecx,
+    x86_reg_edx,
+    x86_reg_ebx,
+    x86_reg_esp,
+    x86_reg_ebp,
+    x86_reg_esi,
+    x86_reg_edi,
+};
+
+static const uint8_t x86_regs16[] = {
+    x86_reg_ax,
+    x86_reg_cx,
+    x86_reg_dx,
+    x86_reg_bx,
+    x86_reg_sp,
+    x86_reg_bp,
+    x86_reg_si,
+    x86_reg_di,
+};
+
+static const uint8_t x86_regs8[] = {
+    x86_reg_al,
+    x86_reg_cl,
+    x86_reg_dl,
+    x86_reg_bl,
+    x86_reg_ah,
+    x86_reg_ch,
+    x86_reg_dh,
+    x86_reg_bh,
+};
+
+static const uint8_t x86_sregs[] = {
+    x86_reg_es,
+    x86_reg_cs,
+    x86_reg_ss,
+    x86_reg_ds,
+    x86_reg_fs,
+    x86_reg_gs,
+};
+
 static const char *x86_sizes_strings[8 + 1] = {
     "byte",
     "byte",
