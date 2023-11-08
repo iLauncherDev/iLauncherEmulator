@@ -11,8 +11,9 @@ void print(char *string)
 void main()
 {
     char string_test[] = "iLauncherBios\n";
+    memcpy(string_test, (void *)0xf000, sizeof(string_test));
     while (true)
     {
-        memset((void *)inl(0xfff0), 0xff, inw(0xfff4) * inw(0xfff6) * inw(0xfff8));
+        print((void *)0xf000);
     }
 }
