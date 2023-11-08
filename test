@@ -122,20 +122,20 @@
 000001A3  678945FD          mov [ebp-0x3],ax
 000001A7  67A0A9020E00      mov al,[dword 0xe02a9]
 000001AD  678845FF          mov [ebp-0x1],al
-000001B1  67668D4DF1        lea ecx,[ebp-0xf]
-000001B6  66B800F00000      mov eax,0xf000
+000001B1  67668D45F1        lea eax,[ebp-0xf]
+000001B6  66B900F00000      mov ecx,0xf000
 000001BC  6766890C24        mov [dword esp],ecx
 000001C1  676689442404      mov [dword esp+0x4],eax
 000001C7  6766C74424080F00  mov dword [dword esp+0x8],0xf
          -0000
 000001D1  66E819000000      call dword 0x1f0
-000001D7  66B800F00000      mov eax,0xf000
-000001DD  6766890424        mov [dword esp],eax
-000001E2  66E818FFFFFF      call dword 0x100
-000001E8  E9ECFF            jmp 0x1d7
-000001EB  6690              xchg eax,eax
-000001ED  6690              xchg eax,eax
-000001EF  90                nop
+000001D7  67668D45F1        lea eax,[ebp-0xf]
+000001DC  6766890424        mov [dword esp],eax
+000001E1  66E819FFFFFF      call dword 0x100
+000001E7  E9EDFF            jmp 0x1d7
+000001EA  6690              xchg eax,eax
+000001EC  6690              xchg eax,eax
+000001EE  6690              xchg eax,eax
 000001F0  6655              push ebp
 000001F2  6689E5            mov ebp,esp
 000001F5  67668B4510        mov eax,[ebp+0x10]

@@ -188,52 +188,48 @@ static inline void x86_decode_rm(cpu_t *cpu, uint16_t reg, uint8_t size)
         case 0x00:
             *(global_uint64_t *)&cpu->cache[x86_cache_address0] =
                 cpu_read_reg(cpu, x86_reg_bx) +
-                cpu_read_reg(cpu, x86_reg_si) +
-                *(global_int64_t *)&cpu->cache[x86_cache_address0];
+                cpu_read_reg(cpu, x86_reg_si);
             break;
         case 0x01:
             *(global_uint64_t *)&cpu->cache[x86_cache_address0] =
                 cpu_read_reg(cpu, x86_reg_bx) +
-                cpu_read_reg(cpu, x86_reg_di) +
-                *(global_int64_t *)&cpu->cache[x86_cache_address0];
+                cpu_read_reg(cpu, x86_reg_di);
             break;
         case 0x02:
             *(global_uint64_t *)&cpu->cache[x86_cache_address0] =
                 cpu_read_reg(cpu, x86_reg_bp) +
-                cpu_read_reg(cpu, x86_reg_si) +
-                *(global_int64_t *)&cpu->cache[x86_cache_address0];
+                cpu_read_reg(cpu, x86_reg_si);
             break;
         case 0x03:
             *(global_uint64_t *)&cpu->cache[x86_cache_address0] =
                 cpu_read_reg(cpu, x86_reg_bp) +
-                cpu_read_reg(cpu, x86_reg_di) +
-                *(global_int64_t *)&cpu->cache[x86_cache_address0];
+                cpu_read_reg(cpu, x86_reg_di);
             break;
         case 0x04:
             *(global_uint64_t *)&cpu->cache[x86_cache_address0] =
-                cpu_read_reg(cpu, x86_reg_si) +
-                *(global_int64_t *)&cpu->cache[x86_cache_address0];
+                cpu_read_reg(cpu, x86_reg_si);
             break;
         case 0x05:
             *(global_uint64_t *)&cpu->cache[x86_cache_address0] =
-                cpu_read_reg(cpu, x86_reg_di) +
-                *(global_int64_t *)&cpu->cache[x86_cache_address0];
+                cpu_read_reg(cpu, x86_reg_di);
             break;
         case 0x06:
             *(global_uint64_t *)&cpu->cache[x86_cache_address0] =
-                cpu_read_reg(cpu, x86_reg_bp) +
-                *(global_int64_t *)&cpu->cache[x86_cache_address0];
+                cpu_read_reg(cpu, x86_reg_bp);
             break;
         case 0x07:
             *(global_uint64_t *)&cpu->cache[x86_cache_address0] =
-                cpu_read_reg(cpu, x86_reg_bx) +
-                *(global_int64_t *)&cpu->cache[x86_cache_address0];
+                cpu_read_reg(cpu, x86_reg_bx);
             break;
         }
         break;
     case 0x03 ... 0x04:
         switch (cpu->cache[x86_cache_rm])
         {
+        case 0x00:
+            *(global_uint64_t *)&cpu->cache[x86_cache_address0] =
+                cpu_read_reg(cpu, x86_reg_eax);
+            break;
         case 0x04:
             cache = memory_read(cpu->pc++, 1, 0);
             switch (cache)
@@ -241,25 +237,21 @@ static inline void x86_decode_rm(cpu_t *cpu, uint16_t reg, uint8_t size)
             case 0x08:
                 *(global_uint64_t *)&cpu->cache[x86_cache_address0] =
                     cpu_read_reg(cpu, x86_reg_eax) +
-                    cpu_read_reg(cpu, x86_reg_ecx) +
-                    *(global_int64_t *)&cpu->cache[x86_cache_address0];
+                    cpu_read_reg(cpu, x86_reg_ecx);
                 break;
             case 0x24:
                 *(global_uint64_t *)&cpu->cache[x86_cache_address0] =
-                    cpu_read_reg(cpu, x86_reg_esp) +
-                    *(global_int64_t *)&cpu->cache[x86_cache_address0];
+                    cpu_read_reg(cpu, x86_reg_esp);
                 break;
             }
             break;
         case 0x05:
             *(global_uint64_t *)&cpu->cache[x86_cache_address0] =
-                cpu_read_reg(cpu, x86_reg_ebp) +
-                *(global_int64_t *)&cpu->cache[x86_cache_address0];
+                cpu_read_reg(cpu, x86_reg_ebp);
             break;
         }
         break;
     }
-    cpu_write_reg(cpu, reg, cpu->pc - x86_get_address(cpu_read_reg(cpu, x86_reg_cs), 0));
 }
 
 void x86_decode(cpu_t *cpu, uint16_t reg, uint8_t size)
@@ -271,7 +263,7 @@ void x86_decode(cpu_t *cpu, uint16_t reg, uint8_t size)
     case 0x00:
         switch (cpu->cache[x86_cache_rm])
         {
-        case 0x06:
+        case 0x05 ... 0x06:
             switch (size)
             {
             case 0x00 ... 0x02:
@@ -286,24 +278,27 @@ void x86_decode(cpu_t *cpu, uint16_t reg, uint8_t size)
             return cpu_write_reg(cpu, reg, cpu->pc - x86_get_address(cpu_read_reg(cpu, x86_reg_cs), 0));
         }
         *(global_uint64_t *)&cpu->cache[x86_cache_address0] = 0;
-        return x86_decode_rm(cpu, reg, size);
+        x86_decode_rm(cpu, reg, size);
+        return cpu_write_reg(cpu, reg, cpu->pc - x86_get_address(cpu_read_reg(cpu, x86_reg_cs), 0));
     case 0x01:
-        *(global_int64_t *)&cpu->cache[x86_cache_address0] = (int8_t)memory_read(cpu->pc, 1, 0);
+        x86_decode_rm(cpu, reg, size);
+        *(global_uint64_t *)&cpu->cache[x86_cache_address0] += (int8_t)memory_read(cpu->pc, 1, 0);
         cpu->pc += 1;
-        return x86_decode_rm(cpu, reg, size);
+        return cpu_write_reg(cpu, reg, cpu->pc - x86_get_address(cpu_read_reg(cpu, x86_reg_cs), 0));
     case 0x02:
+        x86_decode_rm(cpu, reg, size);
         switch (size)
         {
         case 0x00 ... 0x02:
-            *(global_int64_t *)&cpu->cache[x86_cache_address0] = (int16_t)memory_read(cpu->pc, 2, 0);
+            *(global_uint64_t *)&cpu->cache[x86_cache_address0] += (int16_t)memory_read(cpu->pc, 2, 0);
             cpu->pc += 2;
             break;
         case 0x04:
-            *(global_int64_t *)&cpu->cache[x86_cache_address0] = (int32_t)memory_read(cpu->pc, 4, 0);
+            *(global_uint64_t *)&cpu->cache[x86_cache_address0] += (int32_t)memory_read(cpu->pc, 4, 0);
             cpu->pc += 4;
             break;
         }
-        return x86_decode_rm(cpu, reg, size);
+        return cpu_write_reg(cpu, reg, cpu->pc - x86_get_address(cpu_read_reg(cpu, x86_reg_cs), 0));
     case 0x03:
         if (x86_check_override(cpu, x86_override_dword_operand))
             size = 4;
