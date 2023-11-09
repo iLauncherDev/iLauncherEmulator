@@ -14,8 +14,8 @@ uint32_t ticks;
 
 global_uint64_t window_framebuffer[] = {
     0x100000,
-    640,
-    480,
+    1280,
+    720,
     4,
     0,
 };

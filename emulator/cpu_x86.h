@@ -95,6 +95,13 @@ typedef enum x86_regs
     x86_cache_opcode = x86_cache_address1 + 8,
     x86_cache_overridel = x86_cache_opcode + 1,
     x86_cache_overrideh = x86_cache_overridel + 1,
+    x86_cache_seg_gs = x86_cache_overrideh + 1,
+    x86_cache_seg_fs = x86_cache_seg_gs + 8,
+    x86_cache_seg_es = x86_cache_seg_fs + 8,
+    x86_cache_seg_ds = x86_cache_seg_es + 8,
+    x86_cache_seg_cs = x86_cache_seg_ds + 8,
+    x86_cache_seg_ss = x86_cache_seg_cs + 8,
+
     x86_override_dword_operand = 1 << 0,
     x86_override_dword_address = 1 << 1,
     x86_override_gs = 1 << 2,
