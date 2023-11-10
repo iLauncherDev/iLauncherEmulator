@@ -159,9 +159,9 @@ static inline void x86_rm_write(cpu_t *cpu, global_uint64_t value, uint8_t size)
 static inline void x86_cache_decode(cpu_t *cpu, uint16_t reg)
 {
     uint8_t cache = x86_read_cache(cpu, 1);
-    cpu->cache[x86_cache_rm] = cache & 0x07;
-    cpu->cache[x86_cache_mod] = (cache >> 6) & 0x03;
-    cpu->cache[x86_cache_reg] = (cache >> 3) & 0x07;
+    cpu->cache[x86_cache_rm] = cpu->cache[x86_cache_rm_precalc + cache];
+    cpu->cache[x86_cache_mod] = cpu->cache[x86_cache_mod_precalc + cache];
+    cpu->cache[x86_cache_reg] = cpu->cache[x86_cache_reg_precalc + cache];
     cpu->pc++;
 }
 
@@ -448,7 +448,12 @@ void x86_reset(cpu_t *cpu)
 {
     memset(cpu->regs, 0, x86_reg_end);
     memset(cpu->cache, 0, x86_cache_end);
-    cpu->cache[x86_cache_buffer_index] = 0xff;
+    for (uint16_t i = 0; i < 256; i++)
+        cpu->cache[x86_cache_rm_precalc + i] = i & 0x07;
+    for (uint16_t i = 0; i < 256; i++)
+        cpu->cache[x86_cache_mod_precalc + i] = (i >> 6) & 0x03;
+    for (uint16_t i = 0; i < 256; i++)
+        cpu->cache[x86_cache_reg_precalc + i] = (i >> 3) & 0x07;
     x86_write_reg(cpu, x86_reg_cs, (0xfffff - limit(bios_size, (256 * 1024) - 1)) >> 4);
     *(uint32_t *)&cpu->cache[x86_cache_seg_gs] = *(uint16_t *)&cpu->regs[x86_reg_gs] << 4;
     *(uint32_t *)&cpu->cache[x86_cache_seg_fs] = *(uint16_t *)&cpu->regs[x86_reg_fs] << 4;
