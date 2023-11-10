@@ -14,14 +14,14 @@ uint32_t ticks;
 
 global_uint64_t window_framebuffer[] = {
     0x100000,
-    1280,
-    720,
+    640,
+    480,
     4,
     0,
 };
 
 global_uint64_t vm_memory_size, bios_size;
-uint8_t *vm_memory;
+uint8_t *vm_memory, *bios_rom;
 
 void framebuffer_draw(void *input, void *output,
                       uint16_t input_width, uint16_t input_height,
@@ -167,12 +167,12 @@ int32_t main(int32_t argc, char **argv)
     }
     if (vm_memory_size < 0x400000)
         vm_memory_size = 0x400000;
-    vm_memory = malloc(vm_memory_size + bios_size + 0xff);
+    vm_memory = malloc(vm_memory_size);
     printf("Allocated %lluMB In RAM\n", vm_memory_size / 1024 / 1024);
     if (bios_bin)
-        fread(&vm_memory[vm_memory_size + 0xff], bios_size, 1, bios_bin);
+        bios_rom = malloc(bios_size), fread(bios_rom, bios_size, 1, bios_bin);
     memory_map_buffer(MEMORY_READ_FLAG,
-                      &vm_memory[vm_memory_size + 0xff],
+                      bios_rom,
                       0xfffff - limit(bios_size, (256 * 1024) - 1),
                       0,
                       bios_size);

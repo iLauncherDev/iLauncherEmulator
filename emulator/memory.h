@@ -4,6 +4,7 @@
 #include "global.h"
 #define MEMORY_READ_FLAG (1 << 0)
 #define MEMORY_WRITE_FLAG (1 << 1)
+#define MEMORY_RAM_FLAG (1 << 2)
 
 typedef struct memory_map
 {
@@ -14,6 +15,10 @@ typedef struct memory_map
     struct memory_map *next;
 } memory_map_t;
 
+global_uint64_t memory_big_endian_read(void *ptr, uint8_t size);
+void memory_big_endian_write(void *ptr, uint8_t size, global_uint64_t value);
+global_uint64_t memory_little_endian_read(void *ptr, uint8_t size);
+void memory_little_endian_write(void *ptr, uint8_t size, global_uint64_t value);
 global_uint64_t memory_read(global_uint64_t address, uint8_t size, uint8_t big_endian);
 void memory_write(global_uint64_t address, global_uint64_t value, uint8_t size, uint8_t big_endian);
 void memory_map_buffer(uint8_t flags, void *buffer, global_uint64_t address, global_uint64_t offset, global_uint64_t size);
