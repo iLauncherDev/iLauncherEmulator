@@ -103,7 +103,8 @@ typedef enum x86_regs
     x86_cache_seg_ss = x86_cache_seg_cs + 8,
     x86_cache_buffer256 = x86_cache_seg_ss + 8,
     x86_cache_buffer_index = x86_cache_buffer256 + 256,
-    x86_cache_end = x86_cache_buffer_index + 2,
+    x86_cache_buffer_address = x86_cache_buffer_index + 2,
+    x86_cache_end = x86_cache_buffer_address + 8,
 
     x86_override_dword_operand = 1 << 0,
     x86_override_dword_address = 1 << 1,
