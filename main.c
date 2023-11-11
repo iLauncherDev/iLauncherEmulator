@@ -93,8 +93,6 @@ void *window_update()
             exit(0);
             scancode_ready[SDL_SCANCODE_Q] = false;
         }
-        window_framebuffer[1] = io_read(0xfff4, 2);
-        window_framebuffer[2] = io_read(0xfff6, 2);
         framebuffer_draw(&vm_memory[window_framebuffer[0]], window_surface->pixels,
                          window_framebuffer[1], window_framebuffer[2],
                          window_surface->w, window_surface->h,
