@@ -9,7 +9,7 @@ uint64_t x86_read_reg(cpu_t *cpu, uint16_t reg)
 {
     uint8_t size = 0, high = 0;
     if (reg >= x86_reg_al && reg <= x86_reg_bh)
-        size = 1, high = reg & 0x01, reg = ((reg - x86_reg_al) >> 1) << 2;
+        size = 1, high = reg & 0x01, reg = (reg - x86_reg_al + high) << 1;
     else if (reg >= x86_reg_ax && reg <= x86_reg_flags)
         size = 2, reg = ((reg - x86_reg_ax) << 1) + x86_reg_al;
     else if (reg >= x86_reg_eax && reg <= x86_reg_eflags)
@@ -23,7 +23,7 @@ void x86_write_reg(cpu_t *cpu, uint16_t reg, uint64_t value)
 {
     uint8_t size = 0, high = 0;
     if (reg >= x86_reg_al && reg <= x86_reg_bh)
-        size = 1, high = reg & 0x01, reg = ((reg - x86_reg_al) >> 1) << 2;
+        size = 1, high = reg & 0x01, reg = (reg - x86_reg_al + high) << 1;
     else if (reg >= x86_reg_ax && reg <= x86_reg_flags)
         size = 2, reg = ((reg - x86_reg_ax) << 1) + x86_reg_al;
     else if (reg >= x86_reg_eax && reg <= x86_reg_eflags)
@@ -229,14 +229,14 @@ static inline void x86_decode(cpu_t *cpu, uint16_t reg, uint8_t size)
             }
             break;
         }
-        return x86_write_reg(cpu, reg, cpu->pc - *(uint32_t *)&cpu->cache[x86_cache_seg_cs]);
+        return;
     case 0x01:
         if (x86_check_override(cpu, x86_override_dword_address))
             size = 4;
         x86_decode_rm(cpu, reg, size);
         *(uint32_t *)&cpu->cache[x86_cache_address0] += (int8_t)x86_read_cache(cpu, 1);
         cpu->pc += 1;
-        return x86_write_reg(cpu, reg, cpu->pc - *(uint32_t *)&cpu->cache[x86_cache_seg_cs]);
+        return;
     case 0x02:
         if (x86_check_override(cpu, x86_override_dword_address))
             size = 4;
@@ -252,7 +252,7 @@ static inline void x86_decode(cpu_t *cpu, uint16_t reg, uint8_t size)
             cpu->pc += 4;
             break;
         }
-        return x86_write_reg(cpu, reg, cpu->pc - *(uint32_t *)&cpu->cache[x86_cache_seg_cs]);
+        return;
     case 0x03:
         switch (size)
         {
@@ -269,7 +269,7 @@ static inline void x86_decode(cpu_t *cpu, uint16_t reg, uint8_t size)
             *(uint16_t *)&cpu->cache[x86_cache_address0] = x86_regs32[cpu->cache[x86_cache_rm]];
             break;
         }
-        return x86_write_reg(cpu, reg, cpu->pc - *(uint32_t *)&cpu->cache[x86_cache_seg_cs]);
+        return;
     }
 }
 
@@ -315,7 +315,8 @@ int32_t x86_srel(cpu_t *cpu, uint16_t reg, uint8_t size)
 
 uint32_t x86_imm(cpu_t *cpu, uint16_t reg, uint8_t size)
 {
-    uint32_t value;
+    uint32_t value, pc = (cpu->pc + size) - *(uint32_t *)&cpu->cache[x86_cache_seg_cs];
+    x86_write_reg(cpu, reg, pc);
     switch (size)
     {
     case 0x00 ... 0x01:
@@ -329,13 +330,13 @@ uint32_t x86_imm(cpu_t *cpu, uint16_t reg, uint8_t size)
         break;
     }
     cpu->pc += size;
-    x86_write_reg(cpu, reg, cpu->pc - *(uint32_t *)&cpu->cache[x86_cache_seg_cs]);
     return value;
 }
 
 int32_t x86_simm(cpu_t *cpu, uint16_t reg, uint8_t size)
 {
-    int32_t value;
+    uint32_t value, pc = (cpu->pc + size) - *(uint32_t *)&cpu->cache[x86_cache_seg_cs];
+    x86_write_reg(cpu, reg, pc);
     switch (size)
     {
     case 0x00 ... 0x01:
@@ -349,7 +350,6 @@ int32_t x86_simm(cpu_t *cpu, uint16_t reg, uint8_t size)
         break;
     }
     cpu->pc += size;
-    x86_write_reg(cpu, reg, cpu->pc - *(uint32_t *)&cpu->cache[x86_cache_seg_cs]);
     return value;
 }
 
@@ -808,7 +808,7 @@ cpu_t *x86_setup()
     if (!ret)
         return (cpu_t *)NULL;
     memset(ret, 0, sizeof(cpu_t));
-    ret->regs = malloc(40);
+    ret->regs = malloc(50);
     ret->cache = malloc(x86_cache_end);
     if (!ret->regs || !ret->cache)
     {

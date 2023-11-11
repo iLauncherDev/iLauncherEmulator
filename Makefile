@@ -1,13 +1,10 @@
 CC := clang
 CC_FLAGS := `sdl2-config --cflags --libs` -Wall -Werror -lm
-CC_FLAGS_BIOS := -c -m16 -ffreestanding -I bios/include
 EMUFILES := $(shell find *.c) $(shell find emulator -name "*.c")
-BIOSFILES := $(shell find bios -name "*.c")
 BIOSROM := bios/bios.bin
 
 build:
 	@make -C bios build
-	@rm -rf test && ndisasm -b16 bios/bios.bin >> test
 	@$(CC) $(EMUFILES) -o iLEmu-system-x86_64 $(CC_FLAGS)
 
 run:
