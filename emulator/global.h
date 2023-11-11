@@ -14,12 +14,9 @@
 #define max(a, b) (((a) > (b)) ? (a) : (b))
 #define min(a, b) (((a) < (b)) ? (a) : (b))
 #define limit(a, b) (((a) > (b)) ? (b) : (a))
-#define sign(x) ((x < 0) ? -1 : ((x > 0) ? 1 : 0))
+#define sign(x) ((x < 0) ? -1 : ((x > 0) ? 1 : 0))s
 
-typedef unsigned long long global_uint64_t;
-typedef signed long long global_int64_t;
-
-extern global_uint64_t vm_memory_size, bios_size;
+extern uint64_t vm_memory_size, bios_size;
 extern uint8_t *vm_memory;
 
 #endif

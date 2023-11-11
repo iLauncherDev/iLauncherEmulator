@@ -2,35 +2,35 @@
 
 memory_map_t *memory_map = (void *)NULL;
 
-global_uint64_t memory_big_endian_read(void *ptr, uint8_t size)
+uint64_t memory_big_endian_read(void *ptr, uint8_t size)
 {
     if (!ptr || !size)
         return 0;
     switch (size)
     {
     case 1:
-        return (global_uint64_t)(((uint8_t *)ptr)[0]);
+        return (uint64_t)(((uint8_t *)ptr)[0]);
     case 2:
-        return ((global_uint64_t)(((uint8_t *)ptr)[0]) << 8) |
-               (global_uint64_t)(((uint8_t *)ptr)[1]);
+        return ((uint64_t)(((uint8_t *)ptr)[0]) << 8) |
+               (uint64_t)(((uint8_t *)ptr)[1]);
     case 4:
-        return ((global_uint64_t)(((uint8_t *)ptr)[0]) << 24) |
-               ((global_uint64_t)(((uint8_t *)ptr)[1]) << 16) |
-               ((global_uint64_t)(((uint8_t *)ptr)[2]) << 8) |
-               (global_uint64_t)(((uint8_t *)ptr)[3]);
+        return ((uint64_t)(((uint8_t *)ptr)[0]) << 24) |
+               ((uint64_t)(((uint8_t *)ptr)[1]) << 16) |
+               ((uint64_t)(((uint8_t *)ptr)[2]) << 8) |
+               (uint64_t)(((uint8_t *)ptr)[3]);
     default:
-        return ((global_uint64_t)(((uint8_t *)ptr)[0]) << 56) |
-               ((global_uint64_t)(((uint8_t *)ptr)[1]) << 48) |
-               ((global_uint64_t)(((uint8_t *)ptr)[2]) << 40) |
-               ((global_uint64_t)(((uint8_t *)ptr)[3]) << 32) |
-               ((global_uint64_t)(((uint8_t *)ptr)[4]) << 24) |
-               ((global_uint64_t)(((uint8_t *)ptr)[5]) << 16) |
-               ((global_uint64_t)(((uint8_t *)ptr)[6]) << 8) |
-               (global_uint64_t)(((uint8_t *)ptr)[7]);
+        return ((uint64_t)(((uint8_t *)ptr)[0]) << 56) |
+               ((uint64_t)(((uint8_t *)ptr)[1]) << 48) |
+               ((uint64_t)(((uint8_t *)ptr)[2]) << 40) |
+               ((uint64_t)(((uint8_t *)ptr)[3]) << 32) |
+               ((uint64_t)(((uint8_t *)ptr)[4]) << 24) |
+               ((uint64_t)(((uint8_t *)ptr)[5]) << 16) |
+               ((uint64_t)(((uint8_t *)ptr)[6]) << 8) |
+               (uint64_t)(((uint8_t *)ptr)[7]);
     }
 }
 
-void memory_big_endian_write(void *ptr, uint8_t size, global_uint64_t value)
+void memory_big_endian_write(void *ptr, uint8_t size, uint64_t value)
 {
     if (!ptr || !size)
         return;
@@ -62,35 +62,35 @@ void memory_big_endian_write(void *ptr, uint8_t size, global_uint64_t value)
     }
 }
 
-global_uint64_t memory_little_endian_read(void *ptr, uint8_t size)
+uint64_t memory_little_endian_read(void *ptr, uint8_t size)
 {
     if (!ptr || !size)
         return 0;
     switch (size)
     {
     case 1:
-        return (global_uint64_t)(((uint8_t *)ptr)[0]);
+        return (uint64_t)(((uint8_t *)ptr)[0]);
     case 2:
-        return (global_uint64_t)(((uint8_t *)ptr)[0]) |
-               ((global_uint64_t)(((uint8_t *)ptr)[1]) << 8);
+        return (uint64_t)(((uint8_t *)ptr)[0]) |
+               ((uint64_t)(((uint8_t *)ptr)[1]) << 8);
     case 4:
-        return (global_uint64_t)(((uint8_t *)ptr)[0]) |
-               ((global_uint64_t)(((uint8_t *)ptr)[1]) << 8) |
-               ((global_uint64_t)(((uint8_t *)ptr)[2]) << 16) |
-               ((global_uint64_t)(((uint8_t *)ptr)[3]) << 24);
+        return (uint64_t)(((uint8_t *)ptr)[0]) |
+               ((uint64_t)(((uint8_t *)ptr)[1]) << 8) |
+               ((uint64_t)(((uint8_t *)ptr)[2]) << 16) |
+               ((uint64_t)(((uint8_t *)ptr)[3]) << 24);
     default:
-        return (global_uint64_t)(((uint8_t *)ptr)[0]) |
-               ((global_uint64_t)(((uint8_t *)ptr)[1]) << 8) |
-               ((global_uint64_t)(((uint8_t *)ptr)[2]) << 16) |
-               ((global_uint64_t)(((uint8_t *)ptr)[3]) << 24) |
-               ((global_uint64_t)(((uint8_t *)ptr)[4]) << 32) |
-               ((global_uint64_t)(((uint8_t *)ptr)[5]) << 40) |
-               ((global_uint64_t)(((uint8_t *)ptr)[6]) << 48) |
-               ((global_uint64_t)(((uint8_t *)ptr)[7]) << 56);
+        return (uint64_t)(((uint8_t *)ptr)[0]) |
+               ((uint64_t)(((uint8_t *)ptr)[1]) << 8) |
+               ((uint64_t)(((uint8_t *)ptr)[2]) << 16) |
+               ((uint64_t)(((uint8_t *)ptr)[3]) << 24) |
+               ((uint64_t)(((uint8_t *)ptr)[4]) << 32) |
+               ((uint64_t)(((uint8_t *)ptr)[5]) << 40) |
+               ((uint64_t)(((uint8_t *)ptr)[6]) << 48) |
+               ((uint64_t)(((uint8_t *)ptr)[7]) << 56);
     }
 }
 
-void memory_little_endian_write(void *ptr, uint8_t size, global_uint64_t value)
+void memory_little_endian_write(void *ptr, uint8_t size, uint64_t value)
 {
     if (!ptr || !size)
         return;
@@ -122,7 +122,7 @@ void memory_little_endian_write(void *ptr, uint8_t size, global_uint64_t value)
     }
 }
 
-global_uint64_t memory_read(global_uint64_t address, uint8_t size, uint8_t big_endian)
+uint64_t memory_read(uint64_t address, uint8_t size, uint8_t big_endian)
 {
     uint8_t *buffer = vm_memory;
     memory_map_t *tmp = memory_map;
@@ -156,7 +156,7 @@ end:
     return 0x00;
 }
 
-void memory_write(global_uint64_t address, global_uint64_t value, uint8_t size, uint8_t big_endian)
+void memory_write(uint64_t address, uint64_t value, uint8_t size, uint8_t big_endian)
 {
     uint8_t *buffer = vm_memory;
     memory_map_t *tmp = memory_map;
@@ -190,7 +190,7 @@ end:
     return;
 }
 
-void memory_map_set_offset(global_uint64_t address, global_uint64_t offset)
+void memory_map_set_offset(uint64_t address, uint64_t offset)
 {
     memory_map_t *tmp = memory_map;
     if (memory_map)
@@ -207,7 +207,7 @@ void memory_map_set_offset(global_uint64_t address, global_uint64_t offset)
     }
 }
 
-void memory_map_remove(global_uint64_t address)
+void memory_map_remove(uint64_t address)
 {
     memory_map_t *tmp = memory_map;
     if (memory_map)
@@ -240,7 +240,7 @@ void memory_map_remove(global_uint64_t address)
     }
 }
 
-void memory_map_buffer(uint8_t flags, void *buffer, global_uint64_t address, global_uint64_t offset, global_uint64_t size)
+void memory_map_buffer(uint8_t flags, void *buffer, uint64_t address, uint64_t offset, uint64_t size)
 {
     if (memory_map)
     {

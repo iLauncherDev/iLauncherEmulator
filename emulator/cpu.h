@@ -28,9 +28,9 @@ typedef struct cpu_info
 typedef struct cpu
 {
     uint16_t flags, override;
-    global_uint64_t pc;
-    global_uint64_t (*read_reg)(struct cpu *cpu, uint16_t reg);
-    void (*write_reg)(struct cpu *cpu, uint16_t reg, global_uint64_t value);
+    uint64_t pc;
+    uint64_t (*read_reg)(struct cpu *cpu, uint16_t reg);
+    void (*write_reg)(struct cpu *cpu, uint16_t reg, uint64_t value);
     void (*reset)(struct cpu *cpu);
     uint8_t (*emulate)(struct cpu *cpu);
     uint8_t *regs, *cache;
@@ -38,8 +38,8 @@ typedef struct cpu
     uint8_t info_index;
 } cpu_t;
 
-global_uint64_t cpu_read_reg(cpu_t *cpu, uint16_t reg);
-void cpu_write_reg(cpu_t *cpu, uint16_t reg, global_uint64_t value);
+uint64_t cpu_read_reg(cpu_t *cpu, uint16_t reg);
+void cpu_write_reg(cpu_t *cpu, uint16_t reg, uint64_t value);
 void cpu_reset(cpu_t *cpu);
 void cpu_emulate(cpu_t *cpu);
 #endif

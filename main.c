@@ -12,7 +12,7 @@ uint8_t scancode_ready[4096] = {false};
 uint8_t debug_code = false, dump_bios = false;
 uint32_t ticks;
 
-global_uint64_t window_framebuffer[] = {
+uint64_t window_framebuffer[] = {
     0x100000,
     640,
     480,
@@ -20,7 +20,7 @@ global_uint64_t window_framebuffer[] = {
     0,
 };
 
-global_uint64_t vm_memory_size, bios_size;
+uint64_t vm_memory_size, bios_size;
 uint8_t *vm_memory, *bios_rom;
 
 void framebuffer_draw(void *input, void *output,
@@ -104,18 +104,6 @@ void *window_update()
     return (void *)NULL;
 }
 
-void *timer()
-{
-    while (true)
-    {
-        ticks++;
-        usleep(1000);
-    }
-    return (void *)NULL;
-}
-
-global_int64_t cpu_unsigned2signed(global_uint64_t value, uint8_t size);
-
 int32_t main(int32_t argc, char **argv)
 {
     uint32_t code_delay = 0;
@@ -168,7 +156,7 @@ int32_t main(int32_t argc, char **argv)
     if (vm_memory_size < 0x400000)
         vm_memory_size = 0x400000;
     vm_memory = malloc(vm_memory_size);
-    printf("Allocated %lluMB In RAM\n", vm_memory_size / 1024 / 1024);
+    printf("Allocated %luMB In RAM\n", vm_memory_size / 1024 / 1024);
     if (bios_bin)
         bios_rom = malloc(bios_size), fread(bios_rom, bios_size, 1, bios_bin);
     memory_map_buffer(MEMORY_READ_FLAG,
@@ -178,9 +166,9 @@ int32_t main(int32_t argc, char **argv)
                       bios_size);
     if (dump_bios)
     {
-        printf("Address: 0x%llx\n", 0xfffff - limit(bios_size, (256 * 1024) - 1));
+        printf("Address: 0x%lx\n", 0xfffff - limit(bios_size, (256 * 1024) - 1));
         for (size_t i = 0; i < bios_size; i++)
-            printf("%llx ", memory_read(i + (0xfffff - limit(bios_size, (256 * 1024) - 1)), 1, 0));
+            printf("%lx ", memory_read(i + (0xfffff - limit(bios_size, (256 * 1024) - 1)), 1, 0));
         printf("\n");
         return 0;
     }
@@ -193,11 +181,8 @@ int32_t main(int32_t argc, char **argv)
     window = SDL_CreateWindow("Emulator", 0, 0,
                               window_framebuffer[1], window_framebuffer[2],
                               SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE);
-    pthread_t window_update_thread, timer_thread;
-    pthread_create(&timer_thread, NULL, timer, NULL);
+    pthread_t window_update_thread;
     pthread_create(&window_update_thread, NULL, window_update, NULL);
-    while (!window_framebuffer[0])
-        sleep(1);
     cpu_t *i8086 = x86_setup();
     uint16_t regs[] = {
         x86_reg_eax,
@@ -222,7 +207,7 @@ int32_t main(int32_t argc, char **argv)
         {
             printf("Regs:\n");
             for (uint8_t i = 0; regs[i]; i++)
-                printf("%s = 0x%llx ", x86_regs_strings[regs[i]], cpu_read_reg(i8086, regs[i]));
+                printf("%s = 0x%lx ", x86_regs_strings[regs[i]], cpu_read_reg(i8086, regs[i]));
             printf("\n");
         }
         if (code_delay)

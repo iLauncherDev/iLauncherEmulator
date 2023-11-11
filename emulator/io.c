@@ -26,11 +26,11 @@ void io_clear_flag(uint16_t port, uint8_t flag, uint8_t size)
     }
 }
 
-global_uint64_t io_read(uint16_t port, uint8_t size)
+uint64_t io_read(uint16_t port, uint8_t size)
 {
     uint8_t bits = size << 3;
     uint32_t port_offset = (port & 0xffff) << 1;
-    global_uint64_t value = 0;
+    uint64_t value = 0;
     for (uint8_t i = 0; i < bits; i += 8)
     {
         value |= io_ports[port_offset] << i;
@@ -40,7 +40,7 @@ global_uint64_t io_read(uint16_t port, uint8_t size)
     return value;
 }
 
-void io_write(uint16_t port, global_uint64_t value, uint8_t size)
+void io_write(uint16_t port, uint64_t value, uint8_t size)
 {
     uint8_t bits = size << 3;
     uint32_t port_offset = (port & 0xffff) << 1;
