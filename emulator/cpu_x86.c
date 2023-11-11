@@ -7,65 +7,30 @@ global_uint64_t x86_get_address(uint16_t seg, global_uint64_t offset)
 
 global_uint64_t x86_read_reg(cpu_t *cpu, uint16_t reg)
 {
-    if (reg == x86_reg_gdtr)
-    {
-        return *(global_uint64_t *)&cpu->regs[reg];
-    }
-    if (reg >= x86_reg_eax && reg <= x86_reg_r15d)
-    {
-        uint16_t offset = ((reg - x86_reg_eax) >> 1) + x86_reg_al;
-        return (*(uint16_t *)&cpu->regs[((reg - x86_reg_eax) >> 1) + x86_reg_ax] << 16) |
-               (*(uint8_t *)&cpu->regs[offset + 1] << 8) | *(uint8_t *)&cpu->regs[offset];
-    }
-    if (reg >= x86_reg_ax && reg <= x86_reg_r15w)
-    {
-        uint16_t offset = (reg - x86_reg_ax) + x86_reg_al;
-        return (*(uint8_t *)&cpu->regs[offset + 1] << 8) | *(uint8_t *)&cpu->regs[offset];
-    }
-    if (reg >= x86_reg_al && reg <= x86_reg_r15b)
-    {
-        return *(uint8_t *)&cpu->regs[reg];
-    }
-    if (reg >= x86_reg_gs && reg <= x86_reg_ss)
-    {
-        return *(uint16_t *)&cpu->regs[reg];
-    }
-    return 0;
+    uint8_t size, high;
+    if (reg >= x86_reg_al && reg <= x86_reg_bh)
+        size = 1, high = reg & 0x01, reg = ((reg - x86_reg_al) >> 1) << 2;
+    else if (reg >= x86_reg_ax && reg <= x86_reg_flags)
+        size = 2, reg = ((reg - x86_reg_ax) << 1) + x86_reg_al, high = 0;
+    else if (reg >= x86_reg_eax && reg <= x86_reg_eflags)
+        size = 4, reg = (reg - x86_reg_eax) + x86_reg_al, high = 0;
+    else if (reg >= x86_reg_gs && reg <= x86_reg_ss)
+        size = 2, high = 0;
+    return memory_little_endian_read(&cpu->regs[reg + high], size);
 }
 
 void x86_write_reg(cpu_t *cpu, uint16_t reg, global_uint64_t value)
 {
-    if (reg == x86_reg_gdtr)
-    {
-        *(global_uint64_t *)&cpu->regs[reg] = value;
-        return;
-    }
-    if (reg >= x86_reg_eax && reg <= x86_reg_r15d)
-    {
-        uint16_t offset = ((reg - x86_reg_eax) >> 1) + x86_reg_al;
-        *(uint8_t *)&cpu->regs[offset] = value & 0xff;
-        *(uint8_t *)&cpu->regs[offset + 1] = (value >> 8) & 0xff;
-        *(uint16_t *)&cpu->regs[((reg - x86_reg_eax) >> 1) + x86_reg_ax] = (value >> 16) & 0xffff;
-        return;
-    }
-    if (reg >= x86_reg_ax && reg <= x86_reg_r15w)
-    {
-        uint16_t offset = (reg - x86_reg_ax) + x86_reg_al;
-        *(uint8_t *)&cpu->regs[offset] = value & 0xff;
-        *(uint8_t *)&cpu->regs[offset + 1] = (value >> 8) & 0xff;
-        return;
-    }
-    if (reg >= x86_reg_al && reg <= x86_reg_r15b)
-    {
-        *(uint8_t *)&cpu->regs[reg] = value & 0xff;
-        return;
-    }
-    if (reg >= x86_reg_gs && reg <= x86_reg_ss)
-    {
-        *(uint16_t *)&cpu->regs[reg] = value & 0xffff;
-        *(uint32_t *)&cpu->cache[x86_cache_seg_gs + (reg << 2)] = *(uint16_t *)&cpu->regs[reg] << 4;
-        return;
-    }
+    uint8_t size, high;
+    if (reg >= x86_reg_al && reg <= x86_reg_bh)
+        size = 1, high = reg & 0x01, reg = ((reg - x86_reg_al) >> 1) << 2;
+    else if (reg >= x86_reg_ax && reg <= x86_reg_flags)
+        size = 2, reg = ((reg - x86_reg_ax) << 1) + x86_reg_al, high = 0;
+    else if (reg >= x86_reg_eax && reg <= x86_reg_eflags)
+        size = 4, reg = (reg - x86_reg_eax) + x86_reg_al, high = 0;
+    else if (reg >= x86_reg_gs && reg <= x86_reg_ss)
+        size = 2, high = 0;
+    return memory_little_endian_write(&cpu->regs[reg + high], size, value);
 }
 
 static inline global_uint64_t x86_read_cache(cpu_t *cpu, uint8_t size)
@@ -159,9 +124,9 @@ static inline void x86_rm_write(cpu_t *cpu, global_uint64_t value, uint8_t size)
 static inline void x86_cache_decode(cpu_t *cpu, uint16_t reg)
 {
     uint8_t cache = x86_read_cache(cpu, 1);
-    cpu->cache[x86_cache_rm] = cpu->cache[x86_cache_rm_precalc + cache];
-    cpu->cache[x86_cache_mod] = cpu->cache[x86_cache_mod_precalc + cache];
-    cpu->cache[x86_cache_reg] = cpu->cache[x86_cache_reg_precalc + cache];
+    cpu->cache[x86_cache_rm] = cache & 0x07;
+    cpu->cache[x86_cache_reg] = (cache >> 3) & 0x07;
+    cpu->cache[x86_cache_mod] = (cache >> 6) & 0x03;
     cpu->pc++;
 }
 
@@ -448,12 +413,6 @@ void x86_reset(cpu_t *cpu)
 {
     memset(cpu->regs, 0, x86_reg_end);
     memset(cpu->cache, 0, x86_cache_end);
-    for (uint16_t i = 0; i < 256; i++)
-        cpu->cache[x86_cache_rm_precalc + i] = i & 0x07;
-    for (uint16_t i = 0; i < 256; i++)
-        cpu->cache[x86_cache_mod_precalc + i] = (i >> 6) & 0x03;
-    for (uint16_t i = 0; i < 256; i++)
-        cpu->cache[x86_cache_reg_precalc + i] = (i >> 3) & 0x07;
     x86_write_reg(cpu, x86_reg_cs, (0xfffff - limit(bios_size, (256 * 1024) - 1)) >> 4);
     *(uint32_t *)&cpu->cache[x86_cache_seg_gs] = *(uint16_t *)&cpu->regs[x86_reg_gs] << 4;
     *(uint32_t *)&cpu->cache[x86_cache_seg_fs] = *(uint16_t *)&cpu->regs[x86_reg_fs] << 4;
@@ -853,7 +812,7 @@ cpu_t *x86_setup()
     if (!ret)
         return (cpu_t *)NULL;
     memset(ret, 0, sizeof(cpu_t));
-    ret->regs = malloc(x86_reg_end);
+    ret->regs = malloc(40);
     ret->cache = malloc(x86_cache_end);
     if (!ret->regs || !ret->cache)
     {

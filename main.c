@@ -210,14 +210,6 @@ int32_t main(int32_t argc, char **argv)
         x86_reg_edi,
         x86_reg_eip,
         x86_reg_eflags,
-        x86_reg_r8d,
-        x86_reg_r9d,
-        x86_reg_r10d,
-        x86_reg_r11d,
-        x86_reg_r12d,
-        x86_reg_r13d,
-        x86_reg_r14d,
-        x86_reg_r15d,
         0,
     };
     while (true)
