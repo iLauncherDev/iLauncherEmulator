@@ -175,7 +175,6 @@ int32_t main(int32_t argc, char **argv)
     io_write(0xfff4, window_framebuffer[1], 2);
     io_write(0xfff6, window_framebuffer[2], 2);
     io_write(0xfff8, window_framebuffer[3], 2);
-    SDL_Init(SDL_INIT_VIDEO);
     window = SDL_CreateWindow("Emulator", 0, 0,
                               window_framebuffer[1], window_framebuffer[2],
                               SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE);

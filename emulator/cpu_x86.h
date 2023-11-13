@@ -45,7 +45,7 @@ typedef enum x86_regs
 
     x86_reg_gdtr = x86_reg_eflags + 4,
 
-    x86_reg_end = x86_reg_gdtr + 8,
+    x86_reg_end = x86_reg_gdtr + 4,
 
     x86_flags_CF = 1 << 0,
     x86_flags_PF = 1 << 2,
@@ -223,10 +223,6 @@ static const char *x86_regs_strings[x86_reg_end] = {
     (char *)NULL,
 
     "gdtr",
-    (char *)NULL,
-    (char *)NULL,
-    (char *)NULL,
-    (char *)NULL,
     (char *)NULL,
     (char *)NULL,
     (char *)NULL,

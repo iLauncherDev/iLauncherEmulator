@@ -356,6 +356,7 @@ int32_t x86_simm(cpu_t *cpu, uint16_t reg, uint8_t size)
 void x86_cmp(cpu_t *cpu, uint64_t value1, uint64_t value2, uint8_t size)
 {
     uint16_t flags_reg;
+    uint32_t flags;
     switch (size)
     {
     case 0x00 ... 0x02:
@@ -365,14 +366,16 @@ void x86_cmp(cpu_t *cpu, uint64_t value1, uint64_t value2, uint8_t size)
         flags_reg = x86_reg_eflags;
         break;
     }
+    flags = x86_read_reg(cpu, flags_reg);
     if (value1 == value2)
-        x86_write_reg(cpu, flags_reg, x86_read_reg(cpu, flags_reg) | x86_flags_ZF);
+        flags |= x86_flags_ZF;
     else
-        x86_write_reg(cpu, flags_reg, x86_read_reg(cpu, flags_reg) & ~x86_flags_ZF);
+        flags &= ~x86_flags_ZF;
     if (value1 < value2)
-        x86_write_reg(cpu, flags_reg, x86_read_reg(cpu, flags_reg) | x86_flags_CF);
+        flags |= x86_flags_CF;
     else
-        x86_write_reg(cpu, flags_reg, x86_read_reg(cpu, flags_reg) & ~x86_flags_CF);
+        flags &= ~x86_flags_CF;
+    x86_write_reg(cpu, flags_reg, flags);
 }
 
 void x86_jumpif_near(cpu_t *cpu, uint16_t reg, uint16_t flags, uint64_t value, uint8_t size)
