@@ -71,7 +71,8 @@ typedef enum x86_regs
     x86_cache_seg_ds = x86_cache_seg_es + 8,
     x86_cache_seg_cs = x86_cache_seg_ds + 8,
     x86_cache_seg_ss = x86_cache_seg_cs + 8,
-    x86_cache_end = x86_cache_seg_ss + 8,
+    x86_cache_is_word = x86_cache_seg_ss + 8,
+    x86_cache_end = x86_cache_is_word + 1,
 
     x86_override_dword_operand = 1 << 0,
     x86_override_dword_address = 1 << 1,
