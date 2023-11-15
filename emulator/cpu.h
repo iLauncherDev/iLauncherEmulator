@@ -8,8 +8,8 @@
 
 typedef enum cpu_defines
 {
-    cpu_flag_debug = 1 << 0,
-    cpu_flag_crash = 1 << 1,
+    cpu_flag_wait = 1 << 0,
+    cpu_flag_pass = 1 << 1,
 
     cpu_type_reg,
     cpu_type_int,

@@ -517,42 +517,46 @@ void x86_opcode_c6_c7(cpu_t *cpu, uint16_t reg)
         if (x86_check_override(cpu, x86_override_dword_operand))
         {
             x86_decode(cpu, reg, 4);
-            x86_rm_write(cpu, x86_read_reg(cpu, x86_regs32[cpu->cache[x86_cache_reg]]), 1);
+            x86_rm_write(cpu,
+                         x86_imm(cpu, reg, 4),
+                         4);
         }
         else
         {
             x86_decode(cpu, reg, 2);
-            x86_rm_write(cpu, x86_read_reg(cpu, x86_regs16[cpu->cache[x86_cache_reg]]), 1);
+            x86_rm_write(cpu,
+                         x86_imm(cpu, reg, 2),
+                         2);
         }
     }
     else
     {
         x86_decode(cpu, reg, 1);
-        x86_rm_write(cpu, x86_read_reg(cpu, x86_regs8[cpu->cache[x86_cache_reg]]), 1);
+        x86_rm_write(cpu,
+                     x86_imm(cpu, reg, x86_check_override(cpu, x86_override_dword_address) ? 4 : 1),
+                     1);
     }
     x86_clear_override(cpu, x86_override_dword_address | x86_override_dword_operand);
 }
 
 void x86_opcode_50_57(cpu_t *cpu, uint16_t reg)
 {
-    cpu->cache[x86_cache_reg] = cpu->cache[x86_cache_opcode] & 0x07;
     if (x86_check_override(cpu, x86_override_dword_operand))
         x86_push_reg(cpu, x86_reg_esp,
-                     x86_regs32[cpu->cache[x86_cache_reg]], 4);
+                     x86_regs32[cpu->cache[x86_cache_opcode] & 0x07], 4);
     else
         x86_push_reg(cpu, x86_reg_sp,
-                     x86_regs16[cpu->cache[x86_cache_reg]], 2);
+                     x86_regs16[cpu->cache[x86_cache_opcode] & 0x07], 2);
     x86_clear_override(cpu, x86_override_dword_operand);
 }
 
 void x86_opcode_58_5f(cpu_t *cpu, uint16_t reg)
 {
-    cpu->cache[x86_cache_reg] = cpu->cache[x86_cache_opcode] & 0x07;
     if (x86_check_override(cpu, x86_override_dword_operand))
-        x86_write_reg(cpu, x86_regs32[cpu->cache[x86_cache_reg]],
+        x86_write_reg(cpu, x86_regs32[cpu->cache[x86_cache_opcode] & 0x07],
                       x86_pop(cpu, x86_reg_esp, 4));
     else
-        x86_write_reg(cpu, x86_regs16[cpu->cache[x86_cache_reg]],
+        x86_write_reg(cpu, x86_regs16[cpu->cache[x86_cache_opcode] & 0x07],
                       x86_pop(cpu, x86_reg_sp, 2));
     x86_clear_override(cpu, x86_override_dword_operand);
 }
@@ -781,20 +785,11 @@ start:
                       cpu->cache[x86_cache_address1]);
         x86_clear_override(cpu, x86_override_dword_operand);
         break;
-    case 0xc7:
-        x86_cache_decode_rm(cpu, x86_reg_ip);
-        if (x86_check_override(cpu, x86_override_dword_operand))
-            cpu->cache[x86_cache_address1] = 4;
-        else
-            cpu->cache[x86_cache_address1] = 2;
-        x86_decode(cpu, x86_reg_ip, cpu->cache[x86_cache_address1]);
-        x86_rm_write(cpu,
-                     x86_imm(cpu, x86_reg_ip, cpu->cache[x86_cache_address1]),
-                     cpu->cache[x86_cache_address1]);
-        x86_clear_override(cpu, x86_override_dword_operand | x86_override_dword_address);
+    case 0xc6 ... 0xc7:
+        x86_opcode_c6_c7(cpu, x86_reg_ip);
         break;
     default:
-        ret++;
+        cpu->pc++;
         break;
     }
     x86_write_reg(cpu, x86_reg_ip, cpu->pc - *(uint32_t *)&cpu->cache[x86_cache_seg_cs]);
@@ -826,6 +821,8 @@ cpu_t *x86_setup()
             reg_x86[i] = (i - x86_reg_eax) + x86_reg_al, reg_x86_size[i] = 4;
         else if (i >= x86_reg_gs && i <= x86_reg_ss)
             reg_x86[i] = i, reg_x86_size[i] = 2;
+        else
+            reg_x86[i] = i, reg_x86_size[i] = 0;
     }
     ret->read_reg = x86_read_reg;
     ret->write_reg = x86_write_reg;

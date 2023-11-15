@@ -11,6 +11,7 @@ uint8_t scancode[4096] = {false};
 uint8_t scancode_ready[4096] = {false};
 uint8_t debug_code = false, dump_bios = false;
 uint32_t ticks;
+cpu_t *x86_cpu;
 
 uint64_t window_framebuffer[] = {
     0x100000,
@@ -93,6 +94,12 @@ void *window_update()
             exit(0);
             scancode_ready[SDL_SCANCODE_Q] = false;
         }
+        else if (scancode[SDL_SCANCODE_LCTRL] && scancode[SDL_SCANCODE_LALT] &&
+                 scancode[SDL_SCANCODE_LSHIFT] && scancode[SDL_SCANCODE_R] && scancode_ready[SDL_SCANCODE_R])
+        {
+            cpu_reset(x86_cpu);
+            scancode_ready[SDL_SCANCODE_R] = false;
+        }
         framebuffer_draw(&vm_memory[window_framebuffer[0]], window_surface->pixels,
                          window_framebuffer[1], window_framebuffer[2],
                          window_surface->w, window_surface->h,
@@ -170,6 +177,7 @@ int32_t main(int32_t argc, char **argv)
         printf("\n");
         return 0;
     }
+    x86_cpu = x86_setup();
     vga_install();
     io_write(0xfff0, window_framebuffer[0], 4);
     io_write(0xfff4, window_framebuffer[1], 2);
@@ -180,7 +188,6 @@ int32_t main(int32_t argc, char **argv)
                               SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE);
     pthread_t window_update_thread;
     pthread_create(&window_update_thread, NULL, window_update, NULL);
-    cpu_t *i8086 = x86_setup();
     uint16_t regs[] = {
         x86_reg_eax,
         x86_reg_ecx,
@@ -199,12 +206,12 @@ int32_t main(int32_t argc, char **argv)
         if (io_check_flag(0x3f8, IO_WRITE_FLAG, 1))
             printf("%c", (uint8_t)io_read(0x3f8, 1)), io_clear_flag(0x3f8, IO_READ_FLAG | IO_WRITE_FLAG, 1);
         vga_service();
-        cpu_emulate(i8086);
+        cpu_emulate(x86_cpu);
         if (debug_code)
         {
             printf("Regs:\n");
             for (uint8_t i = 0; regs[i]; i++)
-                printf("%s = 0x%lx ", x86_regs_strings[regs[i]], cpu_read_reg(i8086, regs[i]));
+                printf("%s = 0x%lx ", x86_regs_strings[regs[i]], cpu_read_reg(x86_cpu, regs[i]));
             printf("\n");
         }
         if (code_delay)
