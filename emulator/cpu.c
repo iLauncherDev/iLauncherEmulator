@@ -37,7 +37,7 @@ void cpu_emulate(cpu_t *cpu)
     if (cpu->emulate)
     {
         if (cpu->emulate(cpu))
-            printf("Unknown opcode: 0x%lx\n", memory_read(cpu->pc - 1, 1, 0));
+            printf("Unknown opcode: 0x%lx\n", memory_read(cpu->pc_base + cpu->pc, 1, 0));
     }
 end:
     return;

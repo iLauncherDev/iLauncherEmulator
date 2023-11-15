@@ -63,9 +63,7 @@ typedef enum x86_regs
     x86_cache_address0 = x86_cache_mod + 1,
     x86_cache_address1 = x86_cache_address0 + 8,
     x86_cache_opcode = x86_cache_address1 + 8,
-    x86_cache_overridel = x86_cache_opcode + 1,
-    x86_cache_overrideh = x86_cache_overridel + 1,
-    x86_cache_seg_gs = x86_cache_overrideh + 1,
+    x86_cache_seg_gs = x86_cache_opcode + 1,
     x86_cache_seg_fs = x86_cache_seg_gs + 8,
     x86_cache_seg_es = x86_cache_seg_fs + 8,
     x86_cache_seg_ds = x86_cache_seg_es + 8,
@@ -124,18 +122,6 @@ static const uint8_t x86_sregs[] = {
     x86_reg_ds,
     x86_reg_fs,
     x86_reg_gs,
-};
-
-static const char *x86_sizes_strings[8 + 1] = {
-    "byte",
-    "byte",
-    "word",
-    "dword",
-    "dword",
-    "qword",
-    "qword",
-    "qword",
-    "qword",
 };
 
 static const char *x86_regs_strings[x86_reg_end] = {

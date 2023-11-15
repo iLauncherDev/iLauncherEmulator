@@ -20,7 +20,7 @@ typedef enum cpu_defines
 typedef struct cpu
 {
     uint16_t flags, override;
-    uint64_t pc;
+    uint64_t pc, pc_base;
     uint64_t (*read_reg)(struct cpu *cpu, uint16_t reg);
     void (*write_reg)(struct cpu *cpu, uint16_t reg, uint64_t value);
     void (*reset)(struct cpu *cpu);
