@@ -9,21 +9,13 @@
 typedef enum cpu_defines
 {
     cpu_flag_wait = 1 << 0,
-    cpu_flag_pass = 1 << 1,
+    cpu_flag_emulating = 1 << 1,
 
     cpu_type_reg,
     cpu_type_int,
     cpu_type_memory_reg,
     cpu_type_memory,
 } cpu_defines_t;
-
-typedef struct cpu_info
-{
-    uint16_t flags;
-    uint8_t size;
-    uint8_t reg_type;
-    uint8_t reg_type_buffer[8];
-} cpu_info_t;
 
 typedef struct cpu
 {
@@ -34,8 +26,6 @@ typedef struct cpu
     void (*reset)(struct cpu *cpu);
     uint8_t (*emulate)(struct cpu *cpu);
     uint8_t *regs, *cache;
-    cpu_info_t cpu_info[8];
-    uint8_t info_index;
 } cpu_t;
 
 uint64_t cpu_read_reg(cpu_t *cpu, uint16_t reg);

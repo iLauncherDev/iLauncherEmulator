@@ -94,12 +94,6 @@ void *window_update()
             exit(0);
             scancode_ready[SDL_SCANCODE_Q] = false;
         }
-        else if (scancode[SDL_SCANCODE_LCTRL] && scancode[SDL_SCANCODE_LALT] &&
-                 scancode[SDL_SCANCODE_LSHIFT] && scancode[SDL_SCANCODE_R] && scancode_ready[SDL_SCANCODE_R])
-        {
-            cpu_reset(x86_cpu);
-            scancode_ready[SDL_SCANCODE_R] = false;
-        }
         framebuffer_draw(&vm_memory[window_framebuffer[0]], window_surface->pixels,
                          window_framebuffer[1], window_framebuffer[2],
                          window_surface->w, window_surface->h,
