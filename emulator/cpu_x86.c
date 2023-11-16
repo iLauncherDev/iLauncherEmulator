@@ -14,7 +14,9 @@ void x86_write_reg(cpu_t *cpu, uint16_t reg, uint64_t value)
 
 uint32_t x86_read_cache(cpu_t *cpu, uint8_t size)
 {
-    return memory_read(cpu->pc + cpu->pc_base, size, 0);
+    uint32_t ret = memory_read(cpu->pc_base + cpu->pc, size, 0);
+    cpu->pc += size;
+    return ret;
 }
 
 uint16_t x86_check_override(cpu_t *cpu, uint16_t override)
@@ -58,7 +60,19 @@ uint32_t x86_pop(cpu_t *cpu, uint16_t stack_reg, uint8_t size)
 
 void x86_jump_near(cpu_t *cpu, uint16_t reg, uint32_t value, uint8_t size)
 {
-    cpu->pc = value;
+    cpu->pc_base = *(uint32_t *)&cpu->cache[x86_cache_seg_cs];
+    switch (size)
+    {
+    case 1:
+        cpu->pc += (int8_t)value - cpu->pc;
+        break;
+    case 2:
+        cpu->pc += (int16_t)value - cpu->pc;
+        break;
+    case 4:
+        cpu->pc += (int32_t)value - cpu->pc;
+        break;
+    }
 }
 
 uint32_t x86_rm_read(cpu_t *cpu, uint8_t size)
@@ -103,8 +117,7 @@ void x86_cache_decode_rm(cpu_t *cpu, uint16_t reg)
     uint8_t cache = x86_read_cache(cpu, 1);
     cpu->cache[x86_cache_rm] = cache & 0x07;
     cpu->cache[x86_cache_reg] = (cache >> 3) & 0x07;
-    cpu->cache[x86_cache_mod] = (cache >> 6) & 0x03;
-    cpu->pc++;
+    cpu->cache[x86_cache_mod] = cache >> 6;
 }
 
 void x86_decode_rm(cpu_t *cpu, uint16_t reg, uint8_t size)
@@ -173,7 +186,6 @@ void x86_decode_rm(cpu_t *cpu, uint16_t reg, uint8_t size)
                     x86_read_reg(cpu, x86_reg_esp);
                 break;
             }
-            cpu->pc++;
             break;
         case 0x05:
             *(uint32_t *)&cpu->cache[x86_cache_address0] =
@@ -186,8 +198,9 @@ void x86_decode_rm(cpu_t *cpu, uint16_t reg, uint8_t size)
 
 void x86_decode(cpu_t *cpu, uint16_t reg, uint8_t size)
 {
-    if (x86_check_override(cpu, x86_override_dword_address))
-        size = 4;
+    if (size < 4)
+        if (x86_check_override(cpu, x86_override_dword_address))
+            size = 4;
     switch (cpu->cache[x86_cache_mod])
     {
     case 0x00:
@@ -199,11 +212,9 @@ void x86_decode(cpu_t *cpu, uint16_t reg, uint8_t size)
             {
             case 0x00 ... 0x02:
                 *(uint32_t *)&cpu->cache[x86_cache_address0] = x86_read_cache(cpu, 2);
-                cpu->pc += 2;
                 break;
             case 0x03 ... 0x04:
                 *(uint32_t *)&cpu->cache[x86_cache_address0] = x86_read_cache(cpu, 4);
-                cpu->pc += 4;
                 break;
             }
             break;
@@ -212,7 +223,6 @@ void x86_decode(cpu_t *cpu, uint16_t reg, uint8_t size)
     case 0x01:
         x86_decode_rm(cpu, reg, size);
         *(uint32_t *)&cpu->cache[x86_cache_address0] += (int8_t)x86_read_cache(cpu, 1);
-        cpu->pc += 1;
         return;
     case 0x02:
         x86_decode_rm(cpu, reg, size);
@@ -220,11 +230,9 @@ void x86_decode(cpu_t *cpu, uint16_t reg, uint8_t size)
         {
         case 0x01 ... 0x02:
             *(uint32_t *)&cpu->cache[x86_cache_address0] += (int16_t)x86_read_cache(cpu, 2);
-            cpu->pc += 2;
             break;
         case 0x03 ... 0x04:
             *(uint32_t *)&cpu->cache[x86_cache_address0] += (int32_t)x86_read_cache(cpu, 4);
-            cpu->pc += 4;
             break;
         }
         return;
@@ -251,7 +259,6 @@ void x86_decode(cpu_t *cpu, uint16_t reg, uint8_t size)
 uint32_t x86_rel(cpu_t *cpu, uint16_t reg, uint8_t size)
 {
     uint32_t value, pc = cpu->pc + size;
-    x86_write_reg(cpu, reg, pc);
     switch (size)
     {
     case 0x01:
@@ -267,14 +274,12 @@ uint32_t x86_rel(cpu_t *cpu, uint16_t reg, uint8_t size)
         value = 0;
         break;
     }
-    cpu->pc += size;
     return value;
 }
 
 uint32_t x86_imm(cpu_t *cpu, uint16_t reg, uint8_t size)
 {
-    uint32_t value, pc = cpu->pc + size;
-    x86_write_reg(cpu, reg, pc);
+    uint32_t value;
     switch (size)
     {
     case 0x01:
@@ -290,14 +295,12 @@ uint32_t x86_imm(cpu_t *cpu, uint16_t reg, uint8_t size)
         value = 0;
         break;
     }
-    cpu->pc += size;
     return value;
 }
 
 int32_t x86_simm(cpu_t *cpu, uint16_t reg, uint8_t size)
 {
-    uint32_t value, pc = cpu->pc + size;
-    x86_write_reg(cpu, reg, pc);
+    uint32_t value;
     switch (size)
     {
     case 0x00 ... 0x01:
@@ -313,22 +316,12 @@ int32_t x86_simm(cpu_t *cpu, uint16_t reg, uint8_t size)
         value = 0;
         break;
     }
-    cpu->pc += size;
     return value;
 }
 
 void x86_test(cpu_t *cpu, uint64_t value1, uint64_t value2, uint8_t size)
 {
-    uint16_t flags_reg;
-    switch (size)
-    {
-    case 0x00 ... 0x02:
-        flags_reg = x86_reg_flags;
-        break;
-    case 0x03 ... 0x04:
-        flags_reg = x86_reg_eflags;
-        break;
-    }
+    uint16_t flags_reg = size > 2 ? x86_reg_eflags : x86_reg_flags;
     uint32_t flags;
     flags = x86_read_reg(cpu, flags_reg);
     if (!(value1 & value2))
@@ -340,16 +333,7 @@ void x86_test(cpu_t *cpu, uint64_t value1, uint64_t value2, uint8_t size)
 
 void x86_cmp(cpu_t *cpu, uint64_t value1, uint64_t value2, uint8_t size)
 {
-    uint16_t flags_reg;
-    switch (size)
-    {
-    case 0x00 ... 0x02:
-        flags_reg = x86_reg_flags;
-        break;
-    case 0x03 ... 0x04:
-        flags_reg = x86_reg_eflags;
-        break;
-    }
+    uint16_t flags_reg = size > 2 ? x86_reg_eflags : x86_reg_flags;
     uint32_t flags;
     flags = x86_read_reg(cpu, flags_reg);
     if (value1 == value2)
@@ -737,7 +721,7 @@ uint8_t x86_emulate(cpu_t *cpu)
 start:
     cpu->cache[x86_cache_opcode] = x86_read_cache(cpu, 1);
     cpu->cache[x86_cache_is_word] = cpu->cache[x86_cache_opcode] & 0x01;
-    cpu->pc++;
+    // cpu->pc++;
     switch (cpu->cache[x86_cache_opcode])
     {
     case 0x04:
@@ -814,6 +798,7 @@ start:
             cpu->cache[x86_cache_address1] = 2;
         *(uint32_t *)&cpu->cache[x86_cache_address0] = x86_rel(cpu, x86_reg_ip,
                                                                cpu->cache[x86_cache_address1]);
+        x86_write_reg(cpu, x86_reg_ip, cpu->pc);
         x86_push_reg(cpu, x86_reg_sp, x86_reg_ip, cpu->cache[x86_cache_address1]);
         x86_jump_near(cpu, x86_reg_ip,
                       *(uint32_t *)&cpu->cache[x86_cache_address0], cpu->cache[x86_cache_address1]);
