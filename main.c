@@ -38,10 +38,10 @@ void framebuffer_draw(void *input, void *output,
     case 4:
         for (uint16_t y = 0; y < output_height; y++)
         {
-            uint16_t round_y = (uint16_t)round((double)y / scale_y);
+            uint16_t round_y = (uint16_t)((double)y / scale_y);
             for (uint16_t x = 0; x < output_width; x++)
             {
-                uint16_t round_x = (uint16_t)round((double)x / scale_x);
+                uint16_t round_x = (uint16_t)((double)x / scale_x);
                 ((uint32_t *)output)[y * output_width + x] =
                     ((uint32_t *)input)[round_y * input_width + round_x];
             }
