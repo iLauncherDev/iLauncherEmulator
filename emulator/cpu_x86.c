@@ -4,11 +4,27 @@ uint16_t reg_x86[0x10000] = {0}, reg_x86_size[0x10000] = {0};
 
 uint64_t x86_read_reg(cpu_t *cpu, uint16_t reg)
 {
+    switch (reg)
+    {
+    case x86_reg_ip:
+        return cpu->pc & 0xffff;
+    case x86_reg_eip:
+        return cpu->pc & 0xffffffff;
+    }
     return memory_little_endian_read(&cpu->regs[reg_x86[reg]], reg_x86_size[reg]);
 }
 
 void x86_write_reg(cpu_t *cpu, uint16_t reg, uint64_t value)
 {
+    switch (reg)
+    {
+    case x86_reg_ip:
+        cpu->pc = value & 0xffff;
+        return;
+    case x86_reg_eip:
+        cpu->pc = value & 0xffffffff;
+        return;
+    }
     return memory_little_endian_write(&cpu->regs[reg_x86[reg]], reg_x86_size[reg], value);
 }
 
@@ -198,12 +214,11 @@ void x86_decode_rm(cpu_t *cpu, uint16_t reg, uint8_t size)
 
 void x86_decode(cpu_t *cpu, uint16_t reg, uint8_t size)
 {
-    if (size < 4)
-        if (x86_check_override(cpu, x86_override_dword_address))
-            size = 4;
     switch (cpu->cache[x86_cache_mod])
     {
     case 0x00:
+        if (x86_check_override(cpu, x86_override_dword_address) && size < 4)
+            size = 4;
         x86_decode_rm(cpu, reg, size);
         switch (cpu->cache[x86_cache_rm])
         {
@@ -221,10 +236,14 @@ void x86_decode(cpu_t *cpu, uint16_t reg, uint8_t size)
         }
         return;
     case 0x01:
+        if (x86_check_override(cpu, x86_override_dword_address) && size < 4)
+            size = 4;
         x86_decode_rm(cpu, reg, size);
         *(uint32_t *)&cpu->cache[x86_cache_address0] += (int8_t)x86_read_cache(cpu, 1);
         return;
     case 0x02:
+        if (x86_check_override(cpu, x86_override_dword_address) && size < 4)
+            size = 4;
         x86_decode_rm(cpu, reg, size);
         switch (size)
         {
@@ -258,17 +277,17 @@ void x86_decode(cpu_t *cpu, uint16_t reg, uint8_t size)
 
 uint32_t x86_rel(cpu_t *cpu, uint16_t reg, uint8_t size)
 {
-    uint32_t value, pc = cpu->pc + size;
+    uint32_t value;
     switch (size)
     {
     case 0x01:
-        value = (uint8_t)(pc + x86_read_cache(cpu, 1));
+        value = (uint8_t)(x86_read_cache(cpu, 1) + cpu->pc);
         break;
     case 0x02:
-        value = (uint16_t)(pc + x86_read_cache(cpu, 2));
+        value = (uint16_t)(x86_read_cache(cpu, 2) + cpu->pc);
         break;
     case 0x04:
-        value = pc + x86_read_cache(cpu, 4);
+        value = x86_read_cache(cpu, 4) + cpu->pc;
         break;
     default:
         value = 0;
@@ -349,32 +368,14 @@ void x86_cmp(cpu_t *cpu, uint64_t value1, uint64_t value2, uint8_t size)
 
 void x86_jumpif_near(cpu_t *cpu, uint16_t reg, uint16_t flags, uint64_t value, uint8_t size)
 {
-    uint16_t flags_reg;
-    switch (size)
-    {
-    case 0x00 ... 0x02:
-        flags_reg = x86_reg_flags;
-        break;
-    case 0x03 ... 0x04:
-        flags_reg = x86_reg_eflags;
-        break;
-    }
+    uint16_t flags_reg = size > 2 ? x86_reg_eflags : x86_reg_flags;
     if (x86_read_reg(cpu, flags_reg) & flags)
         x86_jump_near(cpu, reg, value, size);
 }
 
 void x86_jumpNotif_near(cpu_t *cpu, uint16_t reg, uint16_t flags, uint64_t value, uint8_t size)
 {
-    uint16_t flags_reg;
-    switch (size)
-    {
-    case 0x00 ... 0x02:
-        flags_reg = x86_reg_flags;
-        break;
-    case 0x03 ... 0x04:
-        flags_reg = x86_reg_eflags;
-        break;
-    }
+    uint16_t flags_reg = size > 2 ? x86_reg_eflags : x86_reg_flags;
     if (~x86_read_reg(cpu, flags_reg) & flags)
         x86_jump_near(cpu, reg, value, size);
 }
@@ -686,7 +687,7 @@ void x86_opcode_0f(cpu_t *cpu, uint16_t reg)
             x86_cache_decode_rm(cpu, reg);
             if (x86_check_override(cpu, x86_override_dword_operand))
             {
-                x86_decode(cpu, reg, 1);
+                x86_clear_override(cpu, x86_override_dword_operand), x86_decode(cpu, reg, 1);
                 x86_write_reg(cpu, x86_regs32[cpu->cache[x86_cache_reg]], x86_rm_read(cpu, 1));
             }
             else
@@ -721,11 +722,21 @@ uint8_t x86_emulate(cpu_t *cpu)
 start:
     cpu->cache[x86_cache_opcode] = x86_read_cache(cpu, 1);
     cpu->cache[x86_cache_is_word] = cpu->cache[x86_cache_opcode] & 0x01;
-    // cpu->pc++;
     switch (cpu->cache[x86_cache_opcode])
     {
-    case 0x04:
-        x86_write_reg(cpu, x86_reg_al, x86_read_reg(cpu, x86_reg_al) - (int8_t)x86_simm(cpu, x86_reg_ip, 1));
+    case 0x04 ... 0x05:
+        if (cpu->cache[x86_cache_is_word])
+        {
+            if (x86_check_override(cpu, x86_override_dword_operand))
+                x86_write_reg(cpu, x86_reg_eax, x86_read_reg(cpu, x86_reg_eax) - x86_imm(cpu, x86_reg_ip, 4));
+            else
+                x86_write_reg(cpu, x86_reg_ax, x86_read_reg(cpu, x86_reg_ax) - x86_imm(cpu, x86_reg_ip, 2));
+            x86_clear_override(cpu, x86_override_dword_operand);
+        }
+        else
+        {
+            x86_write_reg(cpu, x86_reg_al, x86_read_reg(cpu, x86_reg_al) - x86_imm(cpu, x86_reg_ip, 1));
+        }
         break;
     case 0x0f:
         x86_opcode_0f(cpu, x86_reg_ip);
@@ -798,8 +809,7 @@ start:
             cpu->cache[x86_cache_address1] = 2;
         *(uint32_t *)&cpu->cache[x86_cache_address0] = x86_rel(cpu, x86_reg_ip,
                                                                cpu->cache[x86_cache_address1]);
-        x86_write_reg(cpu, x86_reg_ip, cpu->pc);
-        x86_push_reg(cpu, x86_reg_sp, x86_reg_ip, cpu->cache[x86_cache_address1]);
+        x86_push_int(cpu, x86_reg_sp, (uint32_t)cpu->pc, cpu->cache[x86_cache_address1]);
         x86_jump_near(cpu, x86_reg_ip,
                       *(uint32_t *)&cpu->cache[x86_cache_address0], cpu->cache[x86_cache_address1]);
         x86_clear_override(cpu, x86_override_dword_operand);
@@ -856,7 +866,6 @@ start:
         ret++;
         break;
     }
-    x86_write_reg(cpu, x86_reg_ip, cpu->pc);
     return ret;
 }
 
@@ -878,7 +887,7 @@ cpu_t *x86_setup()
     for (uint16_t i = 0; i < 256; i++)
     {
         if (i >= x86_reg_al && i <= x86_reg_bh)
-            reg_x86[i] = ((i - x86_reg_al - (i & 0x01)) << 1) + (i & 0x01), reg_x86_size[i] = 1;
+            reg_x86[i] = ((i - x86_reg_al - (i & 0x01)) << 1) + (i & 0x01) + x86_reg_al, reg_x86_size[i] = 1;
         else if (i >= x86_reg_ax && i <= x86_reg_flags)
             reg_x86[i] = ((i - x86_reg_ax) << 1) + x86_reg_al, reg_x86_size[i] = 2;
         else if (i >= x86_reg_eax && i <= x86_reg_eflags)
