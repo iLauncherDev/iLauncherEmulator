@@ -125,6 +125,13 @@ static const uint8_t x86_sregs[] = {
     x86_reg_gs,
 };
 
+typedef struct x86_rm
+{
+    uint8_t rm : 3;
+    uint8_t reg : 3;
+    uint8_t mod : 2;
+} x86_rm_t;
+
 static const char *x86_regs_strings[x86_reg_end] = {
     "gs",
     (char *)NULL,
