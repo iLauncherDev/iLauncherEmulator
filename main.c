@@ -146,6 +146,12 @@ int32_t main(int32_t argc, char **argv)
         {
             debug_code = true;
         }
+        else if (!strcmp(argv[i], "-display"))
+        {
+            window_framebuffer[1] = atoi(argv[i + 1]);
+            window_framebuffer[2] = atoi(argv[i + 2]);
+            i += 2;
+        }
         else
         {
             printf("Unknown Argument: %s\n", argv[i]);
