@@ -4,10 +4,7 @@ section .text
 extern main
 
 start:
-    mov eax, cr0
-    mov eax, 1
-    mov cr0, eax
-bits 32
+    mov esp, 0x3000
     call main
 .loop:
     jmp .loop
