@@ -199,6 +199,15 @@ int32_t main(int32_t argc, char **argv)
         x86_reg_edi,
         x86_reg_eip,
         x86_reg_eflags,
+        x86_reg_cr0,
+        x86_reg_cr1,
+        x86_reg_cr2,
+        x86_reg_cr3,
+        x86_reg_cr4,
+        x86_reg_cr5,
+        x86_reg_cr6,
+        x86_reg_cr7,
+        x86_reg_cr8,
         0,
     };
     while (true)
