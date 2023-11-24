@@ -34,11 +34,11 @@ SECTIONS {
 		bss_end = .;
 	}
 
-    bios_end = ALIGN(0x1000);
+    bios_end = .;
 
 	.null :
 	{
+		. += 0xffff0 - bios_end;
 		*(.null)
-		. += 0xfffff - bios_end;
 	}
 }

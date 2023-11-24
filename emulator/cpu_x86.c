@@ -9,6 +9,8 @@ uint64_t x86_read_reg(cpu_t *cpu, uint16_t reg)
 
 void x86_write_reg(cpu_t *cpu, uint16_t reg, uint64_t value)
 {
+    if (reg >= x86_reg_gs && reg <= x86_reg_ss)
+        *(uint32_t *)&cpu->cache[x86_cache_seg_gs + (reg << 2)] = value << 4;
     return memory_little_endian_write(&cpu->regs[reg_x86[reg]], reg_x86_size[reg], value);
 }
 
@@ -297,7 +299,7 @@ int32_t x86_simm(cpu_t *cpu, uint8_t size)
     uint32_t value;
     switch (size)
     {
-    case 0x00 ... 0x01:
+    case 0x01:
         value = (int8_t)x86_read_cache(cpu, 1);
         break;
     case 0x02:
@@ -359,7 +361,7 @@ void x86_reset(cpu_t *cpu)
 {
     memset(cpu->regs, 0, x86_reg_end);
     memset(cpu->cache, 0, x86_cache_end);
-    x86_write_reg(cpu, x86_reg_cs, (0xfffff - limit(bios_size, (256 * 1024) - 1)) >> 4);
+    x86_write_reg(cpu, x86_reg_cs, 0xffff);
     *(uint32_t *)&cpu->cache[x86_cache_seg_gs] = *(uint16_t *)&cpu->regs[x86_reg_gs] << 4;
     *(uint32_t *)&cpu->cache[x86_cache_seg_fs] = *(uint16_t *)&cpu->regs[x86_reg_fs] << 4;
     *(uint32_t *)&cpu->cache[x86_cache_seg_es] = *(uint16_t *)&cpu->regs[x86_reg_es] << 4;
@@ -839,6 +841,16 @@ start:
                           2);
         x86_clear_override(cpu, x86_override_dword_operand);
         break;
+    case 0xea:
+        if (cpu->override & x86_override_dword_operand)
+            *(uint32_t *)&cpu->cache[x86_cache_address0] = x86_imm(cpu, 4);
+        else
+            *(uint32_t *)&cpu->cache[x86_cache_address0] = x86_imm(cpu, 2);
+        x86_write_reg(cpu, x86_reg_cs, x86_imm(cpu, 2));
+        cpu->pc_base = *(uint32_t *)&cpu->cache[x86_cache_seg_cs];
+        cpu->pc = *(uint32_t *)&cpu->cache[x86_cache_address0];
+        x86_clear_override(cpu, x86_override_dword_operand);
+        break;
     case 0xeb:
         x86_jump_near(cpu, x86_rel(cpu, 1), 1);
         break;
@@ -867,7 +879,7 @@ start:
             cpu->cache[x86_cache_address1] = 4;
         else
             cpu->cache[x86_cache_address1] = 2;
-	cpu->pc = x86_pop(cpu, x86_reg_esp, cpu->cache[x86_cache_address1]);
+        cpu->pc = x86_pop(cpu, x86_reg_esp, cpu->cache[x86_cache_address1]);
         x86_clear_override(cpu, x86_override_dword_operand);
         break;
     case 0xc6 ... 0xc7:

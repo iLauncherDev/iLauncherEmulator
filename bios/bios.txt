@@ -65289,10 +65289,9 @@
 0001FFE9  0000              add [bx+si],al
 0001FFEB  0000              add [bx+si],al
 0001FFED  0000              add [bx+si],al
-0001FFEF  0000              add [bx+si],al
-0001FFF1  0000              add [bx+si],al
-0001FFF3  0000              add [bx+si],al
-0001FFF5  0000              add [bx+si],al
+0001FFEF  00FA              add dl,bh
+0001FFF1  FC                cld
+0001FFF2  EA000000E0        jmp 0xe000:0x0
 0001FFF7  0000              add [bx+si],al
 0001FFF9  0000              add [bx+si],al
 0001FFFB  0000              add [bx+si],al
