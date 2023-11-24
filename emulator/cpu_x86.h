@@ -92,8 +92,7 @@ typedef enum x86_regs
     x86_cache_seg_ds = x86_cache_seg_es + 8,
     x86_cache_seg_cs = x86_cache_seg_ds + 8,
     x86_cache_seg_ss = x86_cache_seg_cs + 8,
-    x86_cache_is_word = x86_cache_seg_ss + 8,
-    x86_cache_buffer256 = x86_cache_is_word + 1,
+    x86_cache_buffer256 = x86_cache_seg_ss + 8,
     x86_cache_end = x86_cache_buffer256 + 256,
 
     x86_override_dword_operand = 1 << 0,
@@ -104,6 +103,7 @@ typedef enum x86_regs
     x86_override_ds = 1 << 5,
     x86_override_cs = 1 << 6,
     x86_override_ss = 1 << 7,
+    x86_override_is_word = 1 << 8,
 } x86_regs_t;
 
 static const uint8_t x86_regscontrol[] = {

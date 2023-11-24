@@ -379,7 +379,7 @@ void x86_reset(cpu_t *cpu)
 void x86_opcode_8a_8b(cpu_t *cpu)
 {
     x86_cache_decode_rm(cpu);
-    if (cpu->cache[x86_cache_is_word])
+    if (cpu->override & x86_override_is_word)
     {
         if (cpu->override & x86_override_dword_operand)
         {
@@ -402,7 +402,7 @@ void x86_opcode_8a_8b(cpu_t *cpu)
 void x86_opcode_88_89(cpu_t *cpu)
 {
     x86_cache_decode_rm(cpu);
-    if (cpu->cache[x86_cache_is_word])
+    if (cpu->override & x86_override_is_word)
     {
         if (cpu->override & x86_override_dword_operand)
         {
@@ -425,7 +425,7 @@ void x86_opcode_88_89(cpu_t *cpu)
 void x86_opcode_84_85(cpu_t *cpu)
 {
     x86_cache_decode_rm(cpu);
-    if (cpu->cache[x86_cache_is_word])
+    if (cpu->override & x86_override_is_word)
     {
         if (cpu->override & x86_override_dword_operand)
         {
@@ -497,7 +497,7 @@ void x86_opcode_b0_bf(cpu_t *cpu, uint8_t size)
 
 void x86_opcode_a0_a1(cpu_t *cpu)
 {
-    if (cpu->cache[x86_cache_is_word])
+    if (cpu->override & x86_override_is_word)
     {
         if (cpu->override & x86_override_dword_address)
             *(uint32_t *)&cpu->cache[x86_cache_address0] = x86_imm(cpu, 4);
@@ -524,7 +524,7 @@ void x86_opcode_a0_a1(cpu_t *cpu)
 void x86_opcode_c6_c7(cpu_t *cpu)
 {
     x86_cache_decode_rm(cpu);
-    if (cpu->cache[x86_cache_is_word])
+    if (cpu->override & x86_override_is_word)
     {
         if (cpu->override & x86_override_dword_operand)
         {
@@ -591,7 +591,7 @@ void x86_opcode_40_47(cpu_t *cpu)
 void x86_opcode_30_31(cpu_t *cpu)
 {
     x86_cache_decode_rm(cpu);
-    if (cpu->cache[x86_cache_is_word])
+    if (cpu->override & x86_override_is_word)
     {
         if (cpu->override & x86_override_dword_operand)
         {
@@ -710,7 +710,7 @@ void x86_opcode_0f(cpu_t *cpu)
 
 void x86_opcode_04_05(cpu_t *cpu)
 {
-    if (cpu->cache[x86_cache_is_word])
+    if (cpu->override & x86_override_is_word)
     {
         if (cpu->override & x86_override_dword_operand)
             x86_write_reg(cpu, x86_reg_eax, x86_read_reg(cpu, x86_reg_eax) - x86_imm(cpu, 4));
@@ -740,7 +740,10 @@ start:
     opcode = x86_read_cache(cpu, 1);
     bit_check = 1 << (opcode & 0x01);
     cpu->cache[x86_cache_opcode] = opcode;
-    cpu->cache[x86_cache_is_word] = opcode & 0x01;
+    if (opcode & 0x01)
+        cpu->override |= x86_override_is_word;
+    else
+        cpu->override &= ~x86_override_is_word;
     switch (cpu->cache[x86_cache_opcode])
     {
     case 0x04 ... 0x05:
