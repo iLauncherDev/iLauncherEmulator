@@ -34,15 +34,19 @@ void cpu_emulate(cpu_t *cpu)
 {
     if (!cpu)
         goto end;
-    while (cpu->flags & cpu_flag_wait)
+    while (cpu->flags & cpu_flag_lock)
         ;
-    cpu->flags |= cpu_flag_emulating;
+    if (cpu->flags & cpu_flag_reset)
+    {
+        if (cpu->reset)
+            cpu->reset(cpu);
+        cpu->flags &= ~cpu_flag_reset;
+    }
     if (cpu->emulate)
     {
         if (cpu->emulate(cpu))
             printf("Unknown opcode: 0x%lx\n", memory_read(cpu->pc_base + cpu->pc, 1, 0)), cpu->pc++;
     }
-    cpu->flags &= ~cpu_flag_emulating;
 end:
     return;
 }
