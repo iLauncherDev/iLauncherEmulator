@@ -1,8 +1,8 @@
-00000000  8CC8              mov ax,cs
-00000002  8ED8              mov ds,ax
-00000004  31C0              xor ax,ax
-00000006  8EC0              mov es,ax
-00000008  BC0030            mov sp,0x3000
+00000000  BC0030            mov sp,0x3000
+00000003  8CC8              mov ax,cs
+00000005  8ED8              mov ds,ax
+00000007  31C0              xor ax,ax
+00000009  8EC0              mov es,ax
 0000000B  E81202            call 0x220
 0000000E  EBFE              jmp short 0xe
 00000010  6655              push ebp

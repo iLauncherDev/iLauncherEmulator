@@ -3,11 +3,11 @@ section .text
 extern main
 
 start:
+    mov sp, 0x3000
     mov ax, cs
     mov ds, ax
     xor ax, ax
     mov es, ax
-    mov sp, 0x3000
     call main
 .loop:
     jmp .loop
