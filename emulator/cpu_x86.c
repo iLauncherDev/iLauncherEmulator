@@ -314,8 +314,8 @@ void x86_jumpNotif_near(cpu_t *cpu, uint16_t flags, uint64_t value)
 
 void x86_reset(cpu_t *cpu)
 {
-    memset(cpu->regs, 0, 256);
-    memset(cpu->cache, 0, x86_cache_end);
+    for (size_t i = x86_reg_cr0; i < x86_reg_cr8; i += 4)
+        x86_write_reg(cpu, i, 0);
     x86_write_reg(cpu, x86_reg_gs, 0x0000);
     x86_write_reg(cpu, x86_reg_fs, 0x0000);
     x86_write_reg(cpu, x86_reg_es, 0x0000);

@@ -7,6 +7,7 @@
         "initializer_list": "c",
         "string.h": "c",
         "cpu_x86.h": "c",
-        "bios_string.h": "c"
+        "bios_string.h": "c",
+        "algorithm": "c"
     }
 }
