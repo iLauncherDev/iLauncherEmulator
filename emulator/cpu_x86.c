@@ -325,6 +325,20 @@ void x86_reset(cpu_t *cpu)
     cpu->pc = 0;
 }
 
+void x86_opcode_8e(cpu_t *cpu)
+{
+    x86_cache_decode_rm(cpu);
+    x86_decode_no_operand(cpu, 2);
+    x86_write_reg(cpu, x86_sregs[cpu->cache[x86_cache_reg]], x86_rm_read(cpu, 2));
+}
+
+void x86_opcode_8c(cpu_t *cpu)
+{
+    x86_cache_decode_rm(cpu);
+    x86_decode_no_operand(cpu, 2);
+    x86_rm_write(cpu, x86_read_reg(cpu, x86_sregs[cpu->cache[x86_cache_reg]]), 2);
+}
+
 void x86_opcode_8a_8b(cpu_t *cpu)
 {
     x86_cache_decode_rm(cpu);
@@ -738,6 +752,12 @@ start:
     case 0x8a ... 0x8b:
         x86_opcode_8a_8b(cpu);
         break;
+    case 0x8c:
+        x86_opcode_8c(cpu);
+        break;
+    case 0x8e:
+        x86_opcode_8e(cpu);
+        break;
     case 0x8d:
         x86_cache_decode_rm(cpu);
         if (cpu->override & x86_override_dword_operand)
@@ -768,7 +788,7 @@ start:
         else
             cpu->cache[x86_cache_address1] = 2;
         *(int32_t *)&cpu->cache[x86_cache_address0] = x86_sread_pc(cpu,
-                                                                    cpu->cache[x86_cache_address1]);
+                                                                   cpu->cache[x86_cache_address1]);
         x86_push_int(cpu, x86_reg_esp, (uint32_t)cpu->pc, cpu->cache[x86_cache_address1]);
         cpu->pc += *(int32_t *)&cpu->cache[x86_cache_address0];
         break;

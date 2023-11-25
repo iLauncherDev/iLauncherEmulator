@@ -195,6 +195,12 @@ int32_t main(int32_t argc, char **argv)
     pthread_t window_update_thread;
     pthread_create(&window_update_thread, NULL, window_update, NULL);
     uint16_t regs[] = {
+        x86_reg_gs,
+        x86_reg_fs,
+        x86_reg_es,
+        x86_reg_ds,
+        x86_reg_cs,
+        x86_reg_ss,
         x86_reg_eax,
         x86_reg_ecx,
         x86_reg_edx,
@@ -214,7 +220,7 @@ int32_t main(int32_t argc, char **argv)
         x86_reg_cr6,
         x86_reg_cr7,
         x86_reg_cr8,
-        0,
+        0xffff,
     };
     while (true)
     {
@@ -225,7 +231,7 @@ int32_t main(int32_t argc, char **argv)
         if (debug_code)
         {
             printf("Regs:\n");
-            for (uint8_t i = 0; regs[i]; i++)
+            for (uint8_t i = 0; regs[i] != 0xffff; i++)
                 printf("%s = 0x%" PRIx64 " ", x86_regs_strings[regs[i]], cpu_read_reg(x86_cpu, regs[i]));
             printf("\n");
         }
