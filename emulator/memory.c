@@ -2,31 +2,50 @@
 
 memory_map_t *memory_map = (void *)NULL;
 
+uint16_t big_or_little = 0xff00;
+
 uint64_t memory_big_endian_read(void *ptr, uint8_t size)
 {
     if (!ptr || !size)
         return 0;
-    switch (size)
+    if (*(uint8_t *)&big_or_little)
     {
-    case 1:
-        return (uint64_t)(((uint8_t *)ptr)[0]);
-    case 2:
-        return ((uint64_t)(((uint8_t *)ptr)[0]) << 8) |
-               (uint64_t)(((uint8_t *)ptr)[1]);
-    case 4:
-        return ((uint64_t)(((uint8_t *)ptr)[0]) << 24) |
-               ((uint64_t)(((uint8_t *)ptr)[1]) << 16) |
-               ((uint64_t)(((uint8_t *)ptr)[2]) << 8) |
-               (uint64_t)(((uint8_t *)ptr)[3]);
-    default:
-        return ((uint64_t)(((uint8_t *)ptr)[0]) << 56) |
-               ((uint64_t)(((uint8_t *)ptr)[1]) << 48) |
-               ((uint64_t)(((uint8_t *)ptr)[2]) << 40) |
-               ((uint64_t)(((uint8_t *)ptr)[3]) << 32) |
-               ((uint64_t)(((uint8_t *)ptr)[4]) << 24) |
-               ((uint64_t)(((uint8_t *)ptr)[5]) << 16) |
-               ((uint64_t)(((uint8_t *)ptr)[6]) << 8) |
-               (uint64_t)(((uint8_t *)ptr)[7]);
+        switch (size)
+        {
+        case 1:
+            return *(uint8_t *)ptr;
+        case 2:
+            return *(uint16_t *)ptr;
+        case 4:
+            return *(uint32_t *)ptr;
+        default:
+            return *(uint64_t *)ptr;
+        }
+    }
+    else
+    {
+        switch (size)
+        {
+        case 1:
+            return (uint64_t)(((uint8_t *)ptr)[0]);
+        case 2:
+            return ((uint64_t)(((uint8_t *)ptr)[0]) << 8) |
+                   (uint64_t)(((uint8_t *)ptr)[1]);
+        case 4:
+            return ((uint64_t)(((uint8_t *)ptr)[0]) << 24) |
+                   ((uint64_t)(((uint8_t *)ptr)[1]) << 16) |
+                   ((uint64_t)(((uint8_t *)ptr)[2]) << 8) |
+                   (uint64_t)(((uint8_t *)ptr)[3]);
+        default:
+            return ((uint64_t)(((uint8_t *)ptr)[0]) << 56) |
+                   ((uint64_t)(((uint8_t *)ptr)[1]) << 48) |
+                   ((uint64_t)(((uint8_t *)ptr)[2]) << 40) |
+                   ((uint64_t)(((uint8_t *)ptr)[3]) << 32) |
+                   ((uint64_t)(((uint8_t *)ptr)[4]) << 24) |
+                   ((uint64_t)(((uint8_t *)ptr)[5]) << 16) |
+                   ((uint64_t)(((uint8_t *)ptr)[6]) << 8) |
+                   (uint64_t)(((uint8_t *)ptr)[7]);
+        }
     }
 }
 
@@ -34,31 +53,52 @@ void memory_big_endian_write(void *ptr, uint8_t size, uint64_t value)
 {
     if (!ptr || !size)
         return;
-    switch (size)
+    if (*(uint8_t *)&big_or_little)
     {
-    case 1:
-        ((uint8_t *)ptr)[0] = value & 0xff;
-        break;
-    case 2:
-        ((uint8_t *)ptr)[0] = (value >> 8) & 0xff;
-        ((uint8_t *)ptr)[1] = value & 0xff;
-        break;
-    case 4:
-        ((uint8_t *)ptr)[0] = (value >> 24) & 0xff;
-        ((uint8_t *)ptr)[1] = (value >> 16) & 0xff;
-        ((uint8_t *)ptr)[2] = (value >> 8) & 0xff;
-        ((uint8_t *)ptr)[3] = value & 0xff;
-        break;
-    default:
-        ((uint8_t *)ptr)[0] = (value >> 56) & 0xff;
-        ((uint8_t *)ptr)[1] = (value >> 48) & 0xff;
-        ((uint8_t *)ptr)[2] = (value >> 40) & 0xff;
-        ((uint8_t *)ptr)[3] = (value >> 32) & 0xff;
-        ((uint8_t *)ptr)[4] = (value >> 24) & 0xff;
-        ((uint8_t *)ptr)[5] = (value >> 16) & 0xff;
-        ((uint8_t *)ptr)[6] = (value >> 8) & 0xff;
-        ((uint8_t *)ptr)[7] = value & 0xff;
-        break;
+        switch (size)
+        {
+        case 1:
+            *(uint8_t *)ptr = value & 0xff;
+            break;
+        case 2:
+            *(uint16_t *)ptr = value & 0xffff;
+            break;
+        case 4:
+            *(uint32_t *)ptr = value & 0xffffffff;
+            break;
+        default:
+            *(uint64_t *)ptr = value;
+            break;
+        }
+    }
+    else
+    {
+        switch (size)
+        {
+        case 1:
+            ((uint8_t *)ptr)[0] = value & 0xff;
+            break;
+        case 2:
+            ((uint8_t *)ptr)[0] = (value >> 8) & 0xff;
+            ((uint8_t *)ptr)[1] = value & 0xff;
+            break;
+        case 4:
+            ((uint8_t *)ptr)[0] = (value >> 24) & 0xff;
+            ((uint8_t *)ptr)[1] = (value >> 16) & 0xff;
+            ((uint8_t *)ptr)[2] = (value >> 8) & 0xff;
+            ((uint8_t *)ptr)[3] = value & 0xff;
+            break;
+        default:
+            ((uint8_t *)ptr)[0] = (value >> 56) & 0xff;
+            ((uint8_t *)ptr)[1] = (value >> 48) & 0xff;
+            ((uint8_t *)ptr)[2] = (value >> 40) & 0xff;
+            ((uint8_t *)ptr)[3] = (value >> 32) & 0xff;
+            ((uint8_t *)ptr)[4] = (value >> 24) & 0xff;
+            ((uint8_t *)ptr)[5] = (value >> 16) & 0xff;
+            ((uint8_t *)ptr)[6] = (value >> 8) & 0xff;
+            ((uint8_t *)ptr)[7] = value & 0xff;
+            break;
+        }
     }
 }
 
@@ -66,27 +106,44 @@ uint64_t memory_little_endian_read(void *ptr, uint8_t size)
 {
     if (!ptr || !size)
         return 0;
-    switch (size)
+    if (*(uint8_t *)&big_or_little)
     {
-    case 1:
-        return (uint64_t)(((uint8_t *)ptr)[0]);
-    case 2:
-        return (uint64_t)(((uint8_t *)ptr)[0]) |
-               ((uint64_t)(((uint8_t *)ptr)[1]) << 8);
-    case 4:
-        return (uint64_t)(((uint8_t *)ptr)[0]) |
-               ((uint64_t)(((uint8_t *)ptr)[1]) << 8) |
-               ((uint64_t)(((uint8_t *)ptr)[2]) << 16) |
-               ((uint64_t)(((uint8_t *)ptr)[3]) << 24);
-    default:
-        return (uint64_t)(((uint8_t *)ptr)[0]) |
-               ((uint64_t)(((uint8_t *)ptr)[1]) << 8) |
-               ((uint64_t)(((uint8_t *)ptr)[2]) << 16) |
-               ((uint64_t)(((uint8_t *)ptr)[3]) << 24) |
-               ((uint64_t)(((uint8_t *)ptr)[4]) << 32) |
-               ((uint64_t)(((uint8_t *)ptr)[5]) << 40) |
-               ((uint64_t)(((uint8_t *)ptr)[6]) << 48) |
-               ((uint64_t)(((uint8_t *)ptr)[7]) << 56);
+        switch (size)
+        {
+        case 1:
+            return (uint64_t)(((uint8_t *)ptr)[0]);
+        case 2:
+            return (uint64_t)(((uint8_t *)ptr)[0]) |
+                   ((uint64_t)(((uint8_t *)ptr)[1]) << 8);
+        case 4:
+            return (uint64_t)(((uint8_t *)ptr)[0]) |
+                   ((uint64_t)(((uint8_t *)ptr)[1]) << 8) |
+                   ((uint64_t)(((uint8_t *)ptr)[2]) << 16) |
+                   ((uint64_t)(((uint8_t *)ptr)[3]) << 24);
+        default:
+            return (uint64_t)(((uint8_t *)ptr)[0]) |
+                   ((uint64_t)(((uint8_t *)ptr)[1]) << 8) |
+                   ((uint64_t)(((uint8_t *)ptr)[2]) << 16) |
+                   ((uint64_t)(((uint8_t *)ptr)[3]) << 24) |
+                   ((uint64_t)(((uint8_t *)ptr)[4]) << 32) |
+                   ((uint64_t)(((uint8_t *)ptr)[5]) << 40) |
+                   ((uint64_t)(((uint8_t *)ptr)[6]) << 48) |
+                   ((uint64_t)(((uint8_t *)ptr)[7]) << 56);
+        }
+    }
+    else
+    {
+        switch (size)
+        {
+        case 1:
+            return *(uint8_t *)ptr;
+        case 2:
+            return *(uint16_t *)ptr;
+        case 4:
+            return *(uint32_t *)ptr;
+        default:
+            return *(uint64_t *)ptr;
+        }
     }
 }
 
@@ -94,31 +151,52 @@ void memory_little_endian_write(void *ptr, uint8_t size, uint64_t value)
 {
     if (!ptr || !size)
         return;
-    switch (size)
+    if (*(uint8_t *)&big_or_little)
     {
-    case 1:
-        ((uint8_t *)ptr)[0] = value & 0xff;
-        break;
-    case 2:
-        ((uint8_t *)ptr)[0] = value & 0xff;
-        ((uint8_t *)ptr)[1] = (value >> 8) & 0xff;
-        break;
-    case 4:
-        ((uint8_t *)ptr)[0] = value & 0xff;
-        ((uint8_t *)ptr)[1] = (value >> 8) & 0xff;
-        ((uint8_t *)ptr)[2] = (value >> 16) & 0xff;
-        ((uint8_t *)ptr)[3] = (value >> 24) & 0xff;
-        break;
-    default:
-        ((uint8_t *)ptr)[0] = value & 0xff;
-        ((uint8_t *)ptr)[1] = (value >> 8) & 0xff;
-        ((uint8_t *)ptr)[2] = (value >> 16) & 0xff;
-        ((uint8_t *)ptr)[3] = (value >> 24) & 0xff;
-        ((uint8_t *)ptr)[4] = (value >> 32) & 0xff;
-        ((uint8_t *)ptr)[5] = (value >> 40) & 0xff;
-        ((uint8_t *)ptr)[6] = (value >> 48) & 0xff;
-        ((uint8_t *)ptr)[7] = (value >> 56) & 0xff;
-        break;
+        switch (size)
+        {
+        case 1:
+            ((uint8_t *)ptr)[0] = value & 0xff;
+            break;
+        case 2:
+            ((uint8_t *)ptr)[0] = value & 0xff;
+            ((uint8_t *)ptr)[1] = (value >> 8) & 0xff;
+            break;
+        case 4:
+            ((uint8_t *)ptr)[0] = value & 0xff;
+            ((uint8_t *)ptr)[1] = (value >> 8) & 0xff;
+            ((uint8_t *)ptr)[2] = (value >> 16) & 0xff;
+            ((uint8_t *)ptr)[3] = (value >> 24) & 0xff;
+            break;
+        default:
+            ((uint8_t *)ptr)[0] = value & 0xff;
+            ((uint8_t *)ptr)[1] = (value >> 8) & 0xff;
+            ((uint8_t *)ptr)[2] = (value >> 16) & 0xff;
+            ((uint8_t *)ptr)[3] = (value >> 24) & 0xff;
+            ((uint8_t *)ptr)[4] = (value >> 32) & 0xff;
+            ((uint8_t *)ptr)[5] = (value >> 40) & 0xff;
+            ((uint8_t *)ptr)[6] = (value >> 48) & 0xff;
+            ((uint8_t *)ptr)[7] = (value >> 56) & 0xff;
+            break;
+        }
+    }
+    else
+    {
+        switch (size)
+        {
+        case 1:
+            *(uint8_t *)ptr = value & 0xff;
+            break;
+        case 2:
+            *(uint16_t *)ptr = value & 0xffff;
+            break;
+        case 4:
+            *(uint32_t *)ptr = value & 0xffffffff;
+            break;
+        default:
+            *(uint64_t *)ptr = value;
+            break;
+        }
     }
 }
 

@@ -164,10 +164,10 @@ int32_t main(int32_t argc, char **argv)
             return 1;
         }
     }
-    if (vm_memory_size < 0x400000)
-        vm_memory_size = 0x400000;
+    if (vm_memory_size < 0x800000)
+        vm_memory_size = 0x800000;
     vm_memory = malloc(vm_memory_size);
-    printf("Allocated %luMB In RAM\n", vm_memory_size / 1024 / 1024);
+    printf("Allocated %" PRIu64 "MB In RAM\n", vm_memory_size / 1024 / 1024);
     if (bios_bin)
         bios_rom = malloc(bios_size), fread(bios_rom, bios_size, 1, bios_bin);
     memory_map_buffer(MEMORY_READ_FLAG,
@@ -177,9 +177,9 @@ int32_t main(int32_t argc, char **argv)
                       bios_size);
     if (dump_bios)
     {
-        printf("Address: 0x%lx\n", 0xfffff - limit(bios_size, (256 * 1024) - 1));
+        printf("Address: 0x%" PRIx64 "\n", 0xfffff - limit(bios_size, (256 * 1024) - 1));
         for (size_t i = 0; i < bios_size; i++)
-            printf("%lx ", memory_read(i + (0xfffff - limit(bios_size, (256 * 1024) - 1)), 1, 0));
+            printf("%" PRIx64 " ", memory_read(i + (0xfffff - limit(bios_size, (256 * 1024) - 1)), 1, 0));
         printf("\n");
         return 0;
     }
@@ -226,7 +226,7 @@ int32_t main(int32_t argc, char **argv)
         {
             printf("Regs:\n");
             for (uint8_t i = 0; regs[i]; i++)
-                printf("%s = 0x%lx ", x86_regs_strings[regs[i]], cpu_read_reg(x86_cpu, regs[i]));
+                printf("%s = 0x%" PRIx64 " ", x86_regs_strings[regs[i]], cpu_read_reg(x86_cpu, regs[i]));
             printf("\n");
         }
         if (code_delay)
