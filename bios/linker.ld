@@ -1,4 +1,5 @@
 OUTPUT_FORMAT("binary");
+OUTPUT_ARCH(i386:i386);
 ENTRY(main);
 
 SECTIONS {
@@ -7,31 +8,23 @@ SECTIONS {
 
 	.text ALIGN(0x1000) :
 	{
-		text_start = .;
 		*(.text)
-		text_end = .;
 	}
-
-	.data ALIGN(0x1000) : AT(0xc0000)
+	
+	.rodata ALIGN(0x1000) :
 	{
-		data_start = .;
-		*(.data)
-		data_end = .;
-	}
-
-	.rodata ALIGN(0x1000) : AT(data_end)
-	{
-		rodata_start = .;
 		*(.rodata)
-		rodata_end = .;
 	}
-
-	.bss ALIGN(0x1000) : AT(rodata_end)
+	
+	.data ALIGN(0x1000) :
 	{
-		bss_start = .;
+		*(.data)
+	}
+	
+	.bss ALIGN(0x1000) :
+	{
 		*(COMMON)
 		*(.bss)
-		bss_end = .;
 	}
 
     bios_end = .;
@@ -41,4 +34,6 @@ SECTIONS {
 		. += 0xffff0 - bios_end;
 		*(.null)
 	}
+	
+	bios_end = .;
 }
