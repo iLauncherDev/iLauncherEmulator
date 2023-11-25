@@ -316,14 +316,12 @@ void x86_reset(cpu_t *cpu)
 {
     memset(cpu->regs, 0, 256);
     memset(cpu->cache, 0, x86_cache_end);
+    x86_write_reg(cpu, x86_reg_gs, 0x0000);
+    x86_write_reg(cpu, x86_reg_fs, 0x0000);
+    x86_write_reg(cpu, x86_reg_es, 0x0000);
+    x86_write_reg(cpu, x86_reg_ds, 0x0000);
     x86_write_reg(cpu, x86_reg_cs, 0xffff);
-    *(uint32_t *)&cpu->cache[x86_cache_seg_gs] = *(uint16_t *)&cpu->regs[x86_reg_gs] << 4;
-    *(uint32_t *)&cpu->cache[x86_cache_seg_fs] = *(uint16_t *)&cpu->regs[x86_reg_fs] << 4;
-    *(uint32_t *)&cpu->cache[x86_cache_seg_es] = *(uint16_t *)&cpu->regs[x86_reg_es] << 4;
-    *(uint32_t *)&cpu->cache[x86_cache_seg_ds] = *(uint16_t *)&cpu->regs[x86_reg_ds] << 4;
-    *(uint32_t *)&cpu->cache[x86_cache_seg_cs] = *(uint16_t *)&cpu->regs[x86_reg_cs] << 4;
-    *(uint32_t *)&cpu->cache[x86_cache_seg_ss] = *(uint16_t *)&cpu->regs[x86_reg_ss] << 4;
-    cpu->pc_base = *(uint32_t *)&cpu->cache[x86_cache_seg_cs];
+    x86_write_reg(cpu, x86_reg_ss, 0x0000);
     cpu->pc = 0;
 }
 
@@ -676,6 +674,7 @@ void x86_opcode_04_05(cpu_t *cpu)
 
 uint8_t x86_emulate(cpu_t *cpu)
 {
+    cpu->pc_base = *(uint32_t *)&cpu->cache[x86_cache_seg_cs];
     uint8_t ret = 0, opcode = 0, bit_check = 0;
     uint16_t old_override = cpu->override;
     if (x86_read_reg(cpu, x86_reg_cr0) & x86_cr0_PE)
