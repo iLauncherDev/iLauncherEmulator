@@ -75,7 +75,7 @@ void *window_update()
             }
         }
         if (scancode[SDL_SCANCODE_LCTRL] && scancode[SDL_SCANCODE_LALT] &&
-            scancode[SDL_SCANCODE_LSHIFT] && scancode[SDL_SCANCODE_F] && scancode_ready[SDL_SCANCODE_F])
+            scancode[SDL_SCANCODE_F] && scancode_ready[SDL_SCANCODE_F])
         {
             if (!fullscreen)
             {
@@ -89,13 +89,13 @@ void *window_update()
             scancode_ready[SDL_SCANCODE_F] = false;
         }
         else if (scancode[SDL_SCANCODE_LCTRL] && scancode[SDL_SCANCODE_LALT] &&
-                 scancode[SDL_SCANCODE_LSHIFT] && scancode[SDL_SCANCODE_Q] && scancode_ready[SDL_SCANCODE_Q])
+                 scancode[SDL_SCANCODE_Q] && scancode_ready[SDL_SCANCODE_Q])
         {
             exit(0);
             scancode_ready[SDL_SCANCODE_Q] = false;
         }
         else if (scancode[SDL_SCANCODE_LCTRL] && scancode[SDL_SCANCODE_LALT] &&
-                 scancode[SDL_SCANCODE_LSHIFT] && scancode[SDL_SCANCODE_R] && scancode_ready[SDL_SCANCODE_R])
+                 scancode[SDL_SCANCODE_R] && scancode_ready[SDL_SCANCODE_R])
         {
             x86_cpu->flags |= cpu_flag_reset;
             scancode_ready[SDL_SCANCODE_R] = false;

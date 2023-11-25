@@ -2,6 +2,8 @@
 
 uint16_t reg_x86[0x10000] = {0}, reg_x86_size[0x10000] = {0};
 
+uint64_t x86_jump_near;
+
 uint64_t x86_read_reg(cpu_t *cpu, uint16_t reg)
 {
     return memory_little_endian_read(&cpu->regs[reg_x86[reg]], reg_x86_size[reg]);
@@ -59,11 +61,6 @@ uint32_t x86_pop(cpu_t *cpu, uint16_t stack_reg, uint8_t size)
              full_address = *(uint32_t *)&cpu->cache[x86_cache_seg_ss] + address;
     x86_write_reg(cpu, stack_reg, address);
     return memory_read(full_address - size, size, 0);
-}
-
-void x86_jump_near(cpu_t *cpu, int32_t value)
-{
-    cpu->pc += value;
 }
 
 void x86_jump_far(cpu_t *cpu, uint32_t value, uint16_t segment)
@@ -306,13 +303,13 @@ void x86_cmp(cpu_t *cpu, uint64_t value1, uint64_t value2, uint8_t size)
 void x86_jumpif_near(cpu_t *cpu, uint16_t flags, uint64_t value)
 {
     if (x86_read_reg(cpu, x86_reg_eflags) & flags)
-        x86_jump_near(cpu, value);
+        cpu->pc += value;
 }
 
 void x86_jumpNotif_near(cpu_t *cpu, uint16_t flags, uint64_t value)
 {
     if (~x86_read_reg(cpu, x86_reg_eflags) & flags)
-        x86_jump_near(cpu, value);
+        cpu->pc += value;
 }
 
 void x86_reset(cpu_t *cpu)
@@ -771,19 +768,16 @@ start:
             cpu->cache[x86_cache_address1] = 4;
         else
             cpu->cache[x86_cache_address1] = 2;
-        *(uint32_t *)&cpu->cache[x86_cache_address0] = x86_sread_pc(cpu,
-                                                                   cpu->cache[x86_cache_address1]);
+        *(int32_t *)&cpu->cache[x86_cache_address0] = x86_sread_pc(cpu,
+                                                                    cpu->cache[x86_cache_address1]);
         x86_push_int(cpu, x86_reg_esp, (uint32_t)cpu->pc, cpu->cache[x86_cache_address1]);
-        x86_jump_near(cpu,
-                      *(uint32_t *)&cpu->cache[x86_cache_address0]);
+        cpu->pc += *(int32_t *)&cpu->cache[x86_cache_address0];
         break;
     case 0xe9:
         if (cpu->override & x86_override_dword_operand)
-            x86_jump_near(cpu,
-                          x86_sread_pc(cpu, cpu->cache[x86_cache_size]));
+            cpu->pc += x86_sread_pc(cpu, 4);
         else
-            x86_jump_near(cpu,
-                          x86_sread_pc(cpu, cpu->cache[x86_cache_size]));
+            cpu->pc += x86_sread_pc(cpu, 2);
         break;
     case 0xea:
         if (cpu->override & x86_override_dword_operand)
@@ -792,7 +786,7 @@ start:
             x86_jump_far(cpu, x86_read_pc(cpu, 2), x86_read_pc(cpu, 2));
         break;
     case 0xeb:
-        x86_jump_near(cpu, x86_sread_pc(cpu, 1));
+        cpu->pc += x86_sread_pc(cpu, 1);
         break;
     case 0xec:
         x86_write_reg(cpu, x86_reg_al, io_read(x86_read_reg(cpu, x86_reg_dx), 1));
