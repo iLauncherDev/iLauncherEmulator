@@ -258,7 +258,7 @@ static inline void _x86_decode(cpu_t *cpu, uint8_t size, bool dword_operand)
                 cpu->cache[x86_cache_address0] = x86_regs16[cpu->cache[x86_cache_rm]];
             }
             break;
-        case 0x03 ... 0x04:
+        case 0x04:
             cpu->cache[x86_cache_address0] = x86_regs32[cpu->cache[x86_cache_rm]];
             break;
         }
