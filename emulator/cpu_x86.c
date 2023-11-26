@@ -110,10 +110,9 @@ void x86_rm_write(cpu_t *cpu, uint32_t value, uint8_t size)
 void x86_cache_decode_rm(cpu_t *cpu)
 {
     uint8_t cache = x86_read_pc(cpu, 1);
-    cpu->cache[x86_cache_opcode] = cache;
-    cpu->cache[x86_cache_rm] = cache & 0x07;
-    cpu->cache[x86_cache_reg] = (cache >> 3) & 0x07;
-    cpu->cache[x86_cache_mod] = cache >> 6;
+    cpu->cache[x86_cache_rm] = ((x86_rm_t *)&cache)->rm;
+    cpu->cache[x86_cache_reg] = ((x86_rm_t *)&cache)->reg;
+    cpu->cache[x86_cache_mod] = ((x86_rm_t *)&cache)->mod;
 }
 
 void x86_decode_rm(cpu_t *cpu, uint8_t size)
@@ -180,6 +179,11 @@ void x86_decode_rm(cpu_t *cpu, uint8_t size)
             case 0x24:
                 *(uint32_t *)&cpu->cache[x86_cache_address0] =
                     x86_read_reg(cpu, x86_reg_esp);
+                break;
+            case 0x88:
+                *(uint32_t *)&cpu->cache[x86_cache_address0] =
+                    x86_read_reg(cpu, x86_reg_eax) +
+                    x86_read_reg(cpu, x86_reg_ecx) * 4;
                 break;
             }
             break;
@@ -284,11 +288,10 @@ void x86_test(cpu_t *cpu, uint64_t value1, uint64_t value2, uint8_t size)
     x86_write_reg(cpu, flags_reg, flags);
 }
 
-void x86_cmp(cpu_t *cpu, uint64_t value1, uint64_t value2, uint8_t size)
+void x86_cmp(cpu_t *cpu, uint64_t value1, uint64_t value2)
 {
-    uint16_t flags_reg = size > 2 ? x86_reg_eflags : x86_reg_flags;
     uint32_t flags;
-    flags = x86_read_reg(cpu, flags_reg);
+    flags = x86_read_reg(cpu, x86_reg_eflags);
     if (value1 == value2)
         flags |= x86_flags_ZF;
     else
@@ -297,16 +300,16 @@ void x86_cmp(cpu_t *cpu, uint64_t value1, uint64_t value2, uint8_t size)
         flags |= x86_flags_CF;
     else
         flags &= ~x86_flags_CF;
-    x86_write_reg(cpu, flags_reg, flags);
+    x86_write_reg(cpu, x86_reg_eflags, flags);
 }
 
-void x86_jumpif_near(cpu_t *cpu, uint16_t flags, uint64_t value)
+void x86_jumpif_near(cpu_t *cpu, uint16_t flags, int64_t value)
 {
     if (x86_read_reg(cpu, x86_reg_eflags) & flags)
         cpu->pc += value;
 }
 
-void x86_jumpNotif_near(cpu_t *cpu, uint16_t flags, uint64_t value)
+void x86_jumpNotif_near(cpu_t *cpu, uint16_t flags, int64_t value)
 {
     if (~x86_read_reg(cpu, x86_reg_eflags) & flags)
         cpu->pc += value;
@@ -434,7 +437,7 @@ void x86_opcode_80_83(cpu_t *cpu)
         x86_rm_write(cpu, x86_rm_read(cpu, ts1) - value, ts1);
         break;
     case 0x07:
-        x86_cmp(cpu, x86_rm_read(cpu, ts1), value, ts1);
+        x86_cmp(cpu, x86_rm_read(cpu, ts1), value);
         break;
     }
 }
@@ -551,6 +554,52 @@ void x86_opcode_40_47(cpu_t *cpu)
         x86_write_reg(cpu, x86_regs16[cache_reg], x86_read_reg(cpu, x86_regs16[cache_reg]) + 1);
 }
 
+void x86_opcode_3a_3b(cpu_t *cpu)
+{
+    x86_cache_decode_rm(cpu);
+    if (cpu->override & x86_override_is_word)
+    {
+        if (cpu->override & x86_override_dword_operand)
+        {
+            x86_decode(cpu, 4);
+            x86_cmp(cpu, x86_read_reg(cpu, x86_regs32[cpu->cache[x86_cache_reg]]), x86_rm_read(cpu, 4));
+        }
+        else
+        {
+            x86_decode(cpu, 2);
+            x86_cmp(cpu, x86_read_reg(cpu, x86_regs16[cpu->cache[x86_cache_reg]]), x86_rm_read(cpu, 2));
+        }
+    }
+    else
+    {
+        x86_decode(cpu, 1);
+        x86_cmp(cpu, x86_read_reg(cpu, x86_regs8[cpu->cache[x86_cache_reg]]), x86_rm_read(cpu, 1));
+    }
+}
+
+void x86_opcode_38_39(cpu_t *cpu)
+{
+    x86_cache_decode_rm(cpu);
+    if (cpu->override & x86_override_is_word)
+    {
+        if (cpu->override & x86_override_dword_operand)
+        {
+            x86_decode(cpu, 4);
+            x86_cmp(cpu, x86_rm_read(cpu, 4), x86_read_reg(cpu, x86_regs32[cpu->cache[x86_cache_reg]]));
+        }
+        else
+        {
+            x86_decode(cpu, 2);
+            x86_cmp(cpu, x86_rm_read(cpu, 2), x86_read_reg(cpu, x86_regs16[cpu->cache[x86_cache_reg]]));
+        }
+    }
+    else
+    {
+        x86_decode(cpu, 1);
+        x86_cmp(cpu, x86_rm_read(cpu, 1), x86_read_reg(cpu, x86_regs8[cpu->cache[x86_cache_reg]]));
+    }
+}
+
 void x86_opcode_30_31(cpu_t *cpu)
 {
     x86_cache_decode_rm(cpu);
@@ -583,6 +632,38 @@ void x86_opcode_30_31(cpu_t *cpu)
     }
 }
 
+void x86_opcode_28_29(cpu_t *cpu)
+{
+    x86_cache_decode_rm(cpu);
+    if (cpu->override & x86_override_is_word)
+    {
+        if (cpu->override & x86_override_dword_operand)
+        {
+            x86_decode(cpu, 4);
+            x86_rm_write(cpu,
+                         x86_rm_read(cpu, 4) -
+                             x86_read_reg(cpu, x86_regs32[cpu->cache[x86_cache_reg]]),
+                         4);
+        }
+        else
+        {
+            x86_decode(cpu, 2);
+            x86_rm_write(cpu,
+                         x86_rm_read(cpu, 2) -
+                             x86_read_reg(cpu, x86_regs16[cpu->cache[x86_cache_reg]]),
+                         2);
+        }
+    }
+    else
+    {
+        x86_decode(cpu, 1);
+        x86_rm_write(cpu,
+                     x86_rm_read(cpu, 1) -
+                         x86_read_reg(cpu, x86_regs8[cpu->cache[x86_cache_reg]]),
+                     1);
+    }
+}
+
 void x86_opcode_0f(cpu_t *cpu)
 {
     uint16_t cache_reg;
@@ -592,6 +673,12 @@ void x86_opcode_0f(cpu_t *cpu)
     case 0x00:
         switch (cpu->cache[x86_cache_rm])
         {
+        case 0x02:
+            x86_jumpif_near(cpu, x86_flags_CF, x86_sread_pc(cpu, cpu->cache[x86_cache_size]));
+            break;
+        case 0x03:
+            x86_jumpNotif_near(cpu, x86_flags_CF, x86_sread_pc(cpu, cpu->cache[x86_cache_size]));
+            break;
         case 0x04:
             x86_jumpif_near(cpu, x86_flags_ZF, x86_sread_pc(cpu, cpu->cache[x86_cache_size]));
             break;
@@ -611,7 +698,7 @@ void x86_opcode_0f(cpu_t *cpu)
                 cpu->cache[x86_cache_address1] = 4, cache_reg = x86_regscontrol[cpu->cache[x86_cache_reg]];
             else
                 cpu->cache[x86_cache_address1] = 2, cache_reg = x86_regscontrol[cpu->cache[x86_cache_reg]];
-            x86_decode(cpu, cpu->cache[x86_cache_address1]);
+            x86_decode(cpu, 2);
             x86_rm_write(cpu, cpu_read_reg(cpu, cache_reg), cpu->cache[x86_cache_address1]);
             break;
         case 0x02:
@@ -620,7 +707,7 @@ void x86_opcode_0f(cpu_t *cpu)
                 cpu->cache[x86_cache_address1] = 4, cache_reg = x86_regscontrol[cpu->cache[x86_cache_reg]];
             else
                 cpu->cache[x86_cache_address1] = 2, cache_reg = x86_regscontrol[cpu->cache[x86_cache_reg]];
-            x86_decode(cpu, cpu->cache[x86_cache_address1]);
+            x86_decode(cpu, 2);
             x86_write_reg(cpu, cache_reg, x86_rm_read(cpu, cpu->cache[x86_cache_address1]));
             break;
         }
@@ -642,29 +729,19 @@ void x86_opcode_0f(cpu_t *cpu)
         {
         case 0x06:
             x86_cache_decode_rm(cpu);
+            x86_decode_no_operand(cpu, 1);
             if (cpu->override & x86_override_dword_operand)
-            {
-                x86_decode_no_operand(cpu, 1);
                 x86_write_reg(cpu, x86_regs32[cpu->cache[x86_cache_reg]], x86_rm_read(cpu, 1));
-            }
             else
-            {
-                x86_decode_no_operand(cpu, 1);
                 x86_write_reg(cpu, x86_regs16[cpu->cache[x86_cache_reg]], x86_rm_read(cpu, 1));
-            }
             break;
         case 0x07:
             x86_cache_decode_rm(cpu);
+            x86_decode_no_operand(cpu, 2);
             if (cpu->override & x86_override_dword_operand)
-            {
-                x86_decode_no_operand(cpu, 2);
                 x86_write_reg(cpu, x86_regs32[cpu->cache[x86_cache_reg]], x86_rm_read(cpu, 2));
-            }
             else
-            {
-                x86_decode_no_operand(cpu, 2);
                 x86_write_reg(cpu, x86_regs16[cpu->cache[x86_cache_reg]], x86_rm_read(cpu, 2));
-            }
             break;
         }
         break;
@@ -683,6 +760,38 @@ void x86_opcode_04_05(cpu_t *cpu)
     else
     {
         x86_write_reg(cpu, x86_reg_al, x86_read_reg(cpu, x86_reg_al) - x86_read_pc(cpu, 1));
+    }
+}
+
+void x86_opcode_00_01(cpu_t *cpu)
+{
+    x86_cache_decode_rm(cpu);
+    if (cpu->override & x86_override_is_word)
+    {
+        if (cpu->override & x86_override_dword_operand)
+        {
+            x86_decode(cpu, 4);
+            x86_rm_write(cpu,
+                         x86_rm_read(cpu, 4) +
+                             x86_read_reg(cpu, x86_regs32[cpu->cache[x86_cache_reg]]),
+                         4);
+        }
+        else
+        {
+            x86_decode(cpu, 2);
+            x86_rm_write(cpu,
+                         x86_rm_read(cpu, 2) +
+                             x86_read_reg(cpu, x86_regs16[cpu->cache[x86_cache_reg]]),
+                         2);
+        }
+    }
+    else
+    {
+        x86_decode(cpu, 1);
+        x86_rm_write(cpu,
+                     x86_rm_read(cpu, 1) +
+                         x86_read_reg(cpu, x86_regs8[cpu->cache[x86_cache_reg]]),
+                     1);
     }
 }
 
@@ -710,14 +819,26 @@ start:
         cpu->override &= ~x86_override_is_word;
     switch (cpu->cache[x86_cache_opcode])
     {
+    case 0x00 ... 0x01:
+        x86_opcode_00_01(cpu);
+        break;
     case 0x04 ... 0x05:
         x86_opcode_04_05(cpu);
         break;
     case 0x0f:
         x86_opcode_0f(cpu);
         break;
+    case 0x28 ... 0x29:
+        x86_opcode_28_29(cpu);
+        break;
     case 0x30 ... 0x31:
         x86_opcode_30_31(cpu);
+        break;
+    case 0x38 ... 0x39:
+        x86_opcode_38_39(cpu);
+        break;
+    case 0x3a ... 0x3b:
+        x86_opcode_3a_3b(cpu);
         break;
     case 0x40 ... 0x47:
         x86_opcode_40_47(cpu);
@@ -737,6 +858,24 @@ start:
         else
             cpu->override |= bit_check;
         goto start;
+    case 0x70:
+        x86_jumpif_near(cpu, x86_flags_OF, x86_sread_pc(cpu, 1));
+        break;
+    case 0x71:
+        x86_jumpNotif_near(cpu, x86_flags_OF, x86_sread_pc(cpu, 1));
+        break;
+    case 0x72:
+        x86_jumpif_near(cpu, x86_flags_CF, x86_sread_pc(cpu, 1));
+        break;
+    case 0x73:
+        x86_jumpNotif_near(cpu, x86_flags_CF, x86_sread_pc(cpu, 1));
+        break;
+    case 0x74:
+        x86_jumpif_near(cpu, x86_flags_ZF, x86_sread_pc(cpu, 1));
+        break;
+    case 0x75:
+        x86_jumpNotif_near(cpu, x86_flags_ZF, x86_sread_pc(cpu, 1));
+        break;
     case 0x80 ... 0x81:
         x86_opcode_80_83(cpu);
         break;
@@ -787,10 +926,10 @@ start:
             cpu->cache[x86_cache_address1] = 4;
         else
             cpu->cache[x86_cache_address1] = 2;
-        *(int32_t *)&cpu->cache[x86_cache_address0] = x86_sread_pc(cpu,
+        *(int64_t *)&cpu->cache[x86_cache_address0] = x86_sread_pc(cpu,
                                                                    cpu->cache[x86_cache_address1]);
         x86_push_int(cpu, x86_reg_esp, (uint32_t)cpu->pc, cpu->cache[x86_cache_address1]);
-        cpu->pc += *(int32_t *)&cpu->cache[x86_cache_address0];
+        cpu->pc += *(int64_t *)&cpu->cache[x86_cache_address0];
         break;
     case 0xe9:
         if (cpu->override & x86_override_dword_operand)
