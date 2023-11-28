@@ -188,7 +188,7 @@ int32_t main(int32_t argc, char **argv)
     io_write(0xfff0, window_framebuffer[0], 4);
     io_write(0xfff4, window_framebuffer[1], 2);
     io_write(0xfff6, window_framebuffer[2], 2);
-    io_write(0xfff8, window_framebuffer[3], 2);
+    io_write(0xfff8, window_framebuffer[3], 1);
     window = SDL_CreateWindow("Emulator", 0, 0,
                               window_framebuffer[1], window_framebuffer[2],
                               SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE);
