@@ -160,7 +160,7 @@ static const uint8_t x86_sregs[] = {
     x86_reg_gs,
 };
 
-typedef struct x86_rm
+typedef union x86_rm
 {
     uint8_t rm : 3;
     uint8_t reg : 3;

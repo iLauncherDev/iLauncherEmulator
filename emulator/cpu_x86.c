@@ -2,8 +2,6 @@
 
 uint16_t reg_x86[0x10000] = {0}, reg_x86_size[0x10000] = {0};
 
-uint64_t x86_jump_near;
-
 uint64_t x86_read_reg(cpu_t *cpu, uint16_t reg)
 {
     return memory_little_endian_read(&cpu->regs[reg_x86[reg]], reg_x86_size[reg]);
@@ -111,7 +109,7 @@ static inline void x86_decode_rm(cpu_t *cpu, uint8_t size)
 {
     switch (size)
     {
-    case 0x00 ... 0x02:
+    case 0x01 ... 0x02:
         switch (cpu->cache[x86_cache_rm])
         {
         case 0x00:

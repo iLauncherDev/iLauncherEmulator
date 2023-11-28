@@ -210,6 +210,11 @@ uint64_t memory_read(uint64_t address, uint8_t size, uint8_t big_endian)
         {
             if (address >= tmp->address && address <= tmp->address + tmp->size)
             {
+                if (address - tmp->address + size > tmp->size)
+                {
+                    tmp = (void *)NULL;
+                    break;
+                }
                 buffer = tmp->buffer;
                 address = (address - tmp->address) + tmp->offset;
             }
@@ -223,7 +228,7 @@ uint64_t memory_read(uint64_t address, uint8_t size, uint8_t big_endian)
     }
     else
     {
-        if (address >= vm_memory_size)
+        if (address + size - 1 >= vm_memory_size)
             goto end;
     }
     if (big_endian)
@@ -244,6 +249,11 @@ void memory_write(uint64_t address, uint64_t value, uint8_t size, uint8_t big_en
         {
             if (address >= tmp->address && address < tmp->address + tmp->size)
             {
+                if (address - tmp->address + size > tmp->size)
+                {
+                    tmp = (void *)NULL;
+                    break;
+                }
                 buffer = tmp->buffer;
                 address = (address - tmp->address) + tmp->offset;
             }
@@ -257,7 +267,7 @@ void memory_write(uint64_t address, uint64_t value, uint8_t size, uint8_t big_en
     }
     else
     {
-        if (address >= vm_memory_size)
+        if (address + size - 1 >= vm_memory_size)
             goto end;
     }
     if (big_endian)
