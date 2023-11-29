@@ -186,23 +186,15 @@ static inline uint64_t x86_decode_rm(cpu_t *cpu, uint8_t rm, uint8_t size)
 static inline void _x86_decode(cpu_t *cpu, uint8_t size, bool dword_operand)
 {
     uint8_t mod = cpu->cache[x86_cache_mod], rm = cpu->cache[x86_cache_rm];
+    if (cpu->override & x86_override_dword_address && mod < 0x03)
+        size = 4;
     switch (mod)
     {
     case 0x00:
-        if (cpu->override & x86_override_dword_address && size < 4)
-            size = 4;
         switch (rm)
         {
         case 0x06:
-            switch (size)
-            {
-            case 0x01 ... 0x02:
-                *(uint32_t *)&cpu->cache[x86_cache_address0] = x86_read_pc(cpu, 2);
-                break;
-            case 0x04:
-                *(uint32_t *)&cpu->cache[x86_cache_address0] = x86_read_pc(cpu, 4);
-                break;
-            }
+            *(uint32_t *)&cpu->cache[x86_cache_address0] = x86_read_pc(cpu, size < 2 ? 2 : size);
             break;
         default:
             *(uint32_t *)&cpu->cache[x86_cache_address0] = x86_decode_rm(cpu, rm, size);
@@ -210,25 +202,12 @@ static inline void _x86_decode(cpu_t *cpu, uint8_t size, bool dword_operand)
         }
         return;
     case 0x01:
-        if (cpu->override & x86_override_dword_address && size < 4)
-            size = 4;
         *(uint32_t *)&cpu->cache[x86_cache_address0] = x86_decode_rm(cpu, rm, size) +
                                                        x86_sread_pc(cpu, 1);
         return;
     case 0x02:
-        if (cpu->override & x86_override_dword_address && size < 4)
-            size = 4;
-        switch (size)
-        {
-        case 0x01 ... 0x02:
-            *(uint32_t *)&cpu->cache[x86_cache_address0] = x86_decode_rm(cpu, rm, size) +
-                                                           x86_sread_pc(cpu, 2);
-            break;
-        case 0x04:
-            *(uint32_t *)&cpu->cache[x86_cache_address0] = x86_decode_rm(cpu, rm, size) +
-                                                           x86_sread_pc(cpu, 4);
-            break;
-        }
+        *(uint32_t *)&cpu->cache[x86_cache_address0] = x86_decode_rm(cpu, rm, size) +
+                                                       x86_sread_pc(cpu, size < 2 ? 2 : size);
         return;
     case 0x03:
         switch (size)
@@ -415,16 +394,17 @@ static inline void x86_opcode_84_85(cpu_t *cpu)
 static inline void x86_opcode_80_83(cpu_t *cpu)
 {
     uint8_t type = cpu->cache[x86_cache_opcode] & 0x03, ts0, ts1;
-    uint8_t b8083[2][4] = {
+    uint8_t b8083[4][4] = {
         {1, 2, 2, 2},
         {1, 2, 2, 1},
+        {1, 2, 2, 2},
+        {1, 4, 4, 1},
     };
-    ts0 = b8083[0][type], ts1 = b8083[1][type];
+    ts0 = b8083[(cpu->override & x86_override_dword_operand ? 2 : 0) + 0][type];
+    ts1 = b8083[(cpu->override & x86_override_dword_operand ? 2 : 0) + 1][type];
     x86_cache_decode_rm(cpu);
     x86_decode(cpu, ts0);
     int32_t value;
-    if (ts1 > 1 && cpu->override & x86_override_dword_operand)
-        ts1 = 4;
     value = x86_sread_pc(cpu, ts1);
     switch (cpu->cache[x86_cache_reg])
     {
