@@ -1,5 +1,5 @@
 CC := clang
-CC_FLAGS := -c -ffreestanding -I include -m16 -masm=intel -fno-pie
+CC_FLAGS := -c -ffreestanding -I include -m16 -Ofast -masm=intel -fno-pie
 BIOSFILES := $(shell find . -name "*.c")
 LD_FLAGS := -nostdlib -static
 

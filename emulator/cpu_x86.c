@@ -116,7 +116,7 @@ static inline void x86_cache_decode_rm(cpu_t *cpu)
     cpu->cache[x86_cache_mod] = (cache >> 6) & 0x03;
 }
 
-static inline void x86_decode_rm(cpu_t *cpu, uint8_t rm, uint8_t size)
+static inline uint64_t x86_decode_rm(cpu_t *cpu, uint8_t rm, uint8_t size)
 {
     uint8_t cache;
     switch (size)
@@ -125,96 +125,62 @@ static inline void x86_decode_rm(cpu_t *cpu, uint8_t rm, uint8_t size)
         switch (rm)
         {
         case 0x00:
-            *(uint32_t *)&cpu->cache[x86_cache_address0] =
-                x86_read_reg(cpu, x86_reg_bx) +
-                x86_read_reg(cpu, x86_reg_si);
-            break;
+            return x86_read_reg(cpu, x86_reg_bx) +
+                   x86_read_reg(cpu, x86_reg_si);
         case 0x01:
-            *(uint32_t *)&cpu->cache[x86_cache_address0] =
-                x86_read_reg(cpu, x86_reg_bx) +
-                x86_read_reg(cpu, x86_reg_di);
-            break;
+            return x86_read_reg(cpu, x86_reg_bx) +
+                   x86_read_reg(cpu, x86_reg_di);
         case 0x02:
-            *(uint32_t *)&cpu->cache[x86_cache_address0] =
-                x86_read_reg(cpu, x86_reg_bp) +
-                x86_read_reg(cpu, x86_reg_si);
-            break;
+            return x86_read_reg(cpu, x86_reg_bp) +
+                   x86_read_reg(cpu, x86_reg_si);
         case 0x03:
-            *(uint32_t *)&cpu->cache[x86_cache_address0] =
-                x86_read_reg(cpu, x86_reg_bp) +
-                x86_read_reg(cpu, x86_reg_di);
-            break;
+            return x86_read_reg(cpu, x86_reg_bp) +
+                   x86_read_reg(cpu, x86_reg_di);
         case 0x04:
-            *(uint32_t *)&cpu->cache[x86_cache_address0] =
-                x86_read_reg(cpu, x86_reg_si);
-            break;
+            return x86_read_reg(cpu, x86_reg_si);
         case 0x05:
-            *(uint32_t *)&cpu->cache[x86_cache_address0] =
-                x86_read_reg(cpu, x86_reg_di);
-            break;
+            return x86_read_reg(cpu, x86_reg_di);
         case 0x06:
-            *(uint32_t *)&cpu->cache[x86_cache_address0] =
-                x86_read_reg(cpu, x86_reg_bp);
-            break;
+            return x86_read_reg(cpu, x86_reg_bp);
         case 0x07:
-            *(uint32_t *)&cpu->cache[x86_cache_address0] =
-                x86_read_reg(cpu, x86_reg_bx);
-            break;
+            return x86_read_reg(cpu, x86_reg_bx);
         }
         break;
     case 0x04:
         switch (rm)
         {
         case 0x00:
-            *(uint32_t *)&cpu->cache[x86_cache_address0] =
-                x86_read_reg(cpu, x86_reg_eax);
-            break;
+            return x86_read_reg(cpu, x86_reg_eax);
         case 0x01:
-            *(uint32_t *)&cpu->cache[x86_cache_address0] =
-                x86_read_reg(cpu, x86_reg_ecx);
-            break;
+            return x86_read_reg(cpu, x86_reg_ecx);
         case 0x02:
-            *(uint32_t *)&cpu->cache[x86_cache_address0] =
-                x86_read_reg(cpu, x86_reg_edx);
-            break;
+            return x86_read_reg(cpu, x86_reg_edx);
         case 0x03:
-            *(uint32_t *)&cpu->cache[x86_cache_address0] =
-                x86_read_reg(cpu, x86_reg_ebx);
-            break;
+            return x86_read_reg(cpu, x86_reg_ebx);
         case 0x04:
             cache = x86_read_pc(cpu, 1);
             switch (cache)
             {
             case 0x08:
-                *(uint32_t *)&cpu->cache[x86_cache_address0] =
-                    x86_read_reg(cpu, x86_reg_eax) +
-                    x86_read_reg(cpu, x86_reg_ecx);
-                break;
+                return x86_read_reg(cpu, x86_reg_eax) +
+                       x86_read_reg(cpu, x86_reg_ecx);
             case 0x24:
-                *(uint32_t *)&cpu->cache[x86_cache_address0] =
-                    x86_read_reg(cpu, x86_reg_esp);
-                break;
+                return x86_read_reg(cpu, x86_reg_esp);
             case 0x88:
-                *(uint32_t *)&cpu->cache[x86_cache_address0] =
-                    x86_read_reg(cpu, x86_reg_eax) +
-                    x86_read_reg(cpu, x86_reg_ecx) * 4;
-                break;
+                return x86_read_reg(cpu, x86_reg_eax) +
+                       x86_read_reg(cpu, x86_reg_ecx) * 4;
             }
             break;
         case 0x05:
-            *(uint32_t *)&cpu->cache[x86_cache_address0] =
-                x86_read_reg(cpu, x86_reg_ebp);
-            break;
+            return x86_read_reg(cpu, x86_reg_ebp);
         case 0x06:
-            *(uint32_t *)&cpu->cache[x86_cache_address0] =
-                x86_read_reg(cpu, x86_reg_esi);
-            break;
+            return x86_read_reg(cpu, x86_reg_esi);
         case 0x07:
-            *(uint32_t *)&cpu->cache[x86_cache_address0] =
-                x86_read_reg(cpu, x86_reg_edi);
-            break;
+            return x86_read_reg(cpu, x86_reg_edi);
         }
+        break;
     }
+    return 0;
 }
 
 static inline void _x86_decode(cpu_t *cpu, uint8_t size, bool dword_operand)
@@ -225,39 +191,42 @@ static inline void _x86_decode(cpu_t *cpu, uint8_t size, bool dword_operand)
     case 0x00:
         if (cpu->override & x86_override_dword_address && size < 4)
             size = 4;
-        x86_decode_rm(cpu, rm, size);
         switch (rm)
         {
         case 0x06:
             switch (size)
             {
-            case 0x00 ... 0x02:
+            case 0x01 ... 0x02:
                 *(uint32_t *)&cpu->cache[x86_cache_address0] = x86_read_pc(cpu, 2);
                 break;
-            case 0x03 ... 0x04:
+            case 0x04:
                 *(uint32_t *)&cpu->cache[x86_cache_address0] = x86_read_pc(cpu, 4);
                 break;
             }
+            break;
+        default:
+            *(uint32_t *)&cpu->cache[x86_cache_address0] = x86_decode_rm(cpu, rm, size);
             break;
         }
         return;
     case 0x01:
         if (cpu->override & x86_override_dword_address && size < 4)
             size = 4;
-        x86_decode_rm(cpu, rm, size);
-        *(uint32_t *)&cpu->cache[x86_cache_address0] += (int8_t)x86_read_pc(cpu, 1);
+        *(uint32_t *)&cpu->cache[x86_cache_address0] = x86_decode_rm(cpu, rm, size) +
+                                                       x86_sread_pc(cpu, 1);
         return;
     case 0x02:
         if (cpu->override & x86_override_dword_address && size < 4)
             size = 4;
-        x86_decode_rm(cpu, rm, size);
         switch (size)
         {
         case 0x01 ... 0x02:
-            *(uint32_t *)&cpu->cache[x86_cache_address0] += (int16_t)x86_read_pc(cpu, 2);
+            *(uint32_t *)&cpu->cache[x86_cache_address0] = x86_decode_rm(cpu, rm, size) +
+                                                           x86_sread_pc(cpu, 2);
             break;
-        case 0x03 ... 0x04:
-            *(uint32_t *)&cpu->cache[x86_cache_address0] += (int32_t)x86_read_pc(cpu, 4);
+        case 0x04:
+            *(uint32_t *)&cpu->cache[x86_cache_address0] = x86_decode_rm(cpu, rm, size) +
+                                                           x86_sread_pc(cpu, 4);
             break;
         }
         return;
@@ -268,12 +237,9 @@ static inline void _x86_decode(cpu_t *cpu, uint8_t size, bool dword_operand)
             cpu->cache[x86_cache_address0] = x86_regs8[rm];
             break;
         case 0x02:
-            if (dword_operand)
+            if (dword_operand && cpu->override & x86_override_dword_operand)
             {
-                if (cpu->override & x86_override_dword_operand)
-                    cpu->cache[x86_cache_address0] = x86_regs32[rm];
-                else
-                    cpu->cache[x86_cache_address0] = x86_regs16[rm];
+                cpu->cache[x86_cache_address0] = x86_regs32[rm];
             }
             else
             {
@@ -302,7 +268,7 @@ static inline void x86_test(cpu_t *cpu, uint64_t value1, uint64_t value2, uint8_
 {
     uint32_t flags;
     flags = x86_read_reg(cpu, x86_reg_eflags);
-    if (!(value1 & value2))
+    if (value1 & value2)
         flags |= x86_flags_ZF;
     else
         flags &= ~x86_flags_ZF;
@@ -327,7 +293,6 @@ static inline void x86_cmp(cpu_t *cpu, uint64_t value1, uint64_t value2, uint8_t
 static inline void x86_jump_far(cpu_t *cpu, uint32_t value, uint16_t segment)
 {
     x86_write_reg(cpu, x86_reg_cs, segment);
-    cpu->pc_base = *(uint32_t *)&cpu->cache[x86_cache_seg_cs];
     cpu->pc = value;
 }
 
@@ -1595,10 +1560,9 @@ start:
         break;
     case 0xc3:
         if (cpu->override & x86_override_dword_operand)
-            cpu->cache[x86_cache_address1] = 4;
+            cpu->pc = x86_pop(cpu, x86_reg_esp, 4);
         else
-            cpu->cache[x86_cache_address1] = 2;
-        cpu->pc = x86_pop(cpu, x86_reg_esp, cpu->cache[x86_cache_address1]);
+            cpu->pc = x86_pop(cpu, x86_reg_esp, 2);
         break;
     case 0xc6 ... 0xc7:
         x86_opcode_c6_c7(cpu);
