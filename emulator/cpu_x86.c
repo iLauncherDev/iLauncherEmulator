@@ -309,7 +309,7 @@ static inline void x86_opcode_90_97(cpu_t *cpu)
 
 static inline void x86_opcode_8e(cpu_t *cpu)
 {
-    uint8_t rm = 0, reg = 0, mod = 0;
+    uint8_t rm, reg, mod;
     x86_cache_decode_rm(cpu, &rm, &reg, &mod);
     x86_decode_no_operand(cpu, rm, mod, 2);
     x86_write_reg(cpu, x86_sregs[reg], x86_rm_read(cpu, mod, 2));
@@ -317,7 +317,7 @@ static inline void x86_opcode_8e(cpu_t *cpu)
 
 static inline void x86_opcode_8c(cpu_t *cpu)
 {
-    uint8_t rm = 0, reg = 0, mod = 0;
+    uint8_t rm, reg, mod;
     x86_cache_decode_rm(cpu, &rm, &reg, &mod);
     x86_decode_no_operand(cpu, rm, mod, 2);
     x86_rm_write(cpu, mod, x86_read_reg(cpu, x86_sregs[reg]), 2);
@@ -325,7 +325,7 @@ static inline void x86_opcode_8c(cpu_t *cpu)
 
 static inline void x86_opcode_8a_8b(cpu_t *cpu)
 {
-    uint8_t rm = 0, reg = 0, mod = 0;
+    uint8_t rm, reg, mod;
     x86_cache_decode_rm(cpu, &rm, &reg, &mod);
     if (cpu->override & x86_override_is_word)
     {
@@ -349,7 +349,7 @@ static inline void x86_opcode_8a_8b(cpu_t *cpu)
 
 static inline void x86_opcode_88_89(cpu_t *cpu)
 {
-    uint8_t rm = 0, reg = 0, mod = 0;
+    uint8_t rm, reg, mod;
     x86_cache_decode_rm(cpu, &rm, &reg, &mod);
     if (cpu->override & x86_override_is_word)
     {
@@ -373,7 +373,7 @@ static inline void x86_opcode_88_89(cpu_t *cpu)
 
 static inline void x86_opcode_84_85(cpu_t *cpu)
 {
-    uint8_t rm = 0, reg = 0, mod = 0;
+    uint8_t rm, reg, mod;
     x86_cache_decode_rm(cpu, &rm, &reg, &mod);
     if (cpu->override & x86_override_is_word)
     {
@@ -409,7 +409,7 @@ static inline void x86_opcode_80_83(cpu_t *cpu)
     };
     ts0 = b8083[(cpu->override & x86_override_dword_operand ? 2 : 0) + 0][type];
     ts1 = b8083[(cpu->override & x86_override_dword_operand ? 2 : 0) + 1][type];
-    uint8_t rm = 0, reg = 0, mod = 0;
+    uint8_t rm, reg, mod;
     x86_cache_decode_rm(cpu, &rm, &reg, &mod);
     x86_decode(cpu, rm, mod, ts0);
     int32_t value = x86_sread_pc(cpu, ts1);
@@ -477,7 +477,7 @@ static inline void x86_opcode_a0_a1(cpu_t *cpu)
 
 static inline void x86_opcode_c6_c7(cpu_t *cpu)
 {
-    uint8_t rm = 0, reg = 0, mod = 0;
+    uint8_t rm, reg, mod;
     x86_cache_decode_rm(cpu, &rm, &reg, &mod);
     if (cpu->override & x86_override_is_word)
     {
@@ -560,7 +560,7 @@ static inline void x86_opcode_3c_3d(cpu_t *cpu)
 
 static inline void x86_opcode_3a_3b(cpu_t *cpu)
 {
-    uint8_t rm = 0, reg = 0, mod = 0;
+    uint8_t rm, reg, mod;
     x86_cache_decode_rm(cpu, &rm, &reg, &mod);
     if (cpu->override & x86_override_is_word)
     {
@@ -584,7 +584,7 @@ static inline void x86_opcode_3a_3b(cpu_t *cpu)
 
 static inline void x86_opcode_38_39(cpu_t *cpu)
 {
-    uint8_t rm = 0, reg = 0, mod = 0;
+    uint8_t rm, reg, mod;
     x86_cache_decode_rm(cpu, &rm, &reg, &mod);
     if (cpu->override & x86_override_is_word)
     {
@@ -629,7 +629,7 @@ static inline void x86_opcode_34_35(cpu_t *cpu)
 
 static inline void x86_opcode_32_33(cpu_t *cpu)
 {
-    uint8_t rm = 0, reg = 0, mod = 0;
+    uint8_t rm, reg, mod;
     x86_cache_decode_rm(cpu, &rm, &reg, &mod);
     if (cpu->override & x86_override_is_word)
     {
@@ -662,7 +662,7 @@ static inline void x86_opcode_32_33(cpu_t *cpu)
 
 static inline void x86_opcode_30_31(cpu_t *cpu)
 {
-    uint8_t rm = 0, reg = 0, mod = 0;
+    uint8_t rm, reg, mod;
     x86_cache_decode_rm(cpu, &rm, &reg, &mod);
     if (cpu->override & x86_override_is_word)
     {
@@ -716,7 +716,7 @@ static inline void x86_opcode_2c_2d(cpu_t *cpu)
 
 static inline void x86_opcode_2a_2b(cpu_t *cpu)
 {
-    uint8_t rm = 0, reg = 0, mod = 0;
+    uint8_t rm, reg, mod;
     x86_cache_decode_rm(cpu, &rm, &reg, &mod);
     if (cpu->override & x86_override_is_word)
     {
@@ -749,7 +749,7 @@ static inline void x86_opcode_2a_2b(cpu_t *cpu)
 
 static inline void x86_opcode_28_29(cpu_t *cpu)
 {
-    uint8_t rm = 0, reg = 0, mod = 0;
+    uint8_t rm, reg, mod;
     x86_cache_decode_rm(cpu, &rm, &reg, &mod);
     if (cpu->override & x86_override_is_word)
     {
@@ -803,7 +803,7 @@ static inline void x86_opcode_24_25(cpu_t *cpu)
 
 static inline void x86_opcode_22_23(cpu_t *cpu)
 {
-    uint8_t rm = 0, reg = 0, mod = 0;
+    uint8_t rm, reg, mod;
     x86_cache_decode_rm(cpu, &rm, &reg, &mod);
     if (cpu->override & x86_override_is_word)
     {
@@ -836,7 +836,7 @@ static inline void x86_opcode_22_23(cpu_t *cpu)
 
 static inline void x86_opcode_20_21(cpu_t *cpu)
 {
-    uint8_t rm = 0, reg = 0, mod = 0;
+    uint8_t rm, reg, mod;
     x86_cache_decode_rm(cpu, &rm, &reg, &mod);
     if (cpu->override & x86_override_is_word)
     {
@@ -893,7 +893,7 @@ static inline void x86_opcode_1c_1d(cpu_t *cpu)
 
 static inline void x86_opcode_1a_1b(cpu_t *cpu)
 {
-    uint8_t rm = 0, reg = 0, mod = 0;
+    uint8_t rm, reg, mod;
     x86_cache_decode_rm(cpu, &rm, &reg, &mod);
     if (cpu->override & x86_override_is_word)
     {
@@ -929,7 +929,7 @@ static inline void x86_opcode_1a_1b(cpu_t *cpu)
 
 static inline void x86_opcode_18_19(cpu_t *cpu)
 {
-    uint8_t rm = 0, reg = 0, mod = 0;
+    uint8_t rm, reg, mod;
     x86_cache_decode_rm(cpu, &rm, &reg, &mod);
     if (cpu->override & x86_override_is_word)
     {
@@ -989,7 +989,7 @@ static inline void x86_opcode_14_15(cpu_t *cpu)
 
 static inline void x86_opcode_12_13(cpu_t *cpu)
 {
-    uint8_t rm = 0, reg = 0, mod = 0;
+    uint8_t rm, reg, mod;
     x86_cache_decode_rm(cpu, &rm, &reg, &mod);
     if (cpu->override & x86_override_is_word)
     {
@@ -1025,7 +1025,7 @@ static inline void x86_opcode_12_13(cpu_t *cpu)
 
 static inline void x86_opcode_10_11(cpu_t *cpu)
 {
-    uint8_t rm = 0, reg = 0, mod = 0;
+    uint8_t rm, reg, mod;
     x86_cache_decode_rm(cpu, &rm, &reg, &mod);
     if (cpu->override & x86_override_is_word)
     {
@@ -1062,7 +1062,7 @@ static inline void x86_opcode_10_11(cpu_t *cpu)
 static inline void x86_opcode_0f(cpu_t *cpu)
 {
     uint16_t cache_reg;
-    uint8_t rm = 0, reg = 0, mod = 0;
+    uint8_t rm, reg, mod;
     x86_cache_decode_rm(cpu, &rm, &reg, &mod);
     switch (reg)
     {
@@ -1185,7 +1185,7 @@ static inline void x86_opcode_0c_0d(cpu_t *cpu)
 
 static inline void x86_opcode_0a_0b(cpu_t *cpu)
 {
-    uint8_t rm = 0, reg = 0, mod = 0;
+    uint8_t rm, reg, mod;
     x86_cache_decode_rm(cpu, &rm, &reg, &mod);
     if (cpu->override & x86_override_is_word)
     {
@@ -1218,7 +1218,7 @@ static inline void x86_opcode_0a_0b(cpu_t *cpu)
 
 static inline void x86_opcode_08_09(cpu_t *cpu)
 {
-    uint8_t rm = 0, reg = 0, mod = 0;
+    uint8_t rm, reg, mod;
     x86_cache_decode_rm(cpu, &rm, &reg, &mod);
     if (cpu->override & x86_override_is_word)
     {
@@ -1272,7 +1272,7 @@ static inline void x86_opcode_04_05(cpu_t *cpu)
 
 static inline void x86_opcode_02_03(cpu_t *cpu)
 {
-    uint8_t rm = 0, reg = 0, mod = 0;
+    uint8_t rm, reg, mod;
     x86_cache_decode_rm(cpu, &rm, &reg, &mod);
     if (cpu->override & x86_override_is_word)
     {
@@ -1305,7 +1305,7 @@ static inline void x86_opcode_02_03(cpu_t *cpu)
 
 static inline void x86_opcode_00_01(cpu_t *cpu)
 {
-    uint8_t rm = 0, reg = 0, mod = 0;
+    uint8_t rm, reg, mod;
     x86_cache_decode_rm(cpu, &rm, &reg, &mod);
     if (cpu->override & x86_override_is_word)
     {
@@ -1340,7 +1340,7 @@ uint8_t x86_emulate(cpu_t *cpu)
 {
     cpu->pc_base = *(uint32_t *)&cpu->cache[x86_cache_seg_cs];
     uint8_t ret = 0, opcode = 0, bit_check = 0;
-    uint8_t rm = 0, reg = 0, mod = 0;
+    uint8_t rm, reg, mod;
     uint16_t old_override = cpu->override;
     if (x86_read_reg(cpu, x86_reg_cr0) & x86_cr0_PE)
     {
