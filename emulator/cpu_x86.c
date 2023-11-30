@@ -400,15 +400,23 @@ static inline void x86_opcode_84_85(cpu_t *cpu)
 
 static inline void x86_opcode_80_83(cpu_t *cpu)
 {
-    uint8_t type = cpu->cache[x86_cache_opcode] & 0x03, ts0, ts1;
-    uint8_t b8083[4][4] = {
-        {1, 2, 2, 2},
-        {1, 2, 2, 1},
-        {1, 2, 2, 2},
-        {1, 4, 4, 1},
-    };
-    ts0 = b8083[(cpu->override & x86_override_dword_operand ? 2 : 0) + 0][type];
-    ts1 = b8083[(cpu->override & x86_override_dword_operand ? 2 : 0) + 1][type];
+    uint8_t ts0, ts1;
+    switch (cpu->cache[x86_cache_opcode] & 0x03)
+    {
+    case 0x00:
+        ts0 = 1, ts1 = 1;
+        break;
+    case 0x01:
+        ts0 = 2;
+        if (cpu->override & x86_override_dword_operand)
+            ts1 = 4;
+        else
+            ts1 = 2;
+        break;
+    case 0x03:
+        ts0 = 2, ts1 = 1;
+        break;
+    }
     uint8_t rm, reg, mod;
     x86_cache_decode_rm(cpu, &rm, &reg, &mod);
     x86_decode(cpu, rm, mod, ts0);
