@@ -114,7 +114,7 @@ static inline uint32_t x86_rm_read(cpu_t *cpu, uint8_t mod, uint8_t size)
     {
     case 0x00 ... 0x02:
         return memory_read(*(uint32_t *)&cpu->cache[x86_cache_address0], size, 0);
-    case 0x03:
+    default:
         return x86_read_reg(cpu, cpu->cache[x86_cache_address0]);
     }
     return 0x00;
@@ -126,7 +126,7 @@ static inline uint32_t x86_rm_read_address(cpu_t *cpu, uint8_t mod)
     {
     case 0x00 ... 0x02:
         return *(uint32_t *)&cpu->cache[x86_cache_address0];
-    case 0x03:
+    default:
         return x86_read_reg(cpu, cpu->cache[x86_cache_address0]);
     }
     return 0x00;
@@ -139,7 +139,7 @@ static inline void x86_rm_write(cpu_t *cpu, uint8_t mod, uint32_t value, uint8_t
     case 0x00 ... 0x02:
         memory_write(*(uint32_t *)&cpu->cache[x86_cache_address0], value, size, 0);
         break;
-    case 0x03:
+    default:
         x86_write_reg(cpu, cpu->cache[x86_cache_address0], value);
         break;
     }
@@ -176,7 +176,10 @@ static inline uint64_t x86_decode_rm(cpu_t *cpu, uint8_t rm, uint8_t size)
                        x86_read_reg(cpu, x86_reg_ecx) * 4;
             }
         }
-        return x86_read_reg(cpu, x86_rm_reg32_x[rm]);
+        else
+        {
+            return x86_read_reg(cpu, x86_rm_reg32_x[rm]);
+        }
     }
     return 0;
 }
@@ -214,20 +217,15 @@ static inline void _x86_decode(cpu_t *cpu, uint8_t rm, uint8_t mod, uint8_t size
                                                        x86_sread_pc(cpu, size < 2 ? 2 : size);
         return;
     case 0x03:
+        if (dword_operand && cpu->override & x86_override_dword_operand)
+            size = 4;
         switch (size)
         {
         case 0x01:
             cpu->cache[x86_cache_address0] = x86_regs8[rm];
             break;
         case 0x02:
-            if (dword_operand && cpu->override & x86_override_dword_operand)
-            {
-                cpu->cache[x86_cache_address0] = x86_regs32[rm];
-            }
-            else
-            {
-                cpu->cache[x86_cache_address0] = x86_regs16[rm];
-            }
+            cpu->cache[x86_cache_address0] = x86_regs16[rm];
             break;
         case 0x04:
             cpu->cache[x86_cache_address0] = x86_regs32[rm];
