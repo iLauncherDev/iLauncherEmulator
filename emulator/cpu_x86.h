@@ -80,10 +80,7 @@ typedef enum x86_regs
     x86_cr0_PG = 1 << 31,
 
     x86_cache_size = 0,
-    x86_cache_rm = x86_cache_size + 1,
-    x86_cache_reg = x86_cache_rm + 1,
-    x86_cache_mod = x86_cache_reg + 1,
-    x86_cache_address0 = x86_cache_mod + 1,
+    x86_cache_address0 = x86_cache_size + 1,
     x86_cache_address1 = x86_cache_address0 + 8,
     x86_cache_opcode = x86_cache_address1 + 8,
     x86_cache_seg_gs = x86_cache_opcode + 1,
@@ -93,7 +90,8 @@ typedef enum x86_regs
     x86_cache_seg_cs = x86_cache_seg_ds + 8,
     x86_cache_seg_ss = x86_cache_seg_cs + 8,
     x86_cache_buffer256 = x86_cache_seg_ss + 8,
-    x86_cache_end = x86_cache_buffer256 + 256,
+    x86_cache_buffer_index = x86_cache_buffer256 + 256,
+    x86_cache_end = x86_cache_buffer_index + 1,
 
     x86_override_dword_operand = 1 << 0,
     x86_override_dword_address = 1 << 1,

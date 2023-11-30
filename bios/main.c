@@ -31,14 +31,15 @@ void putpixel(uint32_t x, uint32_t y, uint32_t color)
 
 void main()
 {
-    uint32_t *buffer = (void *)inl(0xfff0);
+    void *buffer = (void *)inl(0xfff0);
     uint32_t size = inw(0xfff4) * inw(0xfff6) * inb(0xfff8);
+    uint8_t bpp = inb(0xfff8);
     char string_test[] = "iLauncherBios\n";
     memcpy((void *)0xf000, string_test, sizeof(string_test));
     while (true)
     {
-        memset((void *)buffer, 0xff, size);
-        memset((void *)buffer, 0x00, size);
+        memset(buffer, 0xff, size);
+        memset(buffer, 0x00, size);
         print((void *)0xf000);
     }
 }
