@@ -249,7 +249,7 @@ static inline void x86_test(cpu_t *cpu, uint64_t value1, uint64_t value2, uint8_
 {
     uint32_t flags;
     flags = x86_read_reg(cpu, x86_reg_eflags);
-    if (value1 & value2)
+    if (~value1 & value2)
         flags |= x86_flags_ZF;
     else
         flags &= ~x86_flags_ZF;
