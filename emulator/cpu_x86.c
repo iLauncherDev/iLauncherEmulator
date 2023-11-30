@@ -148,9 +148,9 @@ static inline void x86_rm_write(cpu_t *cpu, uint8_t mod, uint32_t value, uint8_t
 static inline void x86_cache_decode_rm(cpu_t *cpu, uint8_t *rm, uint8_t *reg, uint8_t *mod)
 {
     uint8_t cache = x86_read_pc(cpu, 1);
-    *rm = cache & 0x07;
+    *mod = cache >> 6;
     *reg = (cache >> 3) & 0x07;
-    *mod = (cache >> 6) & 0x03;
+    *rm = cache & 0x07;
 }
 
 static inline uint64_t x86_decode_rm(cpu_t *cpu, uint8_t rm, uint8_t size)
