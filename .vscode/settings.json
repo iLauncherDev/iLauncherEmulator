@@ -1,0 +1,13 @@
+{
+    "files.associations": {
+        "compare": "c",
+        "cstdint": "c",
+        "array": "c",
+        "string_view": "c",
+        "initializer_list": "c",
+        "string.h": "c",
+        "cpu_x86.h": "c",
+        "bios_string.h": "c",
+        "algorithm": "c"
+    }
+}
