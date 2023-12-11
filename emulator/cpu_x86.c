@@ -1187,7 +1187,6 @@ start:
         break;
     }
     cpu->override = old_override;
-    cpu->cache[x86_cache_buffer_index] = 255;
     x86_write_reg(cpu, x86_reg_eip, cpu->pc);
     return ret;
 }
@@ -1196,7 +1195,6 @@ void x86_reset(cpu_t *cpu)
 {
     memset(cpu->regs, 0, 256);
     memset(cpu->cache, 0, x86_cache_end);
-    cpu->cache[x86_cache_buffer_index] = 255;
     x86_write_reg(cpu, x86_reg_gs, 0x0000);
     x86_write_reg(cpu, x86_reg_fs, 0x0000);
     x86_write_reg(cpu, x86_reg_es, 0x0000);

@@ -98,9 +98,7 @@ typedef enum x86_regs
     x86_cache_seg_ds = x86_cache_seg_es + 8,
     x86_cache_seg_cs = x86_cache_seg_ds + 8,
     x86_cache_seg_ss = x86_cache_seg_cs + 8,
-    x86_cache_buffer256 = x86_cache_seg_ss + 8,
-    x86_cache_buffer_index = x86_cache_buffer256 + 256,
-    x86_cache_end = x86_cache_buffer_index + 1,
+    x86_cache_end = x86_cache_seg_ss + 8,
 
     x86_operation_add = 0x00,
     x86_operation_or = 0x01,

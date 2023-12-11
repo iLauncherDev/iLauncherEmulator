@@ -44,14 +44,14 @@ void cpu_emulate(cpu_t *cpu)
 {
     if (!cpu)
         goto end;
+    if (cpu->code_packet[cpu->code_packet_index].completed)
+        goto end;
     if (cpu->flags & cpu_flag_jump)
     {
         cpu->pc = cpu->pc_new;
         cpu->pc_base = cpu->pc_base_new;
         cpu->flags &= ~cpu_flag_jump;
     }
-    if (cpu->code_packet[cpu->code_packet_index].completed)
-        goto end;
     while (cpu->flags & cpu_flag_lock)
         ;
     if (cpu->flags & cpu_flag_reset)
