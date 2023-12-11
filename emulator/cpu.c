@@ -76,13 +76,6 @@ void cpu_add_code_packet(cpu_t *cpu, uint8_t operantion, uint8_t sign, uint8_t t
         goto end;
     if (!cpu->code_packet[cpu->code_packet_index].completed)
     {
-        cpu->code_packet[cpu->code_packet_index].operation = operantion;
-        cpu->code_packet[cpu->code_packet_index].sign = sign;
-        cpu->code_packet[cpu->code_packet_index].type = type;
-        cpu->code_packet[cpu->code_packet_index].reg_x = reg_x;
-        cpu->code_packet[cpu->code_packet_index].reg_y = reg_y;
-        cpu->code_packet[cpu->code_packet_index].size = size;
-        cpu->code_packet[cpu->code_packet_index].completed = 1;
         cpu->code_packet_index++;
     }
 end:
@@ -98,8 +91,6 @@ void cpu_execute_packet(cpu_t *cpu)
         cpu->exec_code_packet_index = 0;
         goto end;
     }
-    if (cpu->execute_packet)
-        cpu->execute_packet(cpu);
     cpu->exec_code_packet_index++;
 end:
     return;

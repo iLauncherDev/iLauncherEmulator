@@ -12,27 +12,27 @@ typedef enum cpu_defines
     cpu_flag_reset = 1 << 1,
     cpu_flag_jump = 1 << 2,
 
-    // Ex: 0x200;
+    // Ex: 0x1000;
     cpu_type_int = 0,
     // Ex: ax;
     cpu_type_reg,
-    // Ex: [0x200];
+    // Ex: [0x1000];
     cpu_type_mem,
-    // Ex: 0x200, 0x400;
-    cpu_type_int_int,
-    // Ex: ax, cx;
-    cpu_type_reg_reg,
-    // Ex: ax, 0x200;
-    cpu_type_reg_int,
-    // Ex: [0x400], cx;
-    cpu_type_mem_reg,
-    // Ex: [0x400], 0xff;
-    cpu_type_mem_int,
-    // Ex: ax, [0x200];
-    cpu_type_reg_mem,
-    // Ex: [0x400], [0x200];
-    cpu_type_mem_mem,
+    // Ex: [ax + cx + dx + bx + 0x1000];
+    cpu_type_mreg,
 } cpu_defines_t;
+
+typedef union cpu_mreg
+{
+    uint64_t value;
+    struct
+    {
+        uint16_t reg0 : 16;
+        uint16_t reg1 : 16;
+        uint16_t reg2 : 16;
+        uint16_t reg3 : 16;
+    };
+} cpu_mreg_t;
 
 typedef struct cpu
 {
@@ -45,13 +45,15 @@ typedef struct cpu
     void (*write_reg)(struct cpu *cpu, uint16_t reg, uint64_t value);
     void (*reset)(struct cpu *cpu);
     uint8_t (*emulate)(struct cpu *cpu);
-    uint8_t (*execute_packet)(struct cpu *cpu);
     struct cpu_packet
     {
         uint8_t operation;
         uint8_t type : 4, sign : 1, completed : 1, size;
-        uint64_t reg_x;
-        uint64_t reg_y;
+        struct cpu_packet_values
+        {
+            uint64_t value_x;
+            int64_t value_offset;
+        } values[4];
     } code_packet[256];
     uint8_t code_packet_index;
     uint8_t exec_code_packet_index;

@@ -1014,28 +1014,16 @@ start:
     case 0x40 ... 0x47:
         opcode &= 0x07;
         if (cpu->override & x86_override_dword_operand)
-            cpu_add_code_packet(cpu,
-                                x86_operation_mov, 0,
-                                cpu_type_reg_int,
-                                x86_regs32[opcode], x86_read_reg(cpu, x86_regs32[opcode]) + 1, 0);
+            x86_write_reg(cpu, x86_regs32[opcode], x86_read_reg(cpu, x86_regs32[opcode]) + 1);
         else
-            cpu_add_code_packet(cpu,
-                                x86_operation_mov, 0,
-                                cpu_type_reg_int,
-                                x86_regs16[opcode], x86_read_reg(cpu, x86_regs16[opcode]) + 1, 0);
+            x86_write_reg(cpu, x86_regs16[opcode], x86_read_reg(cpu, x86_regs16[opcode]) + 1);
         break;
     case 0x48 ... 0x4f:
         opcode &= 0x07;
         if (cpu->override & x86_override_dword_operand)
-            cpu_add_code_packet(cpu,
-                                x86_operation_mov, 0,
-                                cpu_type_reg_int,
-                                x86_regs32[opcode], x86_read_reg(cpu, x86_regs32[opcode]) - 1, 0);
+            x86_write_reg(cpu, x86_regs32[opcode], x86_read_reg(cpu, x86_regs32[opcode]) - 1);
         else
-            cpu_add_code_packet(cpu,
-                                x86_operation_mov, 0,
-                                cpu_type_reg_int,
-                                x86_regs16[opcode], x86_read_reg(cpu, x86_regs16[opcode]) - 1, 0);
+            x86_write_reg(cpu, x86_regs16[opcode], x86_read_reg(cpu, x86_regs16[opcode]) - 1);
         break;
     case 0x50 ... 0x57:
         opcode &= 0x07;
@@ -1204,53 +1192,6 @@ void x86_reset(cpu_t *cpu)
     cpu->pc = 0;
 }
 
-uint8_t x86_execute_packet(cpu_t *cpu)
-{
-    uint8_t i = cpu->exec_code_packet_index;
-    switch (cpu->code_packet[i].type)
-    {
-    case cpu_type_reg_reg:
-        cpu_write_reg(cpu,
-                      cpu->code_packet[i].reg_x,
-                      cpu_read_reg(cpu, cpu->code_packet[i].reg_y));
-        break;
-    case cpu_type_reg_int:
-        cpu_write_reg(cpu,
-                      cpu->code_packet[i].reg_x,
-                      cpu->code_packet[i].reg_y);
-        break;
-    case cpu_type_mem_reg:
-        memory_write(cpu->code_packet[i].reg_x,
-                     cpu_read_reg(cpu, cpu->code_packet[i].reg_y),
-                     cpu->code_packet[i].size,
-                     cpu->big_endian);
-        break;
-    case cpu_type_mem_int:
-        memory_write(cpu->code_packet[i].reg_x,
-                     cpu->code_packet[i].reg_y,
-                     cpu->code_packet[i].size,
-                     cpu->big_endian);
-        break;
-    case cpu_type_reg_mem:
-        cpu_write_reg(cpu,
-                      cpu->code_packet[i].reg_x,
-                      memory_read(cpu->code_packet[i].reg_x,
-                                  cpu->code_packet[i].size,
-                                  cpu->big_endian));
-        break;
-    case cpu_type_mem_mem:
-        memory_write(cpu->code_packet[i].reg_x,
-                     memory_read(cpu->code_packet[i].reg_y,
-                                 cpu->code_packet[i].size,
-                                 cpu->big_endian),
-                     cpu->code_packet[i].size,
-                     cpu->big_endian);
-        break;
-    }
-    cpu->code_packet[i].completed = 0;
-    return 0;
-}
-
 cpu_t *x86_setup()
 {
     cpu_t *ret = malloc(sizeof(cpu_t));
@@ -1298,7 +1239,6 @@ cpu_t *x86_setup()
     ret->write_reg = x86_write_reg;
     ret->reset = x86_reset;
     ret->emulate = x86_emulate;
-    ret->execute_packet = x86_execute_packet;
     cpu_reset(ret);
     return ret;
 }
