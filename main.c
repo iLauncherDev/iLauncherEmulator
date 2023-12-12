@@ -112,7 +112,7 @@ void *window_update()
 void *cpu_emulator()
 {
     while (true)
-        ;
+        cpu_emulate(x86_cpu);
 }
 
 int32_t main(int32_t argc, char **argv)
@@ -238,7 +238,6 @@ int32_t main(int32_t argc, char **argv)
             printf("%c", (uint8_t)io_read(0x3f8, 1)), io_write(0x3f8, 0, 1);
         vga_service();
         cpu_execute_packet(x86_cpu);
-        cpu_emulate(x86_cpu);
         if (debug_code)
         {
             printf("Regs:\n");
