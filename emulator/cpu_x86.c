@@ -29,7 +29,7 @@ uint8_t x86_sib_sizes[] = {
     8,
 };
 
-uint8_t x86_rm_reg16_seg[] = {
+uint16_t x86_rm_reg16_seg[] = {
     x86_reg_ds,
     x86_reg_ds,
     x86_reg_ss,
@@ -40,7 +40,7 @@ uint8_t x86_rm_reg16_seg[] = {
     x86_reg_ds,
 };
 
-uint8_t x86_rm_reg32_seg[] = {
+uint16_t x86_rm_reg32_seg[] = {
     x86_reg_ds,
     x86_reg_ds,
     x86_reg_ds,
@@ -51,22 +51,22 @@ uint8_t x86_rm_reg32_seg[] = {
     x86_reg_ds,
 };
 
-uint8_t x86_rm_reg16_x[] = {
-    x86_reg_bx,
-    x86_reg_bx,
-    x86_reg_bp,
-    x86_reg_bp,
-    x86_reg_si,
-    x86_reg_di,
-    x86_reg_bp,
-    x86_reg_bx,
+uint16_t x86_rm_reg16_x[] = {
+    x86_reg_ebx,
+    x86_reg_ebx,
+    x86_reg_ebp,
+    x86_reg_ebp,
+    x86_reg_esi,
+    x86_reg_edi,
+    x86_reg_ebp,
+    x86_reg_ebx,
 };
 
-uint8_t x86_rm_reg16_y[] = {
-    x86_reg_si,
-    x86_reg_di,
-    x86_reg_si,
-    x86_reg_di,
+uint16_t x86_rm_reg16_y[] = {
+    x86_reg_esi,
+    x86_reg_edi,
+    x86_reg_esi,
+    x86_reg_edi,
     x86_reg_end,
     x86_reg_end,
     x86_reg_end,
@@ -109,14 +109,12 @@ uint8_t x86_rm_sizes[] = {
     8,
 };
 
-uint16_t reg_x86[0x10000] = {0}, reg_x86_size[0x10000] = {0};
-
-uint64_t x86_read_reg(cpu_t *cpu, uint16_t reg)
+uint64_t x86_read_reg(cpu_t *cpu, uint16_t reg, uint8_t size)
 {
-    if (reg >= x86_reg_end)
+    if (reg >= x86_reg_end - (size - 1))
         return 0;
-    uint8_t *ptr = &cpu->regs[reg_x86[reg]];
-    switch (reg_x86_size[reg])
+    uint8_t *ptr = &cpu->regs[reg];
+    switch (size)
     {
     case 0x01:
         return ptr[0];
@@ -141,12 +139,12 @@ uint64_t x86_read_reg(cpu_t *cpu, uint16_t reg)
     return 0;
 }
 
-int64_t x86_sread_reg(cpu_t *cpu, uint16_t reg)
+int64_t x86_sread_reg(cpu_t *cpu, uint16_t reg, uint8_t size)
 {
-    if (reg >= x86_reg_end)
+    if (reg >= x86_reg_end - (size - 1))
         return 0;
-    uint8_t *ptr = &cpu->regs[reg_x86[reg]];
-    switch (reg_x86_size[reg])
+    uint8_t *ptr = &cpu->regs[reg];
+    switch (size)
     {
     case 0x01:
         return (int8_t)ptr[0];
@@ -171,18 +169,18 @@ int64_t x86_sread_reg(cpu_t *cpu, uint16_t reg)
     return 0;
 }
 
-void x86_write_reg(cpu_t *cpu, uint16_t reg, uint64_t value)
+void x86_write_reg(cpu_t *cpu, uint16_t reg, uint64_t value, uint8_t size)
 {
-    if (reg >= x86_reg_end)
+    if (reg >= x86_reg_end - (size - 1))
         return;
-    uint8_t *ptr = &cpu->regs[reg_x86[reg]];
+    uint8_t *ptr = &cpu->regs[reg];
     if (reg >= x86_reg_gs && reg <= x86_reg_ss)
     {
-        *(uint64_t *)&cpu->cache[x86_cache_seg_gs + (reg << 2)] = value << 4;
+        *(uint64_t *)&cpu->cache[x86_cache_seg_gs + reg] = value << 4;
         if (reg == x86_reg_cs)
             cpu->pc_base = *(uint64_t *)&cpu->cache[x86_cache_seg_cs];
     }
-    switch (reg_x86_size[reg])
+    switch (size)
     {
     case 0x01:
         ptr[0] = value & 0xff;
@@ -212,7 +210,7 @@ void x86_write_reg(cpu_t *cpu, uint16_t reg, uint64_t value)
 
 void x86_set_flags(cpu_t *cpu, uint64_t result, uint8_t size)
 {
-    uint64_t flags = x86_read_reg(cpu, x86_reg_eflags);
+    uint64_t flags = x86_read_reg(cpu, x86_reg_eflags, 4);
     uint64_t max_size = x86_size_max[size], half_size = x86_size_half[size];
     if (result > max_size)
         flags |= x86_flags_CF;
@@ -234,7 +232,7 @@ void x86_set_flags(cpu_t *cpu, uint64_t result, uint8_t size)
         flags |= x86_flags_PF;
     else
         flags &= ~x86_flags_PF;
-    x86_write_reg(cpu, x86_reg_eflags, flags);
+    x86_write_reg(cpu, x86_reg_eflags, flags, 4);
 }
 
 uint64_t x86_read_pc(cpu_t *cpu, uint8_t size)
@@ -289,22 +287,22 @@ uint64_t x86_decode_modrm(cpu_t *cpu, x86_rm_t modrm, uint8_t size)
     {
     case 0x01 ... 0x02:
         return *(uint64_t *)&cpu->cache[x86_cache_seg_gs + x86_rm_reg16_seg[modrm.rm]] +
-               x86_read_reg(cpu, x86_rm_reg16_x[modrm.rm]) +
-               x86_read_reg(cpu, x86_rm_reg16_y[modrm.rm]);
+               x86_read_reg(cpu, x86_rm_reg16_x[modrm.rm], 2) +
+               x86_read_reg(cpu, x86_rm_reg16_y[modrm.rm], 2);
     case 0x04:
         if (modrm.rm == 0x04)
         {
             sib.value = x86_read_pc(cpu, 1);
             if (sib.base != sib.index)
                 return *(uint64_t *)&cpu->cache[x86_cache_seg_gs + x86_rm_reg32_seg[modrm.rm]] +
-                       x86_read_reg(cpu, x86_regs32[sib.base]) +
-                       x86_read_reg(cpu, x86_regs32[sib.index]) *
+                       x86_read_reg(cpu, x86_regs[sib.base], 4) +
+                       x86_read_reg(cpu, x86_regs[sib.index], 4) *
                            x86_sib_sizes[sib.scale];
             return *(uint64_t *)&cpu->cache[x86_cache_seg_gs + x86_rm_reg32_seg[modrm.rm]] +
-                   x86_read_reg(cpu, x86_regs32[sib.base]) *
+                   x86_read_reg(cpu, x86_regs[sib.base], 4) *
                        x86_sib_sizes[sib.scale];
         }
-        return x86_read_reg(cpu, x86_regs32[modrm.rm]);
+        return x86_read_reg(cpu, x86_regs[modrm.rm], 4);
     }
     return 0;
 }
@@ -336,9 +334,9 @@ void x86_decode(cpu_t *cpu, x86_rm_t modrm, bool check_operand, uint8_t size)
                                                        x86_read_pc(cpu, x86_rm_sizes[size]);
         return;
     case 0x03:
-        if (cpu->override & x86_override_dword_operand && check_operand)
-            size = 4;
-        cpu->cache[x86_cache_address0] = x86_mod3_reg[size][modrm.rm];
+        if (check_operand && size > 1)
+            size = x86_get_operand_size(cpu);
+        *(uint16_t *)&cpu->cache[x86_cache_address0] = x86_mod3_reg[size][modrm.rm];
         return;
     }
 }
@@ -350,7 +348,7 @@ uint64_t x86_rm_read(cpu_t *cpu, x86_rm_t modrm, uint8_t size)
                            size,
                            0);
     else
-        return x86_read_reg(cpu, cpu->cache[x86_cache_address0]);
+        return x86_read_reg(cpu, *(uint16_t *)&cpu->cache[x86_cache_address0], size);
 }
 
 int64_t x86_rm_sread(cpu_t *cpu, x86_rm_t modrm, uint8_t size)
@@ -360,15 +358,15 @@ int64_t x86_rm_sread(cpu_t *cpu, x86_rm_t modrm, uint8_t size)
                             size,
                             0);
     else
-        return x86_sread_reg(cpu, cpu->cache[x86_cache_address0]);
+        return x86_sread_reg(cpu, *(uint16_t *)&cpu->cache[x86_cache_address0], size);
 }
 
-uint64_t x86_rm_read_effective_address(cpu_t *cpu, x86_rm_t modrm)
+uint64_t x86_rm_read_effective_address(cpu_t *cpu, x86_rm_t modrm, uint8_t size)
 {
     if (modrm.mod < 0x03)
         return *(uint64_t *)&cpu->cache[x86_cache_address0];
     else
-        return x86_read_reg(cpu, cpu->cache[x86_cache_address0]);
+        return x86_read_reg(cpu, *(uint16_t *)&cpu->cache[x86_cache_address0], size);
 }
 
 void x86_rm_write(cpu_t *cpu, x86_rm_t modrm, uint64_t value, uint8_t size)
@@ -379,38 +377,38 @@ void x86_rm_write(cpu_t *cpu, x86_rm_t modrm, uint64_t value, uint8_t size)
                             size,
                             0);
     else
-        return x86_write_reg(cpu, cpu->cache[x86_cache_address0], value);
+        return x86_write_reg(cpu, *(uint16_t *)&cpu->cache[x86_cache_address0], value, size);
 }
 
-void x86_reg_write(cpu_t *cpu, const uint8_t *regs, x86_rm_t modrm, uint64_t value)
+void x86_reg_write(cpu_t *cpu, const uint16_t *regs, x86_rm_t modrm, uint64_t value, uint8_t size)
 {
-    return x86_write_reg(cpu, regs[modrm.reg], value);
+    return x86_write_reg(cpu, regs[modrm.reg], value, size);
 }
 
 void x86_push(cpu_t *cpu, uint64_t value)
 {
     uint8_t size = cpu->cache[x86_cache_size];
-    uint64_t stack = x86_read_reg(cpu, x86_reg_esp) - size;
-    x86_write_reg(cpu, x86_reg_esp, stack);
+    uint64_t stack = x86_read_reg(cpu, x86_reg_esp, 4) - size;
+    x86_write_reg(cpu, x86_reg_esp, stack, 4);
     memory_write(stack, value, size, 0);
 }
 
 uint64_t x86_pop(cpu_t *cpu)
 {
     uint8_t size = cpu->cache[x86_cache_size];
-    uint64_t stack = x86_read_reg(cpu, x86_reg_esp);
-    x86_write_reg(cpu, x86_reg_esp, stack + size);
+    uint64_t stack = x86_read_reg(cpu, x86_reg_esp, 4);
+    x86_write_reg(cpu, x86_reg_esp, stack + size, 4);
     return memory_read(stack, size, 0);
 }
 
 bool x86_get_flag(cpu_t *cpu, uint64_t flag)
 {
-    return x86_read_reg(cpu, x86_reg_eflags) & flag ? 1 : 0;
+    return x86_read_reg(cpu, x86_reg_eflags, 4) & flag ? 1 : 0;
 }
 
 void x86_cmp(cpu_t *cpu, uint64_t value1, uint64_t value2)
 {
-    uint64_t flags = x86_read_reg(cpu, x86_reg_eflags);
+    uint64_t flags = x86_read_reg(cpu, x86_reg_eflags, 4);
     if (value1 < value2)
         flags |= x86_flags_CF;
     else
@@ -419,7 +417,7 @@ void x86_cmp(cpu_t *cpu, uint64_t value1, uint64_t value2)
         flags |= x86_flags_ZF;
     else
         flags &= ~x86_flags_ZF;
-    x86_write_reg(cpu, x86_reg_eflags, flags);
+    x86_write_reg(cpu, x86_reg_eflags, flags, 4);
 }
 
 void x86_opcode_c6_c7(cpu_t *cpu, uint8_t opcode)
@@ -448,7 +446,7 @@ void x86_opcode_8e(cpu_t *cpu, uint8_t opcode)
     x86_reg_write(cpu,
                   x86_sregs,
                   modrm,
-                  x86_rm_read(cpu, modrm, 2));
+                  x86_rm_read(cpu, modrm, 2), 2);
 }
 
 void x86_opcode_8d(cpu_t *cpu, uint8_t opcode)
@@ -457,9 +455,10 @@ void x86_opcode_8d(cpu_t *cpu, uint8_t opcode)
     x86_rm_t modrm = {.value = x86_read_pc(cpu, 1)};
     x86_decode(cpu, modrm, 1, 2);
     x86_reg_write(cpu,
-                  x86_mod3_reg[operand_size],
+                  x86_regs,
                   modrm,
-                  x86_rm_read_effective_address(cpu, modrm));
+                  x86_rm_read_effective_address(cpu, modrm, operand_size),
+                  operand_size);
 }
 
 void x86_opcode_8c(cpu_t *cpu, uint8_t opcode)
@@ -468,7 +467,7 @@ void x86_opcode_8c(cpu_t *cpu, uint8_t opcode)
     x86_decode(cpu, modrm, 0, 2);
     x86_rm_write(cpu,
                  modrm,
-                 x86_read_reg(cpu, x86_sregs[modrm.reg]),
+                 x86_read_reg(cpu, x86_sregs[modrm.reg], 2),
                  2);
 }
 
@@ -480,9 +479,10 @@ void x86_opcode_8a_8b(cpu_t *cpu, uint8_t opcode)
     {
         x86_decode(cpu, modrm, 1, 2);
         x86_reg_write(cpu,
-                      x86_mod3_reg[operand_size],
+                      x86_regs,
                       modrm,
-                      x86_rm_read(cpu, modrm, operand_size));
+                      x86_rm_read(cpu, modrm, operand_size),
+                      operand_size);
     }
     else
     {
@@ -490,7 +490,8 @@ void x86_opcode_8a_8b(cpu_t *cpu, uint8_t opcode)
         x86_reg_write(cpu,
                       x86_regs8,
                       modrm,
-                      x86_rm_read(cpu, modrm, 1));
+                      x86_rm_read(cpu, modrm, 1),
+                      1);
     }
 }
 
@@ -503,13 +504,13 @@ void x86_opcode_88_89(cpu_t *cpu, uint8_t opcode)
         x86_decode(cpu, modrm, 1, 2);
         x86_rm_write(cpu,
                      modrm,
-                     x86_read_reg(cpu, x86_mod3_reg[operand_size][modrm.reg]),
+                     x86_read_reg(cpu, x86_regs[modrm.reg], operand_size),
                      operand_size);
     }
     else
     {
         x86_decode(cpu, modrm, 1, 1);
-        x86_rm_write(cpu, modrm, x86_read_reg(cpu, x86_regs8[modrm.reg]), 1);
+        x86_rm_write(cpu, modrm, x86_read_reg(cpu, x86_regs8[modrm.reg], 1), 1);
     }
 }
 
@@ -539,106 +540,107 @@ void x86_opcode_80_83(cpu_t *cpu, uint8_t opcode)
     switch (modrm.reg)
     {
     case 0x00:
-        result = x86_rm_read(cpu, modrm, size2) + simm;
+        result = x86_rm_read(cpu, modrm, size1) + simm;
         x86_set_flags(cpu, result, size1);
-        x86_rm_write(cpu, modrm, result, size2);
+        x86_rm_write(cpu, modrm, result, size1);
         break;
     case 0x01:
-        result = x86_rm_read(cpu, modrm, size2) | simm;
+        result = x86_rm_read(cpu, modrm, size1) | simm;
         x86_set_flags(cpu, result, size1);
-        x86_rm_write(cpu, modrm, result, size2);
+        x86_rm_write(cpu, modrm, result, size1);
         break;
     case 0x02:
-        result = x86_rm_read(cpu, modrm, size2) + simm + x86_get_flag(cpu, x86_flags_CF);
+        result = x86_rm_read(cpu, modrm, size1) + simm + x86_get_flag(cpu, x86_flags_CF);
         x86_set_flags(cpu, result, size1);
-        x86_rm_write(cpu, modrm, result, size2);
+        x86_rm_write(cpu, modrm, result, size1);
         break;
     case 0x03:
-        result = x86_rm_read(cpu, modrm, size2) - simm + x86_get_flag(cpu, x86_flags_CF);
+        result = x86_rm_read(cpu, modrm, size1) - simm + x86_get_flag(cpu, x86_flags_CF);
         x86_set_flags(cpu, result, size1);
-        x86_rm_write(cpu, modrm, result, size2);
+        x86_rm_write(cpu, modrm, result, size1);
         break;
     case 0x04:
-        result = x86_rm_read(cpu, modrm, size2) & simm;
+        result = x86_rm_read(cpu, modrm, size1) & simm;
         x86_set_flags(cpu, result, size1);
-        x86_rm_write(cpu, modrm, result, size2);
+        x86_rm_write(cpu, modrm, result, size1);
         break;
     case 0x05:
-        result = x86_rm_read(cpu, modrm, size2) - simm;
+        result = x86_rm_read(cpu, modrm, size1) - simm;
         x86_set_flags(cpu, result, size1);
-        x86_rm_write(cpu, modrm, result, size2);
+        x86_rm_write(cpu, modrm, result, size1);
         break;
     case 0x06:
-        result = x86_rm_read(cpu, modrm, size2) ^ simm;
+        result = x86_rm_read(cpu, modrm, size1) ^ simm;
         x86_set_flags(cpu, result, size1);
-        x86_rm_write(cpu, modrm, result, size2);
+        x86_rm_write(cpu, modrm, result, size1);
         break;
     case 0x07:
-        x86_cmp(cpu, x86_rm_read(cpu, modrm, size2), simm);
+        x86_cmp(cpu, x86_rm_read(cpu, modrm, size1), simm);
         break;
     }
 }
 
 void x86_opcode_unsigned_operation_04_05(cpu_t *cpu, uint8_t opcode, uint8_t operation)
 {
-    uint8_t reg, operand_size;
+    uint8_t operand_size;
     uint64_t imm;
     uint64_t result;
     if (opcode & 0x01)
     {
         if (cpu->override & x86_override_dword_operand)
-            reg = x86_reg_eax, imm = x86_read_pc(cpu, 4), operand_size = 4;
+            imm = x86_read_pc(cpu, 4), operand_size = 4;
         else
-            reg = x86_reg_ax, imm = x86_read_pc(cpu, 2), operand_size = 2;
+            imm = x86_read_pc(cpu, 2), operand_size = 2;
     }
     else
     {
-        reg = x86_reg_al, imm = x86_read_pc(cpu, 1), operand_size = 1;
+        imm = x86_read_pc(cpu, 1), operand_size = 1;
     }
     switch (operation)
     {
     case 0x00:
-        result = x86_read_reg(cpu, reg) +
+        result = x86_read_reg(cpu, x86_reg_eax, operand_size) +
                  imm;
         x86_set_flags(cpu, result, operand_size);
         break;
     case 0x01:
-        result = x86_read_reg(cpu, reg) |
+        result = x86_read_reg(cpu, x86_reg_eax, operand_size) |
                  imm;
         x86_set_flags(cpu, result, operand_size);
         break;
     case 0x02:
-        result = x86_read_reg(cpu, reg) +
+        result = x86_read_reg(cpu, x86_reg_eax, operand_size) +
                  imm +
                  x86_get_flag(cpu, x86_flags_CF);
         x86_set_flags(cpu, result, operand_size);
         break;
     case 0x03:
-        result = x86_read_reg(cpu, reg) -
+        result = x86_read_reg(cpu, x86_reg_eax, operand_size) -
                  imm +
                  x86_get_flag(cpu, x86_flags_CF);
         x86_set_flags(cpu, result, operand_size);
         break;
     case 0x04:
-        result = x86_read_reg(cpu, reg) &
+        result = x86_read_reg(cpu, x86_reg_eax, operand_size) &
                  imm;
         x86_set_flags(cpu, result, operand_size);
         break;
     case 0x05:
-        result = x86_read_reg(cpu, reg) -
+        result = x86_read_reg(cpu, x86_reg_eax, operand_size) -
                  imm;
         x86_set_flags(cpu, result, operand_size);
         break;
     case 0x06:
-        result = x86_read_reg(cpu, reg) ^
+        result = x86_read_reg(cpu, x86_reg_eax, operand_size) ^
                  imm;
         x86_set_flags(cpu, result, operand_size);
         break;
     case 0x07:
-        result = x86_read_reg(cpu, reg);
+        result = x86_read_reg(cpu, x86_reg_eax, operand_size);
         x86_cmp(cpu, result, imm);
         break;
     }
+    x86_write_reg(cpu, x86_reg_eax, result, operand_size);
 }
 
 void x86_opcode_unsigned_operation_02_03(cpu_t *cpu, uint8_t opcode, uint8_t operation)
@@ -652,51 +654,52 @@ void x86_opcode_unsigned_operation_02_03(cpu_t *cpu, uint8_t opcode, uint8_t ope
         switch (operation)
         {
         case 0x00:
-            result = x86_read_reg(cpu, x86_mod3_reg[operand_size][modrm.reg]) +
+            result = x86_read_reg(cpu, x86_mod3_reg[operand_size][modrm.reg], operand_size) +
                      x86_rm_read(cpu, modrm, operand_size);
             x86_set_flags(cpu, result, operand_size);
             break;
         case 0x01:
-            result = x86_read_reg(cpu, x86_mod3_reg[operand_size][modrm.reg]) |
+            result = x86_read_reg(cpu, x86_mod3_reg[operand_size][modrm.reg], operand_size) |
                      x86_rm_read(cpu, modrm, operand_size);
             x86_set_flags(cpu, result, operand_size);
             break;
         case 0x02:
-            result = x86_read_reg(cpu, x86_mod3_reg[operand_size][modrm.reg]) +
+            result = x86_read_reg(cpu, x86_mod3_reg[operand_size][modrm.reg], operand_size) +
                      x86_rm_read(cpu, modrm, operand_size) +
                      x86_get_flag(cpu, x86_flags_CF);
             x86_set_flags(cpu, result, operand_size);
             break;
         case 0x03:
-            result = x86_read_reg(cpu, x86_mod3_reg[operand_size][modrm.reg]) -
+            result = x86_read_reg(cpu, x86_mod3_reg[operand_size][modrm.reg], operand_size) -
                      x86_rm_read(cpu, modrm, operand_size) +
                      x86_get_flag(cpu, x86_flags_CF);
             x86_set_flags(cpu, result, operand_size);
             break;
         case 0x04:
-            result = x86_read_reg(cpu, x86_mod3_reg[operand_size][modrm.reg]) &
+            result = x86_read_reg(cpu, x86_mod3_reg[operand_size][modrm.reg], operand_size) &
                      x86_rm_read(cpu, modrm, operand_size);
             x86_set_flags(cpu, result, operand_size);
             break;
         case 0x05:
-            result = x86_read_reg(cpu, x86_mod3_reg[operand_size][modrm.reg]) -
+            result = x86_read_reg(cpu, x86_mod3_reg[operand_size][modrm.reg], operand_size) -
                      x86_rm_read(cpu, modrm, operand_size);
             x86_set_flags(cpu, result, operand_size);
             break;
         case 0x06:
-            result = x86_read_reg(cpu, x86_mod3_reg[operand_size][modrm.reg]) ^
+            result = x86_read_reg(cpu, x86_mod3_reg[operand_size][modrm.reg], operand_size) ^
                      x86_rm_read(cpu, modrm, operand_size);
             x86_set_flags(cpu, result, operand_size);
             break;
         case 0x07:
-            result = x86_read_reg(cpu, x86_mod3_reg[operand_size][modrm.reg]);
+            result = x86_read_reg(cpu, x86_mod3_reg[operand_size][modrm.reg], operand_size);
             x86_cmp(cpu, result, x86_rm_read(cpu, modrm, operand_size));
             break;
         }
         x86_reg_write(cpu,
-                      x86_mod3_reg[operand_size],
+                      x86_regs,
                       modrm,
-                      result);
+                      result,
+                      operand_size);
     }
     else
     {
@@ -705,51 +708,52 @@ void x86_opcode_unsigned_operation_02_03(cpu_t *cpu, uint8_t opcode, uint8_t ope
         switch (operation)
         {
         case 0x00:
-            result = x86_read_reg(cpu, x86_regs8[modrm.reg]) +
+            result = x86_read_reg(cpu, x86_regs8[modrm.reg], operand_size) +
                      x86_rm_read(cpu, modrm, operand_size);
             x86_set_flags(cpu, result, operand_size);
             break;
         case 0x01:
-            result = x86_read_reg(cpu, x86_regs8[modrm.reg]) |
+            result = x86_read_reg(cpu, x86_regs8[modrm.reg], operand_size) |
                      x86_rm_read(cpu, modrm, operand_size);
             x86_set_flags(cpu, result, operand_size);
             break;
         case 0x02:
-            result = x86_read_reg(cpu, x86_regs8[modrm.reg]) +
+            result = x86_read_reg(cpu, x86_regs8[modrm.reg], operand_size) +
                      x86_rm_read(cpu, modrm, operand_size) +
                      x86_get_flag(cpu, x86_flags_CF);
             x86_set_flags(cpu, result, operand_size);
             break;
         case 0x03:
-            result = x86_read_reg(cpu, x86_regs8[modrm.reg]) -
+            result = x86_read_reg(cpu, x86_regs8[modrm.reg], operand_size) -
                      x86_rm_read(cpu, modrm, operand_size) +
                      x86_get_flag(cpu, x86_flags_CF);
             x86_set_flags(cpu, result, operand_size);
             break;
         case 0x04:
-            result = x86_read_reg(cpu, x86_regs8[modrm.reg]) &
+            result = x86_read_reg(cpu, x86_regs8[modrm.reg], operand_size) &
                      x86_rm_read(cpu, modrm, operand_size);
             x86_set_flags(cpu, result, operand_size);
             break;
         case 0x05:
-            result = x86_read_reg(cpu, x86_regs8[modrm.reg]) -
+            result = x86_read_reg(cpu, x86_regs8[modrm.reg], operand_size) -
                      x86_rm_read(cpu, modrm, operand_size);
             x86_set_flags(cpu, result, operand_size);
             break;
         case 0x06:
-            result = x86_read_reg(cpu, x86_regs8[modrm.reg]) ^
+            result = x86_read_reg(cpu, x86_regs8[modrm.reg], operand_size) ^
                      x86_rm_read(cpu, modrm, operand_size);
             x86_set_flags(cpu, result, operand_size);
             break;
         case 0x07:
-            result = x86_read_reg(cpu, x86_regs8[modrm.reg]);
+            result = x86_read_reg(cpu, x86_regs8[modrm.reg], operand_size);
             x86_cmp(cpu, result, x86_rm_read(cpu, modrm, operand_size));
             break;
         }
         x86_reg_write(cpu,
                       x86_regs8,
                       modrm,
-                      result);
+                      result,
+                      1);
     }
 }
 
@@ -765,44 +769,44 @@ void x86_opcode_unsigned_operation_00_01(cpu_t *cpu, uint8_t opcode, uint8_t ope
         {
         case 0x00:
             result = x86_rm_read(cpu, modrm, operand_size) +
-                     x86_read_reg(cpu, x86_mod3_reg[operand_size][modrm.reg]);
+                     x86_read_reg(cpu, x86_mod3_reg[operand_size][modrm.reg], operand_size);
             x86_set_flags(cpu, result, operand_size);
             break;
         case 0x01:
             result = x86_rm_read(cpu, modrm, operand_size) |
-                     x86_read_reg(cpu, x86_mod3_reg[operand_size][modrm.reg]);
+                     x86_read_reg(cpu, x86_mod3_reg[operand_size][modrm.reg], operand_size);
             x86_set_flags(cpu, result, operand_size);
             break;
         case 0x02:
             result = x86_rm_read(cpu, modrm, operand_size) +
-                     x86_read_reg(cpu, x86_mod3_reg[operand_size][modrm.reg]) +
+                     x86_read_reg(cpu, x86_mod3_reg[operand_size][modrm.reg], operand_size) +
                      x86_get_flag(cpu, x86_flags_CF);
             x86_set_flags(cpu, result, operand_size);
             break;
         case 0x03:
             result = x86_rm_read(cpu, modrm, operand_size) -
-                     x86_read_reg(cpu, x86_mod3_reg[operand_size][modrm.reg]) +
+                     x86_read_reg(cpu, x86_mod3_reg[operand_size][modrm.reg], operand_size) +
                      x86_get_flag(cpu, x86_flags_CF);
             x86_set_flags(cpu, result, operand_size);
             break;
         case 0x04:
             result = x86_rm_read(cpu, modrm, operand_size) &
-                     x86_read_reg(cpu, x86_mod3_reg[operand_size][modrm.reg]);
+                     x86_read_reg(cpu, x86_mod3_reg[operand_size][modrm.reg], operand_size);
             x86_set_flags(cpu, result, operand_size);
             break;
         case 0x05:
             result = x86_rm_read(cpu, modrm, operand_size) -
-                     x86_read_reg(cpu, x86_mod3_reg[operand_size][modrm.reg]);
+                     x86_read_reg(cpu, x86_mod3_reg[operand_size][modrm.reg], operand_size);
             x86_set_flags(cpu, result, operand_size);
             break;
         case 0x06:
             result = x86_rm_read(cpu, modrm, operand_size) ^
-                     x86_read_reg(cpu, x86_mod3_reg[operand_size][modrm.reg]);
+                     x86_read_reg(cpu, x86_mod3_reg[operand_size][modrm.reg], operand_size);
             x86_set_flags(cpu, result, operand_size);
             break;
         case 0x07:
             result = x86_rm_read(cpu, modrm, operand_size);
-            x86_cmp(cpu, result, x86_read_reg(cpu, x86_mod3_reg[operand_size][modrm.reg]));
+            x86_cmp(cpu, result, x86_read_reg(cpu, x86_mod3_reg[operand_size][modrm.reg], operand_size));
             break;
         }
         x86_rm_write(cpu,
@@ -818,44 +822,44 @@ void x86_opcode_unsigned_operation_00_01(cpu_t *cpu, uint8_t opcode, uint8_t ope
         {
         case 0x00:
             result = x86_rm_read(cpu, modrm, operand_size) +
-                     x86_read_reg(cpu, x86_regs8[modrm.reg]);
+                     x86_read_reg(cpu, x86_regs8[modrm.reg], operand_size);
             x86_set_flags(cpu, result, operand_size);
             break;
         case 0x01:
             result = x86_rm_read(cpu, modrm, operand_size) |
-                     x86_read_reg(cpu, x86_regs8[modrm.reg]);
+                     x86_read_reg(cpu, x86_regs8[modrm.reg], operand_size);
             x86_set_flags(cpu, result, operand_size);
             break;
         case 0x02:
             result = x86_rm_read(cpu, modrm, operand_size) +
-                     x86_read_reg(cpu, x86_regs8[modrm.reg]) +
+                     x86_read_reg(cpu, x86_regs8[modrm.reg], operand_size) +
                      x86_get_flag(cpu, x86_flags_CF);
             x86_set_flags(cpu, result, operand_size);
             break;
         case 0x03:
             result = x86_rm_read(cpu, modrm, operand_size) -
-                     x86_read_reg(cpu, x86_regs8[modrm.reg]) +
+                     x86_read_reg(cpu, x86_regs8[modrm.reg], operand_size) +
                      x86_get_flag(cpu, x86_flags_CF);
             x86_set_flags(cpu, result, operand_size);
             break;
         case 0x04:
             result = x86_rm_read(cpu, modrm, operand_size) &
-                     x86_read_reg(cpu, x86_regs8[modrm.reg]);
+                     x86_read_reg(cpu, x86_regs8[modrm.reg], operand_size);
             x86_set_flags(cpu, result, operand_size);
             break;
         case 0x05:
             result = x86_rm_read(cpu, modrm, operand_size) -
-                     x86_read_reg(cpu, x86_regs8[modrm.reg]);
+                     x86_read_reg(cpu, x86_regs8[modrm.reg], operand_size);
             x86_set_flags(cpu, result, operand_size);
             break;
         case 0x06:
             result = x86_rm_read(cpu, modrm, operand_size) ^
-                     x86_read_reg(cpu, x86_regs8[modrm.reg]);
+                     x86_read_reg(cpu, x86_regs8[modrm.reg], operand_size);
             x86_set_flags(cpu, result, operand_size);
             break;
         case 0x07:
             result = x86_rm_read(cpu, modrm, operand_size);
-            x86_cmp(cpu, result, x86_read_reg(cpu, x86_regs8[modrm.reg]));
+            x86_cmp(cpu, result, x86_read_reg(cpu, x86_regs8[modrm.reg], operand_size));
             break;
         }
         x86_rm_write(cpu, modrm, result, 1);
@@ -878,11 +882,11 @@ void x86_opcode_0f(cpu_t *cpu, uint8_t opcode)
             {
             case 0x02:
                 x86_decode(cpu, modrm, 1, 2);
-                x86_write_reg(cpu, x86_reg_gdtr, x86_rm_read_effective_address(cpu, modrm));
+                x86_write_reg(cpu, x86_reg_gdtr, x86_rm_read_effective_address(cpu, modrm, operand_size), 8);
                 break;
             case 0x03:
                 x86_decode(cpu, modrm, 1, 2);
-                x86_write_reg(cpu, x86_reg_idtr, x86_rm_read_effective_address(cpu, modrm));
+                x86_write_reg(cpu, x86_reg_idtr, x86_rm_read_effective_address(cpu, modrm, operand_size), 8);
                 break;
             }
             break;
@@ -890,12 +894,12 @@ void x86_opcode_0f(cpu_t *cpu, uint8_t opcode)
             scache0 = x86_sread_pc(cpu, cpu->cache[x86_cache_size]);
             if (x86_jcc_map[modrm.rm])
             {
-                if (x86_read_reg(cpu, x86_reg_eflags) & x86_jcc_flag[modrm.rm])
+                if (x86_read_reg(cpu, x86_reg_eflags, 4) & x86_jcc_flag[modrm.rm])
                     cpu->pc += scache0;
             }
             else
             {
-                if (~x86_read_reg(cpu, x86_reg_eflags) & x86_jcc_flag[modrm.rm])
+                if (~x86_read_reg(cpu, x86_reg_eflags, 4) & x86_jcc_flag[modrm.rm])
                     cpu->pc += scache0;
             }
             break;
@@ -910,12 +914,12 @@ void x86_opcode_0f(cpu_t *cpu, uint8_t opcode)
             case 0x00:
                 modrm.value = x86_read_pc(cpu, 1);
                 x86_decode(cpu, modrm, 0, 4);
-                x86_rm_write(cpu, modrm, x86_read_reg(cpu, x86_regscontrol[modrm.reg]), 4);
+                x86_rm_write(cpu, modrm, x86_read_reg(cpu, x86_regscontrol[modrm.reg], 4), 4);
                 break;
             case 0x02:
                 modrm.value = x86_read_pc(cpu, 1);
                 x86_decode(cpu, modrm, 0, 4);
-                x86_reg_write(cpu, x86_regscontrol, modrm, x86_rm_read(cpu, modrm, 4));
+                x86_reg_write(cpu, x86_regscontrol, modrm, x86_rm_read(cpu, modrm, 4), 4);
                 break;
             }
             break;
@@ -927,8 +931,9 @@ void x86_opcode_0f(cpu_t *cpu, uint8_t opcode)
         x86_reg_write(cpu,
                       x86_mod3_reg[operand_size],
                       modrm,
-                      x86_read_reg(cpu, x86_mod3_reg[operand_size][modrm.reg]) *
-                          x86_rm_sread(cpu, modrm, operand_size));
+                      x86_read_reg(cpu, x86_mod3_reg[operand_size][modrm.reg], operand_size) *
+                          x86_rm_sread(cpu, modrm, operand_size),
+                      operand_size);
         break;
     case 0x06:
         switch (modrm.mod)
@@ -939,18 +944,12 @@ void x86_opcode_0f(cpu_t *cpu, uint8_t opcode)
             case 0x06:
                 modrm.value = x86_read_pc(cpu, 1);
                 x86_decode(cpu, modrm, 0, 1);
-                if (cpu->override & x86_override_dword_operand)
-                    x86_write_reg(cpu, x86_regs32[modrm.reg], x86_rm_read(cpu, modrm, 1));
-                else
-                    x86_write_reg(cpu, x86_regs16[modrm.reg], x86_rm_read(cpu, modrm, 1));
+                x86_write_reg(cpu, x86_regs[modrm.reg], x86_rm_read(cpu, modrm, 1), operand_size);
                 break;
             case 0x07:
                 modrm.value = x86_read_pc(cpu, 1);
                 x86_decode(cpu, modrm, 0, 2);
-                if (cpu->override & x86_override_dword_operand)
-                    x86_write_reg(cpu, x86_regs32[modrm.reg], x86_rm_read(cpu, modrm, 2));
-                else
-                    x86_write_reg(cpu, x86_regs16[modrm.reg], x86_rm_read(cpu, modrm, 2));
+                x86_write_reg(cpu, x86_regs[modrm.reg], x86_rm_read(cpu, modrm, 2), operand_size);
                 break;
             }
             break;
@@ -961,10 +960,11 @@ void x86_opcode_0f(cpu_t *cpu, uint8_t opcode)
 
 uint8_t x86_emulate(cpu_t *cpu)
 {
+    uint8_t operand_size;
     uint64_t x86_cache[4];
     uint8_t ret = 0, opcode = 0, bit_check = 0;
     uint16_t old_override = cpu->override;
-    if (x86_read_reg(cpu, x86_reg_cr0) & x86_cr0_PE)
+    if (x86_read_reg(cpu, x86_reg_cr0, 4) & x86_cr0_PE)
     {
         cpu->cache[x86_cache_size] = 4;
         old_override |= (1 << 0) | (1 << 1);
@@ -977,6 +977,7 @@ uint8_t x86_emulate(cpu_t *cpu)
         cpu->override = old_override;
     }
 start:
+    operand_size = x86_get_operand_size(cpu);
     opcode = x86_read_pc(cpu, 1);
     bit_check = 1 << (opcode & 0x01);
     switch (opcode)
@@ -1013,31 +1014,23 @@ start:
         break;
     case 0x40 ... 0x47:
         opcode &= 0x07;
-        if (cpu->override & x86_override_dword_operand)
-            x86_write_reg(cpu, x86_regs32[opcode], x86_read_reg(cpu, x86_regs32[opcode]) + 1);
-        else
-            x86_write_reg(cpu, x86_regs16[opcode], x86_read_reg(cpu, x86_regs16[opcode]) + 1);
+        x86_write_reg(cpu, x86_regs[opcode],
+                      x86_read_reg(cpu, x86_regs[opcode], operand_size) + 1,
+                      operand_size);
         break;
     case 0x48 ... 0x4f:
         opcode &= 0x07;
-        if (cpu->override & x86_override_dword_operand)
-            x86_write_reg(cpu, x86_regs32[opcode], x86_read_reg(cpu, x86_regs32[opcode]) - 1);
-        else
-            x86_write_reg(cpu, x86_regs16[opcode], x86_read_reg(cpu, x86_regs16[opcode]) - 1);
+        x86_write_reg(cpu, x86_regs[opcode],
+                      x86_read_reg(cpu, x86_regs[opcode], operand_size) - 1,
+                      operand_size);
         break;
     case 0x50 ... 0x57:
         opcode &= 0x07;
-        if (cpu->override & x86_override_dword_operand)
-            x86_push(cpu, x86_read_reg(cpu, x86_regs32[opcode]));
-        else
-            x86_push(cpu, x86_read_reg(cpu, x86_regs16[opcode]));
+        x86_push(cpu, x86_read_reg(cpu, x86_regs[opcode], operand_size));
         break;
     case 0x58 ... 0x5f:
         opcode &= 0x07;
-        if (cpu->override & x86_override_dword_operand)
-            x86_write_reg(cpu, x86_regs32[opcode], x86_pop(cpu));
-        else
-            x86_write_reg(cpu, x86_regs16[opcode], x86_pop(cpu));
+        x86_write_reg(cpu, x86_regs[opcode], x86_pop(cpu), operand_size);
         break;
     case 0x66 ... 0x67:
         if (cpu->override & bit_check)
@@ -1065,49 +1058,30 @@ start:
         break;
     case 0x90 ... 0x97:
         opcode &= 0x07;
-        if (cpu->override & x86_override_dword_operand)
-        {
-            x86_cache[0] = x86_read_reg(cpu, x86_reg_eax);
-            x86_write_reg(cpu, x86_reg_eax, x86_read_reg(cpu, x86_regs32[opcode]));
-            x86_write_reg(cpu, x86_regs32[opcode], x86_cache[0]);
-        }
-        else
-        {
-            x86_cache[0] = x86_read_reg(cpu, x86_reg_ax);
-            x86_write_reg(cpu, x86_reg_ax, x86_read_reg(cpu, x86_regs16[opcode]));
-            x86_write_reg(cpu, x86_regs16[opcode], x86_cache[0]);
-        }
+        x86_cache[0] = x86_read_reg(cpu, x86_reg_eax, operand_size);
+        x86_write_reg(cpu, x86_reg_eax,
+                      x86_read_reg(cpu, x86_regs[opcode], operand_size),
+                      operand_size);
+        x86_write_reg(cpu, x86_regs[opcode], x86_cache[0], operand_size);
         break;
     case 0xa0 ... 0xa1:
         if (opcode & 0x01)
         {
-            x86_cache[0] = x86_get_operand_size(cpu);
-            x86_cache[1] = x86_imm_address(cpu, x86_cache[0]);
-            switch (x86_cache[0])
-            {
-            case 0x02:
-                x86_write_reg(cpu, x86_reg_ax, memory_read(x86_cache[1], 2, 0));
-                break;
-            case 0x04:
-                x86_write_reg(cpu, x86_reg_eax, memory_read(x86_cache[1], 4, 0));
-                break;
-            }
+            x86_cache[0] = x86_imm_address(cpu, x86_cache[0]);
+            x86_write_reg(cpu, x86_reg_eax, memory_read(x86_cache[0], operand_size, 0), operand_size);
         }
         else
         {
-            x86_write_reg(cpu, x86_reg_al, memory_read(x86_imm_address(cpu, 1), 1, 0));
+            x86_write_reg(cpu, x86_reg_eax, memory_read(x86_imm_address(cpu, 1), 1, 0), 1);
         }
         break;
     case 0xb0 ... 0xb7:
         opcode &= 0x07;
-        x86_write_reg(cpu, x86_regs8[opcode], x86_read_pc(cpu, 1));
+        x86_write_reg(cpu, x86_regs8[opcode], x86_read_pc(cpu, 1), 1);
         break;
     case 0xb8 ... 0xbf:
         opcode &= 0x07;
-        if (cpu->override & x86_override_dword_operand)
-            x86_write_reg(cpu, x86_regs32[opcode], x86_read_pc(cpu, 4));
-        else
-            x86_write_reg(cpu, x86_regs16[opcode], x86_read_pc(cpu, 2));
+        x86_write_reg(cpu, x86_regs[opcode], x86_read_pc(cpu, operand_size), operand_size);
         break;
     case 0xc3:
         cpu->pc = x86_pop(cpu);
@@ -1133,41 +1107,39 @@ start:
         }
         else
         {
-            x86_cache[0] = x86_read_pc(cpu, x86_get_operand_size(cpu));
+            x86_cache[0] = x86_read_pc(cpu, operand_size);
             x86_cache[1] = x86_read_pc(cpu, 2);
             cpu->pc = x86_cache[0];
-            x86_write_reg(cpu, x86_reg_cs, x86_cache[1]);
+            x86_write_reg(cpu, x86_reg_cs, x86_cache[1], 2);
         }
         break;
     case 0xec:
-        x86_write_reg(cpu, x86_reg_al, io_read(x86_read_reg(cpu, x86_reg_dx), 1));
+        x86_write_reg(cpu, x86_reg_eax, io_read(x86_read_reg(cpu, x86_reg_edx, 2), 1), 1);
         break;
     case 0xed:
-        if (cpu->override & x86_override_dword_operand)
-            x86_write_reg(cpu, x86_reg_eax, io_read(x86_read_reg(cpu, x86_reg_dx), 4));
-        else
-            x86_write_reg(cpu, x86_reg_ax, io_read(x86_read_reg(cpu, x86_reg_dx), 2));
+        x86_write_reg(cpu, x86_reg_eax,
+                      io_read(x86_read_reg(cpu, x86_reg_edx, 2), operand_size),
+                      operand_size);
         break;
     case 0xee:
-        io_write(x86_read_reg(cpu, x86_reg_dx), x86_read_reg(cpu, x86_reg_al), 1);
+        io_write(x86_read_reg(cpu, x86_reg_edx, 2), x86_read_reg(cpu, x86_reg_eax, 1), 1);
         break;
     case 0xef:
-        if (cpu->override & x86_override_dword_operand)
-            io_write(x86_read_reg(cpu, x86_reg_dx), x86_read_reg(cpu, x86_reg_eax), 4);
-        else
-            io_write(x86_read_reg(cpu, x86_reg_dx), x86_read_reg(cpu, x86_reg_ax), 2);
+        io_write(x86_read_reg(cpu, x86_reg_edx, 2),
+                 x86_read_reg(cpu, x86_reg_eax, operand_size),
+                 operand_size);
         break;
     case 0xfa ... 0xfb:
         if (opcode & 0x01)
-            cpu_write_reg(cpu, x86_reg_eflags, x86_read_reg(cpu, x86_reg_eflags) | x86_flags_IF);
+            cpu_write_reg(cpu, x86_reg_eflags, x86_read_reg(cpu, x86_reg_eflags, 4) | x86_flags_IF, 4);
         else
-            cpu_write_reg(cpu, x86_reg_eflags, x86_read_reg(cpu, x86_reg_eflags) & ~x86_flags_IF);
+            cpu_write_reg(cpu, x86_reg_eflags, x86_read_reg(cpu, x86_reg_eflags, 4) & ~x86_flags_IF, 4);
         break;
     case 0xfc ... 0xfd:
         if (opcode & 0x01)
-            cpu_write_reg(cpu, x86_reg_eflags, x86_read_reg(cpu, x86_reg_eflags) | x86_flags_DF);
+            cpu_write_reg(cpu, x86_reg_eflags, x86_read_reg(cpu, x86_reg_eflags, 4) | x86_flags_DF, 4);
         else
-            cpu_write_reg(cpu, x86_reg_eflags, x86_read_reg(cpu, x86_reg_eflags) & ~x86_flags_DF);
+            cpu_write_reg(cpu, x86_reg_eflags, x86_read_reg(cpu, x86_reg_eflags, 4) & ~x86_flags_DF, 4);
         break;
     default:
         cpu->pc--;
@@ -1175,20 +1147,20 @@ start:
         break;
     }
     cpu->override = old_override;
-    x86_write_reg(cpu, x86_reg_eip, cpu->pc);
+    x86_write_reg(cpu, x86_reg_eip, cpu->pc, 4);
     return ret;
 }
 
 void x86_reset(cpu_t *cpu)
 {
-    memset(cpu->regs, 0, 256);
+    memset(cpu->regs, 0, x86_reg_end);
     memset(cpu->cache, 0, x86_cache_end);
-    x86_write_reg(cpu, x86_reg_gs, 0x0000);
-    x86_write_reg(cpu, x86_reg_fs, 0x0000);
-    x86_write_reg(cpu, x86_reg_es, 0x0000);
-    x86_write_reg(cpu, x86_reg_ds, 0x0000);
-    x86_write_reg(cpu, x86_reg_cs, 0xffff);
-    x86_write_reg(cpu, x86_reg_ss, 0x0000);
+    x86_write_reg(cpu, x86_reg_gs, 0x0000, 2);
+    x86_write_reg(cpu, x86_reg_fs, 0x0000, 2);
+    x86_write_reg(cpu, x86_reg_es, 0x0000, 2);
+    x86_write_reg(cpu, x86_reg_ds, 0x0000, 2);
+    x86_write_reg(cpu, x86_reg_cs, 0xffff, 2);
+    x86_write_reg(cpu, x86_reg_ss, 0x0000, 2);
     cpu->pc = 0;
 }
 
@@ -1198,7 +1170,7 @@ cpu_t *x86_setup()
     if (!ret)
         return (cpu_t *)NULL;
     memset(ret, 0, sizeof(cpu_t));
-    ret->regs = malloc(256);
+    ret->regs = malloc(x86_reg_end);
     ret->cache = malloc(x86_cache_end);
     if (!ret->regs || !ret->cache)
     {
@@ -1206,33 +1178,6 @@ cpu_t *x86_setup()
         free(ret->cache);
         free(ret);
         return (cpu_t *)NULL;
-    }
-    for (uint16_t i = 0; i < 256; i++)
-    {
-        switch (i)
-        {
-        case x86_reg_gdtr:
-            reg_x86[i] = reg_x86[x86_reg_cr8] + 8, reg_x86_size[i] = 8;
-            break;
-        case x86_reg_ldtr:
-            reg_x86[i] = reg_x86[x86_reg_gdtr] + 8, reg_x86_size[i] = 8;
-            break;
-        case x86_reg_idtr:
-            reg_x86[i] = reg_x86[x86_reg_ldtr] + 8, reg_x86_size[i] = 8;
-            break;
-        }
-        if (i >= x86_reg_al && i <= x86_reg_bh)
-            reg_x86[i] = ((i - x86_reg_al - (i & 0x01)) << 2) + (i & 0x01) + x86_reg_al, reg_x86_size[i] = 1;
-        else if (i >= x86_reg_ax && i <= x86_reg_flags)
-            reg_x86[i] = ((i - x86_reg_ax) << 2) + x86_reg_al, reg_x86_size[i] = 2;
-        else if (i >= x86_reg_eax && i <= x86_reg_eflags)
-            reg_x86[i] = ((i - x86_reg_eax) << 1) + x86_reg_al, reg_x86_size[i] = 4;
-        else if (i >= x86_reg_cr0 && i <= x86_reg_cr8)
-            reg_x86[i] = (i - x86_reg_cr0) + (reg_x86[x86_reg_eflags] + 4), reg_x86_size[i] = 8;
-        else if (i >= x86_reg_gs && i <= x86_reg_ss)
-            reg_x86[i] = i, reg_x86_size[i] = 2;
-        else
-            reg_x86[i] = i, reg_x86_size[i] = 0;
     }
     ret->read_reg = x86_read_reg;
     ret->sread_reg = x86_sread_reg;

@@ -40,9 +40,9 @@ typedef struct cpu
     uint32_t flags, override;
     uint64_t pc, pc_base;
     uint64_t pc_new, pc_base_new;
-    uint64_t (*read_reg)(struct cpu *cpu, uint16_t reg);
-    int64_t (*sread_reg)(struct cpu *cpu, uint16_t reg);
-    void (*write_reg)(struct cpu *cpu, uint16_t reg, uint64_t value);
+    uint64_t (*read_reg)(struct cpu *cpu, uint16_t reg, uint8_t size);
+    int64_t (*sread_reg)(struct cpu *cpu, uint16_t reg, uint8_t size);
+    void (*write_reg)(struct cpu *cpu, uint16_t reg, uint64_t value, uint8_t size);
     void (*reset)(struct cpu *cpu);
     uint8_t (*emulate)(struct cpu *cpu);
     struct cpu_packet
@@ -60,9 +60,9 @@ typedef struct cpu
     uint8_t *regs, *cache;
 } cpu_t;
 
-uint64_t cpu_read_reg(cpu_t *cpu, uint16_t reg);
-int64_t cpu_sread_reg(cpu_t *cpu, uint16_t reg);
-void cpu_write_reg(cpu_t *cpu, uint16_t reg, uint64_t value);
+uint64_t cpu_read_reg(cpu_t *cpu, uint16_t reg, uint8_t size);
+int64_t cpu_sread_reg(cpu_t *cpu, uint16_t reg, uint8_t size);
+void cpu_write_reg(cpu_t *cpu, uint16_t reg, uint64_t value, uint8_t size);
 void cpu_reset(cpu_t *cpu);
 void cpu_emulate(cpu_t *cpu);
 void cpu_add_code_packet(cpu_t *cpu, uint8_t operantion, uint8_t sign, uint8_t type,

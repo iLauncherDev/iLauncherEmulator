@@ -1,31 +1,31 @@
 #include "cpu.h"
 
-uint64_t cpu_read_reg(cpu_t *cpu, uint16_t reg)
+uint64_t cpu_read_reg(cpu_t *cpu, uint16_t reg, uint8_t size)
 {
     if (!cpu)
         goto end;
     if (cpu->read_reg)
-        return cpu->read_reg(cpu, reg);
+        return cpu->read_reg(cpu, reg, size);
 end:
     return 0;
 }
 
-int64_t cpu_sread_reg(cpu_t *cpu, uint16_t reg)
+int64_t cpu_sread_reg(cpu_t *cpu, uint16_t reg, uint8_t size)
 {
     if (!cpu)
         goto end;
     if (cpu->read_reg)
-        return cpu->read_reg(cpu, reg);
+        return cpu->read_reg(cpu, reg, size);
 end:
     return 0;
 }
 
-void cpu_write_reg(cpu_t *cpu, uint16_t reg, uint64_t value)
+void cpu_write_reg(cpu_t *cpu, uint16_t reg, uint64_t value, uint8_t size)
 {
     if (!cpu)
         goto end;
     if (cpu->write_reg)
-        return cpu->write_reg(cpu, reg, value);
+        return cpu->write_reg(cpu, reg, value, size);
 end:
     return;
 }

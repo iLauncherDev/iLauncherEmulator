@@ -112,7 +112,7 @@ void *window_update()
 void *cpu_emulator()
 {
     while (true)
-        cpu_emulate(x86_cpu);
+        ;
 }
 
 int32_t main(int32_t argc, char **argv)
@@ -202,9 +202,6 @@ int32_t main(int32_t argc, char **argv)
     pthread_create(&cpu_emulator_thread, NULL, cpu_emulator, NULL);
     pthread_create(&window_update_thread, NULL, window_update, NULL);
     uint16_t regs[] = {
-        x86_reg_gdtr,
-        x86_reg_ldtr,
-        x86_reg_idtr, 
         x86_reg_gs,
         x86_reg_fs,
         x86_reg_es,
@@ -230,6 +227,9 @@ int32_t main(int32_t argc, char **argv)
         x86_reg_cr6,
         x86_reg_cr7,
         x86_reg_cr8,
+        x86_reg_gdtr,
+        x86_reg_ldtr,
+        x86_reg_idtr,
         0xffff,
     };
     while (true)
@@ -238,11 +238,12 @@ int32_t main(int32_t argc, char **argv)
             printf("%c", (uint8_t)io_read(0x3f8, 1)), io_write(0x3f8, 0, 1);
         vga_service();
         cpu_execute_packet(x86_cpu);
+        cpu_emulate(x86_cpu);
         if (debug_code)
         {
             printf("Regs:\n");
             for (uint8_t i = 0; regs[i] != 0xffff; i++)
-                printf("%s = 0x%" PRIx64 " ", x86_regs_strings[regs[i]], cpu_read_reg(x86_cpu, regs[i]));
+                printf("%s = 0x%" PRIx64 " ", x86_regs_strings[regs[i]], cpu_read_reg(x86_cpu, regs[i], 8));
             printf("\n");
         }
         if (code_delay)
