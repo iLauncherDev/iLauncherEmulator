@@ -1179,6 +1179,8 @@ cpu_t *x86_setup()
         free(ret);
         return (cpu_t *)NULL;
     }
+    ret->push = x86_push;
+    ret->pop = x86_pop;
     ret->read_reg = x86_read_reg;
     ret->sread_reg = x86_sread_reg;
     ret->write_reg = x86_write_reg;

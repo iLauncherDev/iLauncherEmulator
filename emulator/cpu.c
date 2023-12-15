@@ -46,12 +46,6 @@ void cpu_recompile(cpu_t *cpu)
         goto end;
     if (cpu->code_packet[cpu->code_packet_index].completed)
         goto end;
-    if (cpu->flags & cpu_flag_jump)
-    {
-        cpu->pc = cpu->pc_new;
-        cpu->pc_base = cpu->pc_base_new;
-        cpu->flags &= ~cpu_flag_jump;
-    }
     while (cpu->flags & cpu_flag_lock)
         ;
     if (cpu->flags & cpu_flag_reset)
@@ -84,12 +78,6 @@ void cpu_execute(cpu_t *cpu)
 {
     if (!cpu)
         goto end;
-    if (!cpu->code_packet[cpu->exec_code_packet_index].completed)
-    {
-        cpu->exec_code_packet_index = 0;
-        goto end;
-    }
-    cpu->exec_code_packet_index++;
 end:
     return;
 }

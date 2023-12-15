@@ -39,7 +39,8 @@ typedef struct cpu
     uint8_t big_endian : 1;
     uint32_t flags, override;
     uint64_t pc, pc_base;
-    uint64_t pc_new, pc_base_new;
+    void (*push)(struct cpu *cpu, uint64_t value);
+    uint64_t (*pop)(struct cpu *cpu);
     uint64_t (*read_reg)(struct cpu *cpu, uint16_t reg, uint8_t size);
     int64_t (*sread_reg)(struct cpu *cpu, uint16_t reg, uint8_t size);
     void (*write_reg)(struct cpu *cpu, uint16_t reg, uint64_t value, uint8_t size);
@@ -57,7 +58,6 @@ typedef struct cpu
         } values[4];
     } code_packet[256];
     uint8_t code_packet_index;
-    uint8_t exec_code_packet_index;
     uint8_t *regs, *cache;
 } cpu_t;
 
