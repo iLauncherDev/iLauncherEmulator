@@ -958,7 +958,7 @@ void x86_opcode_0f(cpu_t *cpu, uint8_t opcode)
     }
 }
 
-uint8_t x86_emulate(cpu_t *cpu)
+uint8_t x86_recompile(cpu_t *cpu)
 {
     uint8_t operand_size;
     uint64_t x86_cache[4];
@@ -1183,7 +1183,7 @@ cpu_t *x86_setup()
     ret->sread_reg = x86_sread_reg;
     ret->write_reg = x86_write_reg;
     ret->reset = x86_reset;
-    ret->emulate = x86_emulate;
+    ret->recompile = x86_recompile;
     cpu_reset(ret);
     return ret;
 }

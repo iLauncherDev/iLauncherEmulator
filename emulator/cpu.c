@@ -40,7 +40,7 @@ end:
     return;
 }
 
-void cpu_emulate(cpu_t *cpu)
+void cpu_recompile(cpu_t *cpu)
 {
     if (!cpu)
         goto end;
@@ -60,17 +60,15 @@ void cpu_emulate(cpu_t *cpu)
             cpu->reset(cpu);
         cpu->flags &= ~cpu_flag_reset;
     }
-    if (cpu->emulate)
-    {
-        if (cpu->emulate(cpu))
-            printf("Unknown opcode: 0x%" PRIx64 "\n", memory_read(cpu->pc_base + cpu->pc, 1, 0)), cpu->pc++;
-    }
+    if (cpu->recompile)
+        while (cpu->recompile(cpu))
+            ;
 end:
     return;
 }
 
-void cpu_add_code_packet(cpu_t *cpu, uint8_t operantion, uint8_t sign, uint8_t type,
-                         uint64_t reg_x, uint64_t reg_y, uint8_t size)
+void cpu_add_code_packet(cpu_t *cpu, uint8_t operantion, uint8_t sign,
+                         uint8_t size, ...)
 {
     if (!cpu)
         goto end;
@@ -82,7 +80,7 @@ end:
     return;
 }
 
-void cpu_execute_packet(cpu_t *cpu)
+void cpu_execute(cpu_t *cpu)
 {
     if (!cpu)
         goto end;

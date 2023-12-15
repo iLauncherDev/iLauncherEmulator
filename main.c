@@ -10,7 +10,7 @@ SDL_Event event;
 uint8_t scancode[4096] = {false};
 uint8_t scancode_ready[4096] = {false};
 uint8_t debug_code = false, dump_bios = false;
-uint32_t ticks;
+uintptr_t ticks, code_delay = 0;
 cpu_t *x86_cpu;
 
 uint64_t window_framebuffer[] = {
@@ -109,15 +109,26 @@ void *window_update()
     return (void *)NULL;
 }
 
-void *cpu_emulator()
+void *cpu_emulation()
 {
     while (true)
-        cpu_emulate(x86_cpu);
+    {
+        cpu_recompile(x86_cpu);
+        cpu_execute(x86_cpu);
+        if (debug_code)
+        {
+            printf("Regs:\n");
+            for (uint16_t i = 0; i < x86_reg_end; i += 8)
+                printf("%s = 0x%" PRIx64 " ", x86_regs_strings[i], cpu_read_reg(x86_cpu, i, 8));
+            printf("\n");
+        }
+        if (code_delay)
+            usleep(code_delay);
+    }
 }
 
 int32_t main(int32_t argc, char **argv)
 {
-    uint32_t code_delay = 0;
     FILE *bios_bin = (FILE *)NULL;
     bios_size = 0;
     for (int32_t i = 1; i < argc; i++)
@@ -198,55 +209,14 @@ int32_t main(int32_t argc, char **argv)
     window = SDL_CreateWindow("iLEmu", 0, 0,
                               window_framebuffer[1], window_framebuffer[2],
                               SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE);
-    pthread_t window_update_thread, cpu_emulator_thread;
-    pthread_create(&cpu_emulator_thread, NULL, cpu_emulator, NULL);
+    pthread_t window_update_thread, cpu_emulation_thread;
     pthread_create(&window_update_thread, NULL, window_update, NULL);
-    uint16_t regs[] = {
-        x86_reg_gs,
-        x86_reg_fs,
-        x86_reg_es,
-        x86_reg_ds,
-        x86_reg_cs,
-        x86_reg_ss,
-        x86_reg_eax,
-        x86_reg_ecx,
-        x86_reg_edx,
-        x86_reg_ebx,
-        x86_reg_esp,
-        x86_reg_ebp,
-        x86_reg_esi,
-        x86_reg_edi,
-        x86_reg_eip,
-        x86_reg_eflags,
-        x86_reg_cr0,
-        x86_reg_cr1,
-        x86_reg_cr2,
-        x86_reg_cr3,
-        x86_reg_cr4,
-        x86_reg_cr5,
-        x86_reg_cr6,
-        x86_reg_cr7,
-        x86_reg_cr8,
-        x86_reg_gdtr,
-        x86_reg_ldtr,
-        x86_reg_idtr,
-        0xffff,
-    };
+    pthread_create(&cpu_emulation_thread, NULL, cpu_emulation, NULL);
     while (true)
     {
         if (io_read(0x3f8, 1))
             printf("%c", (uint8_t)io_read(0x3f8, 1)), io_write(0x3f8, 0, 1);
         vga_service();
-        cpu_execute_packet(x86_cpu);
-        if (debug_code)
-        {
-            printf("Regs:\n");
-            for (uint8_t i = 0; regs[i] != 0xffff; i++)
-                printf("%s = 0x%" PRIx64 " ", x86_regs_strings[regs[i]], cpu_read_reg(x86_cpu, regs[i], 8));
-            printf("\n");
-        }
-        if (code_delay)
-            usleep(code_delay);
     }
     return 0;
 }

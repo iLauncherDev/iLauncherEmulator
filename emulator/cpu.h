@@ -44,13 +44,14 @@ typedef struct cpu
     int64_t (*sread_reg)(struct cpu *cpu, uint16_t reg, uint8_t size);
     void (*write_reg)(struct cpu *cpu, uint16_t reg, uint64_t value, uint8_t size);
     void (*reset)(struct cpu *cpu);
-    uint8_t (*emulate)(struct cpu *cpu);
+    uint8_t (*recompile)(struct cpu *cpu);
     struct cpu_packet
     {
         uint8_t operation;
-        uint8_t type : 4, sign : 1, completed : 1, size;
+        uint8_t sign : 1, completed : 1, size;
         struct cpu_packet_values
         {
+            uint8_t type : 4;
             uint64_t value_x;
             int64_t value_offset;
         } values[4];
@@ -64,8 +65,8 @@ uint64_t cpu_read_reg(cpu_t *cpu, uint16_t reg, uint8_t size);
 int64_t cpu_sread_reg(cpu_t *cpu, uint16_t reg, uint8_t size);
 void cpu_write_reg(cpu_t *cpu, uint16_t reg, uint64_t value, uint8_t size);
 void cpu_reset(cpu_t *cpu);
-void cpu_emulate(cpu_t *cpu);
-void cpu_add_code_packet(cpu_t *cpu, uint8_t operantion, uint8_t sign, uint8_t type,
-                         uint64_t reg_x, uint64_t reg_y, uint8_t size);
-void cpu_execute_packet(cpu_t *cpu);
+void cpu_recompile(cpu_t *cpu);
+void cpu_add_code_packet(cpu_t *cpu, uint8_t operantion, uint8_t sign,
+                         uint8_t size, ...);
+void cpu_execute(cpu_t *cpu);
 #endif
