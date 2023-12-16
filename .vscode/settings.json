@@ -8,6 +8,12 @@
         "string.h": "c",
         "cpu_x86.h": "c",
         "bios_string.h": "c",
-        "algorithm": "c"
+        "algorithm": "c",
+        "hash_map": "c",
+        "functional": "c",
+        "ratio": "c",
+        "tuple": "c",
+        "type_traits": "c",
+        "utility": "c"
     }
 }

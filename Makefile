@@ -1,5 +1,5 @@
 CC := clang
-CC_FLAGS := `sdl2-config --cflags --libs` -Wall -Werror
+CC_FLAGS := `sdl2-config --cflags --libs` -Wno-varargs -Wall -Werror
 EXEC_OUTPUT := iLEmu-system
 EMUFILES := $(shell find *.c) $(shell find emulator -name "*.c")
 BIOSROM := bios/bios.bin

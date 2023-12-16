@@ -22,13 +22,6 @@ bool x86_jcc_map[] = {
     1,
 };
 
-uint8_t x86_sib_sizes[] = {
-    1,
-    2,
-    4,
-    8,
-};
-
 uint16_t x86_rm_reg16_seg[] = {
     x86_reg_ds,
     x86_reg_ds,
@@ -297,10 +290,10 @@ uint64_t x86_decode_modrm(cpu_t *cpu, x86_rm_t modrm, uint8_t size)
                 return *(uint64_t *)&cpu->cache[x86_cache_seg_gs + x86_rm_reg32_seg[modrm.rm]] +
                        x86_read_reg(cpu, x86_regs[sib.base], 4) +
                        x86_read_reg(cpu, x86_regs[sib.index], 4) *
-                           x86_sib_sizes[sib.scale];
+                           (1 << sib.scale);
             return *(uint64_t *)&cpu->cache[x86_cache_seg_gs + x86_rm_reg32_seg[modrm.rm]] +
                    x86_read_reg(cpu, x86_regs[sib.base], 4) *
-                       x86_sib_sizes[sib.scale];
+                       (1 << sib.scale);
         }
         return x86_read_reg(cpu, x86_regs[modrm.rm], 4);
     }
@@ -1172,6 +1165,8 @@ cpu_t *x86_setup()
     memset(ret, 0, sizeof(cpu_t));
     ret->neutral_values[cpu_neutral_reg_instruction_pointer] = x86_reg_rip;
     ret->neutral_values[cpu_neutral_reg_flags] = x86_reg_rflags;
+    ret->neutral_values[cpu_neutral_reg_stack] = x86_reg_rsp;
+    ret->regs_size = 8;
     ret->regs = malloc(x86_reg_end);
     ret->cache = malloc(x86_cache_end);
     if (!ret->regs || !ret->cache)
