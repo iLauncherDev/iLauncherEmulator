@@ -13,7 +13,7 @@
 #define max(a, b) (((a) > (b)) ? (a) : (b))
 #define min(a, b) (((a) < (b)) ? (a) : (b))
 #define limit(a, b) (((a) > (b)) ? (b) : (a))
-#define sign(x) ((x < 0) ? -1 : ((x > 0) ? 1 : 0))s
+#define sign(x) ((x < 0) ? -1 : ((x > 0) ? 1 : 0))
 
 extern uint64_t vm_memory_size, bios_size;
 extern uint8_t *vm_memory;
