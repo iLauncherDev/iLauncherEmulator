@@ -54,7 +54,7 @@ typedef enum cpu_defines
 
 typedef struct cpu_packet
 {
-    uint64_t pc, pc_base;
+    uint64_t pc;
     uint8_t instruction, opcode_size;
     uint8_t sign : 1, value_length : 2;
     struct cpu_packet_value

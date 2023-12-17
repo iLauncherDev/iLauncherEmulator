@@ -60,8 +60,7 @@ void cpu_recompile(cpu_t *cpu)
         {
             uint16_t index = cpu->code_packet_index;
             uint64_t pc = cpu->pc;
-            cpu->code_packet[index].pc_base = cpu->pc_base;
-            cpu->code_packet[index].pc = cpu->pc;
+            cpu->code_packet[index].pc = pc;
             if (cpu->recompile(cpu))
                 break;
             cpu->code_packet[index].opcode_size = cpu->pc - pc;
@@ -205,7 +204,6 @@ void cpu_execute(cpu_t *cpu)
         switch (packet->instruction)
         {
         case cpu_opcode_quit:
-            cpu->flags |= cpu_flag_stoped;
             goto end;
         case cpu_opcode_inc:
             cpu_packet_write(cpu, packet, cpu_packet_read(cpu, packet, 0) + 1, 0);
@@ -233,36 +231,14 @@ void cpu_execute(cpu_t *cpu)
         case cpu_opcode_jmp_far:
             cpu->pc_base = cpu_packet_read(cpu, packet, 0);
             cpu->pc = cpu_packet_read(cpu, packet, 1);
-            for (uint16_t j = 0; j < 4096; j++)
-            {
-                cpu_packet_t *packet = &cpu->code_packet[j];
-                if (packet->pc == cpu->pc && packet->pc_base == cpu->pc_base)
-                {
-                    i = j;
-                    okay = true;
-                }
-            }
-            if (!okay)
-                goto end;
-            goto skip_pc_add;
+            goto end;
         case cpu_opcode_jcc_far:
             if (cpu_read_reg(cpu, cpu->neutral_values[cpu_neutral_reg_flags], cpu->regs_size) &
                 cpu_packet_read(cpu, packet, 2))
             {
                 cpu->pc_base = cpu_packet_read(cpu, packet, 0);
                 cpu->pc = cpu_packet_read(cpu, packet, 1);
-                for (uint16_t j = 0; j < 4096; j++)
-                {
-                    cpu_packet_t *packet = &cpu->code_packet[j];
-                    if (packet->pc == cpu->pc && packet->pc_base == cpu->pc_base)
-                    {
-                        i = j;
-                        okay = true;
-                    }
-                }
-                if (!okay)
-                    goto end;
-                goto skip_pc_add;
+                goto end;
             }
             break;
         case cpu_opcode_call_far:
@@ -270,39 +246,17 @@ void cpu_execute(cpu_t *cpu)
             cpu->push(cpu, cpu->pc_base);
             cpu->pc_base = cpu_packet_read(cpu, packet, 0);
             cpu->pc = cpu_packet_read(cpu, packet, 1);
-            for (uint16_t j = 0; j < 4096; j++)
-            {
-                cpu_packet_t *packet = &cpu->code_packet[j];
-                if (packet->pc == cpu->pc && packet->pc_base == cpu->pc_base)
-                {
-                    i = j;
-                    okay = true;
-                }
-            }
-            if (!okay)
-                goto end;
-            goto skip_pc_add;
+            goto end;
         case cpu_opcode_ret_far:
             cpu->pc = cpu->pop(cpu);
             cpu->pc_base = cpu->pop(cpu);
-            for (uint16_t j = 0; j < 4096; j++)
-            {
-                cpu_packet_t *packet = &cpu->code_packet[j];
-                if (packet->pc == cpu->pc && packet->pc_base == cpu->pc_base)
-                {
-                    i = j;
-                    okay = true;
-                }
-            }
-            if (!okay)
-                goto end;
-            goto skip_pc_add;
+            goto end;
         case cpu_opcode_jmp_near:
             cpu->pc += cpu_packet_sread(cpu, packet, 0);
             for (uint16_t j = 0; j < 4096; j++)
             {
                 cpu_packet_t *packet = &cpu->code_packet[j];
-                if (packet->pc == cpu->pc && packet->pc_base == cpu->pc_base)
+                if (packet->pc == cpu->pc)
                 {
                     i = j;
                     okay = true;
@@ -319,7 +273,7 @@ void cpu_execute(cpu_t *cpu)
                 for (uint16_t j = 0; j < 4096; j++)
                 {
                     cpu_packet_t *packet = &cpu->code_packet[j];
-                    if (packet->pc == cpu->pc && packet->pc_base == cpu->pc_base)
+                    if (packet->pc == cpu->pc)
                     {
                         i = j;
                         okay = true;
@@ -336,7 +290,7 @@ void cpu_execute(cpu_t *cpu)
             for (uint16_t j = 0; j < 4096; j++)
             {
                 cpu_packet_t *packet = &cpu->code_packet[j];
-                if (packet->pc == cpu->pc && packet->pc_base == cpu->pc_base)
+                if (packet->pc == cpu->pc)
                 {
                     i = j;
                     okay = true;
@@ -350,7 +304,7 @@ void cpu_execute(cpu_t *cpu)
             for (uint16_t j = 0; j < 4096; j++)
             {
                 cpu_packet_t *packet = &cpu->code_packet[j];
-                if (packet->pc == cpu->pc && packet->pc_base == cpu->pc_base)
+                if (packet->pc == cpu->pc)
                 {
                     i = j;
                     okay = true;
@@ -365,7 +319,8 @@ void cpu_execute(cpu_t *cpu)
         cpu_write_reg(cpu, cpu->neutral_values[cpu_neutral_reg_instruction_pointer], cpu->pc, cpu->regs_size);
         continue;
     }
-    cpu->flags |= cpu_flag_stoped;
 end:
+    if (cpu)
+        cpu->flags |= cpu_flag_stoped;
     return;
 }
