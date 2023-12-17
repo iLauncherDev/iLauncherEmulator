@@ -54,7 +54,9 @@ void cpu_recompile(cpu_t *cpu)
     }
     if (cpu->recompile)
     {
-        while (true)
+        for (cpu->code_packet_index = 0;
+             cpu->code_packet_index < 4096;
+             cpu->code_packet_index++)
         {
             uint16_t index = cpu->code_packet_index;
             uint64_t pc = cpu->pc;
@@ -91,6 +93,29 @@ end:
     return;
 }
 
+uint64_t cpu_packet_address(cpu_t *cpu, cpu_packet_t *packet, uint8_t index)
+{
+    switch (packet->values[index].type)
+    {
+    case cpu_type_int:
+        return packet->values[index].value;
+    case cpu_type_reg:
+        return cpu_read_reg(cpu, packet->values[index].value, packet->values[index].size);
+    case cpu_type_mem:
+        return packet->values[index].value;
+    case cpu_type_mreg:
+        return cpu_read_reg(cpu,
+                            (packet->values[index].value >> 0) & 0xffff,
+                            packet->values[index].size) +
+               cpu_read_reg(cpu,
+                            (packet->values[index].value >> 16) & 0xffff,
+                            packet->values[index].size) *
+                   ((packet->values[index].value >> 32) & 0xffffffff) +
+               packet->values[index].offset;
+    }
+    return 0;
+}
+
 uint64_t cpu_packet_read(cpu_t *cpu, cpu_packet_t *packet, uint8_t index)
 {
     switch (packet->values[index].type)
@@ -107,13 +132,8 @@ uint64_t cpu_packet_read(cpu_t *cpu, cpu_packet_t *packet, uint8_t index)
                                         packet->values[index].size) +
                                cpu_read_reg(cpu,
                                             (packet->values[index].value >> 16) & 0xffff,
-                                            packet->values[index].size) +
-                               cpu_read_reg(cpu,
-                                            (packet->values[index].value >> 32) & 0xffff,
-                                            packet->values[index].size) +
-                               cpu_read_reg(cpu,
-                                            (packet->values[index].value >> 48) & 0xffff,
-                                            packet->values[index].size) +
+                                            packet->values[index].size) *
+                                   ((packet->values[index].value >> 32) & 0xffffffff) +
                                packet->values[index].offset,
                            packet->values[index].size, cpu->big_endian);
     }
@@ -136,13 +156,8 @@ int64_t cpu_packet_sread(cpu_t *cpu, cpu_packet_t *packet, uint8_t index)
                                          packet->values[index].size) +
                                 cpu_read_reg(cpu,
                                              (packet->values[index].value >> 16) & 0xffff,
-                                             packet->values[index].size) +
-                                cpu_read_reg(cpu,
-                                             (packet->values[index].value >> 32) & 0xffff,
-                                             packet->values[index].size) +
-                                cpu_read_reg(cpu,
-                                             (packet->values[index].value >> 48) & 0xffff,
-                                             packet->values[index].size) +
+                                             packet->values[index].size) *
+                                    ((packet->values[index].value >> 32) & 0xffffffff) +
                                 packet->values[index].offset,
                             packet->values[index].size, cpu->big_endian);
     }
@@ -167,13 +182,8 @@ void cpu_packet_write(cpu_t *cpu, cpu_packet_t *packet, uint64_t value, uint8_t 
                                   packet->values[index].size) +
                          cpu_read_reg(cpu,
                                       (packet->values[index].value >> 16) & 0xffff,
-                                      packet->values[index].size) +
-                         cpu_read_reg(cpu,
-                                      (packet->values[index].value >> 32) & 0xffff,
-                                      packet->values[index].size) +
-                         cpu_read_reg(cpu,
-                                      (packet->values[index].value >> 48) & 0xffff,
-                                      packet->values[index].size) +
+                                      packet->values[index].size) *
+                             ((packet->values[index].value >> 32) & 0xffffffff) +
                          packet->values[index].offset,
                      value,
                      packet->values[index].size, cpu->big_endian);
@@ -197,6 +207,9 @@ void cpu_execute(cpu_t *cpu)
             goto end;
         case cpu_opcode_mov:
             cpu_packet_write(cpu, packet, cpu_packet_read(cpu, packet, 1), 0);
+            break;
+        case cpu_opcode_lea:
+            cpu_packet_write(cpu, packet, cpu_packet_address(cpu, packet, 1), 0);
             break;
         case cpu_opcode_xchg:
             cache[0] = cpu_packet_read(cpu, packet, 0);

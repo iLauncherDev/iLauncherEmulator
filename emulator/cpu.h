@@ -3,7 +3,7 @@
 #define CPU_H
 #define CPU_CHECK_OVERFLOW(x, y, bits) (((uintptr_t)x + (uintptr_t)y) >> (uintptr_t)bits ? 1 : 0)
 #define CPU_PACKET_VALUE(type, size, value, offset) type, size, value, offset
-#define CPU_PACKET_MREGS(r0, r1, r2, r3) ((r3 << 48) | (r2 << 32) | (r1 << 16) | r0)
+#define CPU_PACKET_MREGS(base, index, scale) ((scale << 32) | (index << 16) | base)
 #include "global.h"
 #include "memory.h"
 #include "io.h"
@@ -23,6 +23,7 @@ typedef enum cpu_defines
 
     cpu_opcode_quit = 0,
     cpu_opcode_mov,
+    cpu_opcode_lea,
     cpu_opcode_xchg,
     cpu_opcode_jmp_far,
     cpu_opcode_jcc_far,
