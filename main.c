@@ -114,7 +114,7 @@ void *cpu_emulation()
     while (true)
     {
         cpu_recompile(x86_cpu);
-        //cpu_execute(x86_cpu);
+        cpu_execute(x86_cpu);
         if (debug_code)
         {
             printf("Regs:\n");

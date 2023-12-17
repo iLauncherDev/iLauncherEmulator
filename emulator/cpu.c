@@ -67,6 +67,7 @@ void cpu_recompile(cpu_t *cpu)
             cpu->code_packet[index].opcode_size = cpu->pc - pc;
         }
     }
+    cpu->flags &= ~cpu_flag_stoped;
 end:
     return;
 }
@@ -193,7 +194,7 @@ void cpu_packet_write(cpu_t *cpu, cpu_packet_t *packet, uint64_t value, uint8_t 
 
 void cpu_execute(cpu_t *cpu)
 {
-    if (!cpu)
+    if (!cpu || cpu->flags & cpu_flag_stoped)
         goto end;
     uint16_t i = 0;
     uint64_t cache[4];
@@ -204,7 +205,20 @@ void cpu_execute(cpu_t *cpu)
         switch (packet->instruction)
         {
         case cpu_opcode_quit:
+            cpu->flags |= cpu_flag_stoped;
             goto end;
+        case cpu_opcode_inc:
+            cpu_packet_write(cpu, packet, cpu_packet_read(cpu, packet, 0) + 1, 0);
+            break;
+        case cpu_opcode_dec:
+            cpu_packet_write(cpu, packet, cpu_packet_read(cpu, packet, 0) - 1, 0);
+            break;
+        case cpu_opcode_push:
+            cpu->push(cpu, cpu_packet_read(cpu, packet, 0));
+            break;
+        case cpu_opcode_pop:
+            cpu_packet_write(cpu, packet, cpu->pop(cpu), 0);
+            break;
         case cpu_opcode_mov:
             cpu_packet_write(cpu, packet, cpu_packet_read(cpu, packet, 1), 0);
             break;
@@ -351,6 +365,7 @@ void cpu_execute(cpu_t *cpu)
         cpu_write_reg(cpu, cpu->neutral_values[cpu_neutral_reg_instruction_pointer], cpu->pc, cpu->regs_size);
         continue;
     }
+    cpu->flags |= cpu_flag_stoped;
 end:
     return;
 }

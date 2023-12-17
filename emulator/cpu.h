@@ -22,6 +22,10 @@ typedef enum cpu_defines
     cpu_neutral_flag_interrupt,
 
     cpu_opcode_quit = 0,
+    cpu_opcode_inc,
+    cpu_opcode_dec,
+    cpu_opcode_push,
+    cpu_opcode_pop,
     cpu_opcode_mov,
     cpu_opcode_lea,
     cpu_opcode_xchg,
@@ -36,15 +40,15 @@ typedef enum cpu_defines
 
     cpu_flag_lock = 1 << 0,
     cpu_flag_reset = 1 << 1,
-    cpu_flag_jump = 1 << 2,
+    cpu_flag_stoped = 1 << 2,
 
-    // Ex: 0x1000;
+    // Ex: immediate integer;
     cpu_type_int = 0,
-    // Ex: ax;
+    // Ex: immediate reg;
     cpu_type_reg,
-    // Ex: [0x1000];
+    // Ex: [immediate address];
     cpu_type_mem,
-    // Ex: [ax + cx + dx + bx + 0x1000];
+    // Ex: [base + index * scale + offset];
     cpu_type_mreg,
 } cpu_defines_t;
 
