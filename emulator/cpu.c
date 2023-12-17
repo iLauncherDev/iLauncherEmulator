@@ -212,10 +212,12 @@ void cpu_execute(cpu_t *cpu)
             cpu_block_write(cpu, packet, cpu_block_read(cpu, packet, 0) - 1, 0);
             break;
         case cpu_opcode_push:
-            cpu->push(cpu, cpu_block_read(cpu, packet, 0));
+            for (uint8_t i = 0; i < packet->value_length; i++)
+                cpu->push(cpu, cpu_block_read(cpu, packet, i));
             break;
         case cpu_opcode_pop:
-            cpu_block_write(cpu, packet, cpu->pop(cpu), 0);
+            for (uint8_t i = 0; i < packet->value_length; i++)
+                cpu_block_write(cpu, packet, cpu->pop(cpu), i);
             break;
         case cpu_opcode_mov:
             cpu_block_write(cpu, packet, cpu_block_read(cpu, packet, 1), 0);
