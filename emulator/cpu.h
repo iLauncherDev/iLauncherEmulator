@@ -52,18 +52,18 @@ typedef enum cpu_defines
     cpu_type_mreg,
 } cpu_defines_t;
 
-typedef struct cpu_packet
+typedef struct cpu_block
 {
     uint64_t pc;
     uint8_t instruction, opcode_size;
     uint8_t sign : 1, value_length : 2;
-    struct cpu_packet_value
+    struct cpu_block_value
     {
         uint8_t type : 2, size;
         uint64_t value;
         int64_t offset;
     } values[1 << 2];
-} cpu_packet_t;
+} cpu_block_t;
 
 typedef struct cpu
 {
@@ -78,12 +78,12 @@ typedef struct cpu
     void (*write_reg)(struct cpu *cpu, uint16_t reg, uint64_t value, uint8_t size);
     void (*reset)(struct cpu *cpu);
     uint8_t (*recompile)(struct cpu *cpu);
-    cpu_packet_t code_packet[4096];
-    uint16_t code_packet_index;
+    cpu_block_t code_block[4096];
+    uint16_t code_block_index;
     uint8_t *regs, *cache;
 } cpu_t;
 
-void cpu_packet_add(cpu_t *cpu, uint8_t instruction, uint8_t sign, uint8_t value_length, ...);
+void cpu_block_add(cpu_t *cpu, uint8_t instruction, uint8_t sign, uint8_t value_length, ...);
 uint64_t cpu_read_reg(cpu_t *cpu, uint16_t reg, uint8_t size);
 int64_t cpu_sread_reg(cpu_t *cpu, uint16_t reg, uint8_t size);
 void cpu_write_reg(cpu_t *cpu, uint16_t reg, uint64_t value, uint8_t size);

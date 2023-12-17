@@ -54,16 +54,16 @@ void cpu_recompile(cpu_t *cpu)
     }
     if (cpu->recompile)
     {
-        for (cpu->code_packet_index = 0;
-             cpu->code_packet_index < 4096;
-             cpu->code_packet_index++)
+        for (cpu->code_block_index = 0;
+             cpu->code_block_index < 4096;
+             cpu->code_block_index++)
         {
-            uint16_t index = cpu->code_packet_index;
+            uint16_t index = cpu->code_block_index;
             uint64_t pc = cpu->pc;
-            cpu->code_packet[index].pc = pc;
+            cpu->code_block[index].pc = pc;
             if (cpu->recompile(cpu))
                 break;
-            cpu->code_packet[index].opcode_size = cpu->pc - pc;
+            cpu->code_block[index].opcode_size = cpu->pc - pc;
         }
     }
     cpu->flags &= ~cpu_flag_stoped;
@@ -71,29 +71,29 @@ end:
     return;
 }
 
-void cpu_packet_add(cpu_t *cpu, uint8_t instruction, uint8_t sign, uint8_t value_length, ...)
+void cpu_block_add(cpu_t *cpu, uint8_t instruction, uint8_t sign, uint8_t value_length, ...)
 {
     va_list args;
     uint16_t index;
     if (!cpu)
         goto end;
     va_start(args, value_length);
-    index = cpu->code_packet_index;
-    cpu->code_packet[index].instruction = instruction;
-    cpu->code_packet[index].sign = sign;
-    cpu->code_packet[index].value_length = value_length & 3;
-    for (uint8_t i = 0; i < cpu->code_packet[index].value_length; i++)
+    index = cpu->code_block_index;
+    cpu->code_block[index].instruction = instruction;
+    cpu->code_block[index].sign = sign;
+    cpu->code_block[index].value_length = value_length & 3;
+    for (uint8_t i = 0; i < cpu->code_block[index].value_length; i++)
     {
-        cpu->code_packet[index].values[i].type = va_arg(args, uint8_t);
-        cpu->code_packet[index].values[i].size = va_arg(args, uint8_t);
-        cpu->code_packet[index].values[i].value = va_arg(args, uint64_t);
-        cpu->code_packet[index].values[i].offset = va_arg(args, int64_t);
+        cpu->code_block[index].values[i].type = va_arg(args, uint8_t);
+        cpu->code_block[index].values[i].size = va_arg(args, uint8_t);
+        cpu->code_block[index].values[i].value = va_arg(args, uint64_t);
+        cpu->code_block[index].values[i].offset = va_arg(args, int64_t);
     }
 end:
     return;
 }
 
-uint64_t cpu_packet_address(cpu_t *cpu, cpu_packet_t *packet, uint8_t index)
+uint64_t cpu_block_address(cpu_t *cpu, cpu_block_t *packet, uint8_t index)
 {
     switch (packet->values[index].type)
     {
@@ -116,7 +116,7 @@ uint64_t cpu_packet_address(cpu_t *cpu, cpu_packet_t *packet, uint8_t index)
     return 0;
 }
 
-uint64_t cpu_packet_read(cpu_t *cpu, cpu_packet_t *packet, uint8_t index)
+uint64_t cpu_block_read(cpu_t *cpu, cpu_block_t *packet, uint8_t index)
 {
     switch (packet->values[index].type)
     {
@@ -140,7 +140,7 @@ uint64_t cpu_packet_read(cpu_t *cpu, cpu_packet_t *packet, uint8_t index)
     return 0;
 }
 
-int64_t cpu_packet_sread(cpu_t *cpu, cpu_packet_t *packet, uint8_t index)
+int64_t cpu_block_sread(cpu_t *cpu, cpu_block_t *packet, uint8_t index)
 {
     switch (packet->values[index].type)
     {
@@ -164,7 +164,7 @@ int64_t cpu_packet_sread(cpu_t *cpu, cpu_packet_t *packet, uint8_t index)
     return 0;
 }
 
-void cpu_packet_write(cpu_t *cpu, cpu_packet_t *packet, uint64_t value, uint8_t index)
+void cpu_block_write(cpu_t *cpu, cpu_block_t *packet, uint64_t value, uint8_t index)
 {
     switch (packet->values[index].type)
     {
@@ -200,62 +200,62 @@ void cpu_execute(cpu_t *cpu)
     bool okay = false;
     while (i < 4096)
     {
-        cpu_packet_t *packet = &cpu->code_packet[i];
+        cpu_block_t *packet = &cpu->code_block[i];
         switch (packet->instruction)
         {
         case cpu_opcode_quit:
             goto end;
         case cpu_opcode_inc:
-            cpu_packet_write(cpu, packet, cpu_packet_read(cpu, packet, 0) + 1, 0);
+            cpu_block_write(cpu, packet, cpu_block_read(cpu, packet, 0) + 1, 0);
             break;
         case cpu_opcode_dec:
-            cpu_packet_write(cpu, packet, cpu_packet_read(cpu, packet, 0) - 1, 0);
+            cpu_block_write(cpu, packet, cpu_block_read(cpu, packet, 0) - 1, 0);
             break;
         case cpu_opcode_push:
-            cpu->push(cpu, cpu_packet_read(cpu, packet, 0));
+            cpu->push(cpu, cpu_block_read(cpu, packet, 0));
             break;
         case cpu_opcode_pop:
-            cpu_packet_write(cpu, packet, cpu->pop(cpu), 0);
+            cpu_block_write(cpu, packet, cpu->pop(cpu), 0);
             break;
         case cpu_opcode_mov:
-            cpu_packet_write(cpu, packet, cpu_packet_read(cpu, packet, 1), 0);
+            cpu_block_write(cpu, packet, cpu_block_read(cpu, packet, 1), 0);
             break;
         case cpu_opcode_lea:
-            cpu_packet_write(cpu, packet, cpu_packet_address(cpu, packet, 1), 0);
+            cpu_block_write(cpu, packet, cpu_block_address(cpu, packet, 1), 0);
             break;
         case cpu_opcode_xchg:
-            cache[0] = cpu_packet_read(cpu, packet, 0);
-            cpu_packet_write(cpu, packet, cpu_packet_read(cpu, packet, 1), 0);
-            cpu_packet_write(cpu, packet, cache[0], 1);
+            cache[0] = cpu_block_read(cpu, packet, 0);
+            cpu_block_write(cpu, packet, cpu_block_read(cpu, packet, 1), 0);
+            cpu_block_write(cpu, packet, cache[0], 1);
             break;
         case cpu_opcode_jmp_far:
-            cpu->pc_base = cpu_packet_read(cpu, packet, 0);
-            cpu->pc = cpu_packet_read(cpu, packet, 1);
+            cpu->pc_base = cpu_block_read(cpu, packet, 0);
+            cpu->pc = cpu_block_read(cpu, packet, 1);
             goto end;
         case cpu_opcode_jcc_far:
             if (cpu_read_reg(cpu, cpu->neutral_values[cpu_neutral_reg_flags], cpu->regs_size) &
-                cpu_packet_read(cpu, packet, 2))
+                cpu_block_read(cpu, packet, 2))
             {
-                cpu->pc_base = cpu_packet_read(cpu, packet, 0);
-                cpu->pc = cpu_packet_read(cpu, packet, 1);
+                cpu->pc_base = cpu_block_read(cpu, packet, 0);
+                cpu->pc = cpu_block_read(cpu, packet, 1);
                 goto end;
             }
             break;
         case cpu_opcode_call_far:
             cpu->push(cpu, cpu->pc + packet->opcode_size);
             cpu->push(cpu, cpu->pc_base);
-            cpu->pc_base = cpu_packet_read(cpu, packet, 0);
-            cpu->pc = cpu_packet_read(cpu, packet, 1);
+            cpu->pc_base = cpu_block_read(cpu, packet, 0);
+            cpu->pc = cpu_block_read(cpu, packet, 1);
             goto end;
         case cpu_opcode_ret_far:
             cpu->pc = cpu->pop(cpu);
             cpu->pc_base = cpu->pop(cpu);
             goto end;
         case cpu_opcode_jmp_near:
-            cpu->pc += cpu_packet_sread(cpu, packet, 0);
+            cpu->pc += cpu_block_sread(cpu, packet, 0);
             for (uint16_t j = 0; j < 4096; j++)
             {
-                cpu_packet_t *packet = &cpu->code_packet[j];
+                cpu_block_t *packet = &cpu->code_block[j];
                 if (packet->pc == cpu->pc)
                 {
                     i = j;
@@ -267,12 +267,12 @@ void cpu_execute(cpu_t *cpu)
             goto skip_pc_add;
         case cpu_opcode_jcc_near:
             if (cpu_read_reg(cpu, cpu->neutral_values[cpu_neutral_reg_flags], cpu->regs_size) &
-                cpu_packet_read(cpu, packet, 1))
+                cpu_block_read(cpu, packet, 1))
             {
-                cpu->pc += cpu_packet_sread(cpu, packet, 0);
+                cpu->pc += cpu_block_sread(cpu, packet, 0);
                 for (uint16_t j = 0; j < 4096; j++)
                 {
-                    cpu_packet_t *packet = &cpu->code_packet[j];
+                    cpu_block_t *packet = &cpu->code_block[j];
                     if (packet->pc == cpu->pc)
                     {
                         i = j;
@@ -286,10 +286,10 @@ void cpu_execute(cpu_t *cpu)
             break;
         case cpu_opcode_call_near:
             cpu->push(cpu, cpu->pc + packet->opcode_size);
-            cpu->pc += cpu_packet_sread(cpu, packet, 0);
+            cpu->pc += cpu_block_sread(cpu, packet, 0);
             for (uint16_t j = 0; j < 4096; j++)
             {
-                cpu_packet_t *packet = &cpu->code_packet[j];
+                cpu_block_t *packet = &cpu->code_block[j];
                 if (packet->pc == cpu->pc)
                 {
                     i = j;
@@ -303,7 +303,7 @@ void cpu_execute(cpu_t *cpu)
             cpu->pc = cpu->pop(cpu);
             for (uint16_t j = 0; j < 4096; j++)
             {
-                cpu_packet_t *packet = &cpu->code_packet[j];
+                cpu_block_t *packet = &cpu->code_block[j];
                 if (packet->pc == cpu->pc)
                 {
                     i = j;
