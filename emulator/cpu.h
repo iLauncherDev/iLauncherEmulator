@@ -2,8 +2,12 @@
 #ifndef CPU_H
 #define CPU_H
 #define CPU_CHECK_OVERFLOW(x, y, bits) (((uintptr_t)x + (uintptr_t)y) >> (uintptr_t)bits ? 1 : 0)
-#define CPU_PACKET_VALUE(type, size, value, offset) type, size, value, offset
-#define CPU_PACKET_MREGS(base, index, scale) ((scale << 32) | (index << 16) | base)
+#define CPU_BLOCK_VALUE(type, size, value, offset) type, size, value, offset
+#define CPU_BLOCK_MREG_VALUE(size, base, index, scale, offset) cpu_type_mreg, size,                     \
+                                                               (((uint64_t)scale & 0xffffffff) << 32) | \
+                                                                   (((uint64_t)index & 0xffff) << 16) | \
+                                                                   ((uint64_t)base & 0xffff),           \
+                                                               offset
 #define CPU_BLOCK_SIZE 256
 #include "global.h"
 #include "memory.h"
