@@ -4,6 +4,7 @@
 #define CPU_CHECK_OVERFLOW(x, y, bits) (((uintptr_t)x + (uintptr_t)y) >> (uintptr_t)bits ? 1 : 0)
 #define CPU_PACKET_VALUE(type, size, value, offset) type, size, value, offset
 #define CPU_PACKET_MREGS(base, index, scale) ((scale << 32) | (index << 16) | base)
+#define CPU_BLOCK_SIZE 256
 #include "global.h"
 #include "memory.h"
 #include "io.h"
@@ -22,6 +23,7 @@ typedef enum cpu_defines
     cpu_neutral_flag_interrupt,
 
     cpu_opcode_quit = 0,
+    cpu_opcode_cmp,
     cpu_opcode_inc,
     cpu_opcode_dec,
     cpu_opcode_push,
@@ -78,7 +80,7 @@ typedef struct cpu
     void (*write_reg)(struct cpu *cpu, uint16_t reg, uint64_t value, uint8_t size);
     void (*reset)(struct cpu *cpu);
     uint8_t (*recompile)(struct cpu *cpu);
-    cpu_block_t code_block[4096];
+    cpu_block_t code_block[CPU_BLOCK_SIZE];
     uint16_t code_block_index;
     uint8_t *regs, *cache;
 } cpu_t;

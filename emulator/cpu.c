@@ -55,7 +55,7 @@ void cpu_recompile(cpu_t *cpu)
     if (cpu->recompile)
     {
         for (cpu->code_block_index = 0;
-             cpu->code_block_index < 4096;
+             cpu->code_block_index < CPU_BLOCK_SIZE;
              cpu->code_block_index++)
         {
             uint16_t index = cpu->code_block_index;
@@ -198,13 +198,38 @@ void cpu_execute(cpu_t *cpu)
     uint16_t i = 0;
     uint64_t cache[4];
     bool okay = false;
-    while (i < 4096)
+    while (i < CPU_BLOCK_SIZE)
     {
         cpu_block_t *packet = &cpu->code_block[i];
         switch (packet->instruction)
         {
         case cpu_opcode_quit:
             goto end;
+        case cpu_opcode_cmp:
+            cache[2] = cpu_read_reg(cpu, cpu->neutral_values[cpu_neutral_reg_flags], cpu->regs_size);
+            if (packet->sign)
+            {
+                cache[0] = cpu_block_sread(cpu, packet, 0);
+                cache[1] = cpu_block_sread(cpu, packet, 1);
+                if ((int64_t)cache[0] < (int64_t)cache[1])
+                    cache[2] |= cpu->neutral_values[cpu_neutral_flag_carry];
+                else
+                    cache[2] &= ~cpu->neutral_values[cpu_neutral_flag_carry];
+            }
+            else
+            {
+                cache[0] = cpu_block_read(cpu, packet, 0);
+                cache[1] = cpu_block_read(cpu, packet, 1);
+                if (cache[0] < cache[1])
+                    cache[2] |= cpu->neutral_values[cpu_neutral_flag_carry];
+                else
+                    cache[2] &= ~cpu->neutral_values[cpu_neutral_flag_carry];
+            }
+            if (cache[0] == cache[1])
+                cache[2] |= cpu->neutral_values[cpu_neutral_flag_zero];
+            else
+                cache[2] &= ~cpu->neutral_values[cpu_neutral_flag_zero];
+            break;
         case cpu_opcode_inc:
             cpu_block_write(cpu, packet, cpu_block_read(cpu, packet, 0) + 1, 0);
             break;
@@ -255,7 +280,7 @@ void cpu_execute(cpu_t *cpu)
             goto end;
         case cpu_opcode_jmp_near:
             cpu->pc += cpu_block_sread(cpu, packet, 0);
-            for (uint16_t j = 0; j < 4096; j++)
+            for (uint16_t j = 0; j < CPU_BLOCK_SIZE; j++)
             {
                 cpu_block_t *packet = &cpu->code_block[j];
                 if (packet->pc == cpu->pc)
@@ -272,7 +297,7 @@ void cpu_execute(cpu_t *cpu)
                 cpu_block_read(cpu, packet, 1))
             {
                 cpu->pc += cpu_block_sread(cpu, packet, 0);
-                for (uint16_t j = 0; j < 4096; j++)
+                for (uint16_t j = 0; j < CPU_BLOCK_SIZE; j++)
                 {
                     cpu_block_t *packet = &cpu->code_block[j];
                     if (packet->pc == cpu->pc)
@@ -289,7 +314,7 @@ void cpu_execute(cpu_t *cpu)
         case cpu_opcode_call_near:
             cpu->push(cpu, cpu->pc + packet->opcode_size);
             cpu->pc += cpu_block_sread(cpu, packet, 0);
-            for (uint16_t j = 0; j < 4096; j++)
+            for (uint16_t j = 0; j < CPU_BLOCK_SIZE; j++)
             {
                 cpu_block_t *packet = &cpu->code_block[j];
                 if (packet->pc == cpu->pc)
@@ -303,7 +328,7 @@ void cpu_execute(cpu_t *cpu)
             goto skip_pc_add;
         case cpu_opcode_ret_near:
             cpu->pc = cpu->pop(cpu);
-            for (uint16_t j = 0; j < 4096; j++)
+            for (uint16_t j = 0; j < CPU_BLOCK_SIZE; j++)
             {
                 cpu_block_t *packet = &cpu->code_block[j];
                 if (packet->pc == cpu->pc)
