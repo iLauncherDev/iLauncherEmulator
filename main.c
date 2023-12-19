@@ -115,15 +115,6 @@ void *cpu_emulation()
     {
         cpu_recompile(x86_cpu);
         cpu_execute(x86_cpu);
-        if (debug_code)
-        {
-            printf("Regs:\n");
-            for (uint16_t i = 0; i < x86_reg_end; i += 8)
-                printf("%s = 0x%" PRIx64 " ", x86_regs_strings[i], cpu_read_reg(x86_cpu, i, 8));
-            printf("\n");
-        }
-        if (code_delay)
-            usleep(code_delay);
     }
 }
 
@@ -217,6 +208,15 @@ int32_t main(int32_t argc, char **argv)
         if (io_read(0x3f8, 1))
             printf("%c", (uint8_t)io_read(0x3f8, 1)), io_write(0x3f8, 0, 1);
         vga_service();
+        if (debug_code)
+        {
+            printf("Regs:\n");
+            for (uint16_t i = 0; i < x86_reg_end; i += 8)
+                printf("%s = 0x%" PRIx64 " ", x86_regs_strings[i], cpu_read_reg(x86_cpu, i, 8));
+            printf("\n");
+        }
+        if (code_delay)
+            usleep(code_delay);
     }
     return 0;
 }

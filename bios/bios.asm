@@ -3,6 +3,8 @@ section .text
 extern main
 
 start:
+    inc eax
+    jmp start
     mov sp, 0x3000
     mov ax, cs
     xor ax, ax
@@ -19,8 +21,6 @@ bits 32
 bits 16
 section .null
 reset:
-    cli
-    cld
     jmp 0xe000:0x00
 
 times 0x0f - ($ - $$) db 0x00

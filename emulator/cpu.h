@@ -8,7 +8,7 @@
                                                                    (((uint64_t)index & 0xffff) << 16) | \
                                                                    ((uint64_t)base & 0xffff),           \
                                                                offset
-#define CPU_BLOCK_SIZE 256
+#define CPU_BLOCK_SIZE 4096
 #include "global.h"
 #include "memory.h"
 #include "io.h"
@@ -16,6 +16,7 @@
 typedef enum cpu_defines
 {
     cpu_neutral_reg_instruction_pointer = 0,
+    cpu_neutral_reg_code_segment,
     cpu_neutral_reg_flags,
     cpu_neutral_reg_stack,
     cpu_neutral_flag_carry,
@@ -26,7 +27,7 @@ typedef enum cpu_defines
     cpu_neutral_flag_overfollow,
     cpu_neutral_flag_interrupt,
 
-    cpu_opcode_quit = 0,
+    cpu_opcode_exit = 0,
     cpu_opcode_cmp,
     cpu_opcode_inc,
     cpu_opcode_dec,
@@ -75,7 +76,7 @@ typedef struct cpu
 {
     uint8_t big_endian : 1, regs_size;
     uint32_t flags, override;
-    uint64_t pc, pc_base;
+    uint64_t pc;
     uint64_t neutral_values[16];
     void (*push)(struct cpu *cpu, uint64_t value);
     uint64_t (*pop)(struct cpu *cpu);

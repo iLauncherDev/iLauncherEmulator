@@ -54,17 +54,17 @@ void cpu_recompile(cpu_t *cpu)
     }
     if (cpu->recompile)
     {
+        uint64_t pc = cpu->pc;
         for (cpu->code_block_index = 0;
              cpu->code_block_index < CPU_BLOCK_SIZE;
              cpu->code_block_index++)
         {
             uint16_t index = cpu->code_block_index;
-            uint64_t pc = cpu->pc;
-            cpu->code_block[index].pc = pc;
-            if (cpu->recompile(cpu))
-                break;
-            cpu->code_block[index].opcode_size = cpu->pc - pc;
+            cpu->code_block[index].pc = cpu->pc;
+            cpu->recompile(cpu);
+            cpu->code_block[index].opcode_size = cpu->pc - cpu->code_block[index].pc;
         }
+        cpu->pc = pc;
     }
     cpu->flags &= ~cpu_flag_stoped;
 end:
@@ -93,100 +93,98 @@ end:
     return;
 }
 
-uint64_t cpu_block_address(cpu_t *cpu, cpu_block_t *packet, uint8_t index)
+uint64_t cpu_block_address(cpu_t *cpu, cpu_block_t *block, uint8_t index)
 {
-    switch (packet->values[index].type)
+    switch (block->values[index].type)
     {
     case cpu_type_int:
-        return packet->values[index].value;
+        return block->values[index].value;
     case cpu_type_reg:
-        return cpu_read_reg(cpu, packet->values[index].value, packet->values[index].size);
+        return cpu_read_reg(cpu, block->values[index].value, block->values[index].size);
     case cpu_type_mem:
-        return packet->values[index].value;
+        return block->values[index].value;
     case cpu_type_mreg:
         return cpu_read_reg(cpu,
-                            (packet->values[index].value >> 0) & 0xffff,
-                            packet->values[index].size) +
+                            (block->values[index].value >> 0) & 0xffff,
+                            block->values[index].size) +
                cpu_read_reg(cpu,
-                            (packet->values[index].value >> 16) & 0xffff,
-                            packet->values[index].size) *
-                   ((packet->values[index].value >> 32) & 0xffffffff) +
-               packet->values[index].offset;
+                            (block->values[index].value >> 16) & 0xffff,
+                            block->values[index].size) *
+                   ((block->values[index].value >> 32) & 0xffffffff) +
+               block->values[index].offset;
     }
     return 0;
 }
 
-uint64_t cpu_block_read(cpu_t *cpu, cpu_block_t *packet, uint8_t index)
+uint64_t cpu_block_read(cpu_t *cpu, cpu_block_t *block, uint8_t index)
 {
-    switch (packet->values[index].type)
+    switch (block->values[index].type)
     {
     case cpu_type_int:
-        return packet->values[index].value;
+        return block->values[index].value;
     case cpu_type_reg:
-        return cpu_read_reg(cpu, packet->values[index].value, packet->values[index].size);
+        return cpu_read_reg(cpu, block->values[index].value, block->values[index].size);
     case cpu_type_mem:
-        return memory_read(packet->values[index].value, packet->values[index].size, cpu->big_endian);
+        return memory_read(block->values[index].value, block->values[index].size, cpu->big_endian);
     case cpu_type_mreg:
         return memory_read(cpu_read_reg(cpu,
-                                        (packet->values[index].value >> 0) & 0xffff,
-                                        packet->values[index].size) +
+                                        (block->values[index].value >> 0) & 0xffff,
+                                        block->values[index].size) +
                                cpu_read_reg(cpu,
-                                            (packet->values[index].value >> 16) & 0xffff,
-                                            packet->values[index].size) *
-                                   ((packet->values[index].value >> 32) & 0xffffffff) +
-                               packet->values[index].offset,
-                           packet->values[index].size, cpu->big_endian);
+                                            (block->values[index].value >> 16) & 0xffff,
+                                            block->values[index].size) *
+                                   ((block->values[index].value >> 32) & 0xffffffff) +
+                               block->values[index].offset,
+                           block->values[index].size, cpu->big_endian);
     }
     return 0;
 }
 
-int64_t cpu_block_sread(cpu_t *cpu, cpu_block_t *packet, uint8_t index)
+int64_t cpu_block_sread(cpu_t *cpu, cpu_block_t *block, uint8_t index)
 {
-    switch (packet->values[index].type)
+    switch (block->values[index].type)
     {
     case cpu_type_int:
-        return (int64_t)packet->values[index].value;
+        return (int64_t)block->values[index].value;
     case cpu_type_reg:
-        return cpu_sread_reg(cpu, packet->values[index].value, packet->values[index].size);
+        return cpu_sread_reg(cpu, block->values[index].value, block->values[index].size);
     case cpu_type_mem:
-        return memory_sread(packet->values[index].value, packet->values[index].size, cpu->big_endian);
+        return memory_sread(block->values[index].value, block->values[index].size, cpu->big_endian);
     case cpu_type_mreg:
         return memory_sread(cpu_read_reg(cpu,
-                                         (packet->values[index].value >> 0) & 0xffff,
-                                         packet->values[index].size) +
+                                         (block->values[index].value >> 0) & 0xffff,
+                                         block->values[index].size) +
                                 cpu_read_reg(cpu,
-                                             (packet->values[index].value >> 16) & 0xffff,
-                                             packet->values[index].size) *
-                                    ((packet->values[index].value >> 32) & 0xffffffff) +
-                                packet->values[index].offset,
-                            packet->values[index].size, cpu->big_endian);
+                                             (block->values[index].value >> 16) & 0xffff,
+                                             block->values[index].size) *
+                                    ((block->values[index].value >> 32) & 0xffffffff) +
+                                block->values[index].offset,
+                            block->values[index].size, cpu->big_endian);
     }
     return 0;
 }
 
-void cpu_block_write(cpu_t *cpu, cpu_block_t *packet, uint64_t value, uint8_t index)
+void cpu_block_write(cpu_t *cpu, cpu_block_t *block, uint64_t value, uint8_t index)
 {
-    switch (packet->values[index].type)
+    switch (block->values[index].type)
     {
-    case cpu_type_int:
-        return;
     case cpu_type_reg:
-        cpu_write_reg(cpu, packet->values[index].value, value, packet->values[index].size);
+        cpu_write_reg(cpu, block->values[index].value, value, block->values[index].size);
         return;
     case cpu_type_mem:
-        memory_write(packet->values[index].value, value, packet->values[index].size, cpu->big_endian);
+        memory_write(block->values[index].value, value, block->values[index].size, cpu->big_endian);
         return;
     case cpu_type_mreg:
         memory_write(cpu_read_reg(cpu,
-                                  (packet->values[index].value >> 0) & 0xffff,
-                                  packet->values[index].size) +
+                                  (block->values[index].value >> 0) & 0xffff,
+                                  block->values[index].size) +
                          cpu_read_reg(cpu,
-                                      (packet->values[index].value >> 16) & 0xffff,
-                                      packet->values[index].size) *
-                             ((packet->values[index].value >> 32) & 0xffffffff) +
-                         packet->values[index].offset,
+                                      (block->values[index].value >> 16) & 0xffff,
+                                      block->values[index].size) *
+                             ((block->values[index].value >> 32) & 0xffffffff) +
+                         block->values[index].offset,
                      value,
-                     packet->values[index].size, cpu->big_endian);
+                     block->values[index].size, cpu->big_endian);
         return;
     }
 }
@@ -197,20 +195,20 @@ void cpu_execute(cpu_t *cpu)
         goto end;
     uint16_t i = 0;
     uint64_t cache[4];
-    bool okay = false;
+    cpu_block_t *block = cpu->code_block;
     while (i < CPU_BLOCK_SIZE)
     {
-        cpu_block_t *packet = &cpu->code_block[i];
-        switch (packet->instruction)
+        cpu->pc += block->opcode_size;
+        switch (block->instruction)
         {
-        case cpu_opcode_quit:
+        case cpu_opcode_exit:
             goto end;
         case cpu_opcode_cmp:
             cache[2] = cpu_read_reg(cpu, cpu->neutral_values[cpu_neutral_reg_flags], cpu->regs_size);
-            if (packet->sign)
+            if (block->sign)
             {
-                cache[0] = cpu_block_sread(cpu, packet, 0);
-                cache[1] = cpu_block_sread(cpu, packet, 1);
+                cache[0] = cpu_block_sread(cpu, block, 0);
+                cache[1] = cpu_block_sread(cpu, block, 1);
                 if ((int64_t)cache[0] < (int64_t)cache[1])
                     cache[2] |= cpu->neutral_values[cpu_neutral_flag_carry];
                 else
@@ -218,8 +216,8 @@ void cpu_execute(cpu_t *cpu)
             }
             else
             {
-                cache[0] = cpu_block_read(cpu, packet, 0);
-                cache[1] = cpu_block_read(cpu, packet, 1);
+                cache[0] = cpu_block_read(cpu, block, 0);
+                cache[1] = cpu_block_read(cpu, block, 1);
                 if (cache[0] < cache[1])
                     cache[2] |= cpu->neutral_values[cpu_neutral_flag_carry];
                 else
@@ -231,119 +229,101 @@ void cpu_execute(cpu_t *cpu)
                 cache[2] &= ~cpu->neutral_values[cpu_neutral_flag_zero];
             break;
         case cpu_opcode_inc:
-            cpu_block_write(cpu, packet, cpu_block_read(cpu, packet, 0) + 1, 0);
+            cpu_block_write(cpu, block, cpu_block_read(cpu, block, 0) + 1, 0);
             break;
         case cpu_opcode_dec:
-            cpu_block_write(cpu, packet, cpu_block_read(cpu, packet, 0) - 1, 0);
+            cpu_block_write(cpu, block, cpu_block_read(cpu, block, 0) - 1, 0);
             break;
         case cpu_opcode_push:
-            for (uint8_t i = 0; i < packet->value_length; i++)
-                cpu->push(cpu, cpu_block_read(cpu, packet, i));
+            for (uint8_t i = 0; i < block->value_length; i++)
+                cpu->push(cpu, cpu_block_read(cpu, block, i));
             break;
         case cpu_opcode_pop:
-            for (uint8_t i = 0; i < packet->value_length; i++)
-                cpu_block_write(cpu, packet, cpu->pop(cpu), i);
+            for (uint8_t i = 0; i < block->value_length; i++)
+                cpu_block_write(cpu, block, cpu->pop(cpu), i);
             break;
         case cpu_opcode_mov:
-            cpu_block_write(cpu, packet, cpu_block_read(cpu, packet, 1), 0);
+            cpu_block_write(cpu, block, cpu_block_read(cpu, block, 1), 0);
             break;
         case cpu_opcode_lea:
-            cpu_block_write(cpu, packet, cpu_block_address(cpu, packet, 1), 0);
+            cpu_block_write(cpu, block, cpu_block_address(cpu, block, 1), 0);
             break;
         case cpu_opcode_xchg:
-            cache[0] = cpu_block_read(cpu, packet, 0);
-            cpu_block_write(cpu, packet, cpu_block_read(cpu, packet, 1), 0);
-            cpu_block_write(cpu, packet, cache[0], 1);
+            cache[0] = cpu_block_read(cpu, block, 0);
+            cpu_block_write(cpu, block, cpu_block_read(cpu, block, 1), 0);
+            cpu_block_write(cpu, block, cache[0], 1);
             break;
         case cpu_opcode_jmp_far:
-            cpu->pc_base = cpu_block_read(cpu, packet, 0);
-            cpu->pc = cpu_block_read(cpu, packet, 1);
+            cpu_write_reg(cpu, cpu->neutral_values[cpu_neutral_reg_code_segment],
+                          cpu_block_read(cpu, block, 0),
+                          cpu->regs_size);
+            cpu->pc = cpu_block_read(cpu, block, 1);
             goto end;
         case cpu_opcode_jcc_far:
             if (cpu_read_reg(cpu, cpu->neutral_values[cpu_neutral_reg_flags], cpu->regs_size) &
-                cpu_block_read(cpu, packet, 2))
+                cpu_block_read(cpu, block, 2))
             {
-                cpu->pc_base = cpu_block_read(cpu, packet, 0);
-                cpu->pc = cpu_block_read(cpu, packet, 1);
+                cpu_write_reg(cpu, cpu->neutral_values[cpu_neutral_reg_code_segment],
+                              cpu_block_read(cpu, block, 0),
+                              cpu->regs_size);
+                cpu->pc = cpu_block_read(cpu, block, 1);
                 goto end;
             }
             break;
         case cpu_opcode_call_far:
-            cpu->push(cpu, cpu->pc + packet->opcode_size);
-            cpu->push(cpu, cpu->pc_base);
-            cpu->pc_base = cpu_block_read(cpu, packet, 0);
-            cpu->pc = cpu_block_read(cpu, packet, 1);
+            cpu->push(cpu, cpu->pc + block->opcode_size);
+            cpu->push(cpu, cpu_read_reg(cpu,
+                                        cpu->neutral_values[cpu_neutral_reg_code_segment],
+                                        cpu->regs_size));
+            cpu_write_reg(cpu, cpu->neutral_values[cpu_neutral_reg_code_segment],
+                          cpu_block_read(cpu, block, 0),
+                          cpu->regs_size);
+            cpu->pc = cpu_block_read(cpu, block, 1);
             goto end;
         case cpu_opcode_ret_far:
+            cpu_write_reg(cpu, cpu->neutral_values[cpu_neutral_reg_code_segment],
+                          cpu->pop(cpu),
+                          cpu->regs_size);
             cpu->pc = cpu->pop(cpu);
-            cpu->pc_base = cpu->pop(cpu);
             goto end;
         case cpu_opcode_jmp_near:
-            cpu->pc += cpu_block_sread(cpu, packet, 0);
-            for (uint16_t j = 0; j < CPU_BLOCK_SIZE; j++)
-            {
-                cpu_block_t *packet = &cpu->code_block[j];
-                if (packet->pc == cpu->pc)
-                {
-                    i = j;
-                    okay = true;
-                }
-            }
-            if (!okay)
-                goto end;
-            goto skip_pc_add;
+            cpu->pc += cpu_block_sread(cpu, block, 0);
+            block = cpu->code_block;
+            for (i = 0; i < CPU_BLOCK_SIZE; i++, block++)
+                if (block->pc == cpu->pc)
+                    goto loop_end;
+            goto end;
         case cpu_opcode_jcc_near:
             if (cpu_read_reg(cpu, cpu->neutral_values[cpu_neutral_reg_flags], cpu->regs_size) &
-                cpu_block_read(cpu, packet, 1))
+                cpu_block_read(cpu, block, 1))
             {
-                cpu->pc += cpu_block_sread(cpu, packet, 0);
-                for (uint16_t j = 0; j < CPU_BLOCK_SIZE; j++)
-                {
-                    cpu_block_t *packet = &cpu->code_block[j];
-                    if (packet->pc == cpu->pc)
-                    {
-                        i = j;
-                        okay = true;
-                    }
-                }
-                if (!okay)
-                    goto end;
-                goto skip_pc_add;
+                cpu->pc += cpu_block_sread(cpu, block, 0);
+                block = cpu->code_block;
+                for (i = 0; i < CPU_BLOCK_SIZE; i++, block++)
+                    if (block->pc == cpu->pc)
+                        goto loop_end;
+                goto end;
             }
             break;
         case cpu_opcode_call_near:
-            cpu->push(cpu, cpu->pc + packet->opcode_size);
-            cpu->pc += cpu_block_sread(cpu, packet, 0);
-            for (uint16_t j = 0; j < CPU_BLOCK_SIZE; j++)
-            {
-                cpu_block_t *packet = &cpu->code_block[j];
-                if (packet->pc == cpu->pc)
-                {
-                    i = j;
-                    okay = true;
-                }
-            }
-            if (!okay)
-                goto end;
-            goto skip_pc_add;
+            cpu->push(cpu, cpu->pc + block->opcode_size);
+            cpu->pc += cpu_block_sread(cpu, block, 0);
+            block = cpu->code_block;
+            for (i = 0; i < CPU_BLOCK_SIZE; i++, block++)
+                if (block->pc == cpu->pc)
+                    goto loop_end;
+            goto end;
         case cpu_opcode_ret_near:
             cpu->pc = cpu->pop(cpu);
-            for (uint16_t j = 0; j < CPU_BLOCK_SIZE; j++)
-            {
-                cpu_block_t *packet = &cpu->code_block[j];
-                if (packet->pc == cpu->pc)
-                {
-                    i = j;
-                    okay = true;
-                }
-            }
-            if (!okay)
-                goto end;
-            goto skip_pc_add;
+            block = cpu->code_block;
+            for (i = 0; i < CPU_BLOCK_SIZE; i++, block++)
+                if (block->pc == cpu->pc)
+                    goto loop_end;
+            goto end;
         }
-        cpu->pc += packet->opcode_size, i++;
-    skip_pc_add:
         cpu_write_reg(cpu, cpu->neutral_values[cpu_neutral_reg_instruction_pointer], cpu->pc, cpu->regs_size);
+        i++, block++;
+    loop_end:
         continue;
     }
 end:

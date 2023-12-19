@@ -1,14 +1,14 @@
-00000000  BC00308CC8        mov esp,0xc88c3000
-00000005  31C0              xor eax,eax
-00000007  8ED8              mov ds,eax
-00000009  8EC0              mov es,eax
-0000000B  0F20C0            mov eax,cr0
-0000000E  6683C801          or ax,byte +0x1
-00000012  0F22C0            mov cr0,eax
-00000015  E8E6020000        call 0x300
-0000001A  EBFE              jmp short 0x1a
-0000001C  6690              xchg ax,ax
-0000001E  6690              xchg ax,ax
+00000000  6640              inc ax
+00000002  EBFC              jmp short 0x0
+00000004  BC00308CC8        mov esp,0xc88c3000
+00000009  31C0              xor eax,eax
+0000000B  8ED8              mov ds,eax
+0000000D  8EC0              mov es,eax
+0000000F  0F20C0            mov eax,cr0
+00000012  6683C801          or ax,byte +0x1
+00000016  0F22C0            mov cr0,eax
+00000019  E8E2020000        call 0x300
+0000001E  EBFE              jmp short 0x1e
 00000020  55                push ebp
 00000021  89E5              mov ebp,esp
 00000023  8A450C            mov al,[ebp+0xc]
@@ -65364,9 +65364,8 @@
 0001FFEA  0000              add [eax],al
 0001FFEC  0000              add [eax],al
 0001FFEE  0000              add [eax],al
-0001FFF0  FA                cli
-0001FFF1  FC                cld
-0001FFF2  EA000000E00000    jmp 0x0:0xe0000000
+0001FFF0  EA000000E00000    jmp 0x0:0xe0000000
+0001FFF7  0000              add [eax],al
 0001FFF9  0000              add [eax],al
 0001FFFB  0000              add [eax],al
 0001FFFD  0000              add [eax],al
