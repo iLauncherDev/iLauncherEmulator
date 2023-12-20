@@ -2,13 +2,13 @@
 #ifndef CPU_H
 #define CPU_H
 #define CPU_CHECK_OVERFLOW(x, y, bits) (((uintptr_t)x + (uintptr_t)y) >> (uintptr_t)bits ? 1 : 0)
-#define CPU_BLOCK_VALUE(type, size, value, offset) type, size, value, offset
-#define CPU_BLOCK_MREG_VALUE(size, base, index, scale, offset) cpu_type_mreg, size,                     \
-                                                               (((uint64_t)scale & 0xffffffff) << 32) | \
-                                                                   (((uint64_t)index & 0xffff) << 16) | \
-                                                                   ((uint64_t)base & 0xffff),           \
-                                                               offset
-#define CPU_BLOCK_SIZE 4096
+#define CPU_BLOCK_VALUE(type, size, value, offset) (uint8_t)(type), (uint8_t)(size), \
+                                                   (uint64_t)(value), (int64_t)(offset)
+#define CPU_BLOCK_MREG(base, index, scale, size) ((((uint64_t)size & 0xff) << 56) |      \
+                                                  (((uint64_t)scale & 0xffffff) << 32) | \
+                                                  (((uint64_t)index & 0xffff) << 16) |   \
+                                                  ((uint64_t)base & 0xffff))
+#define CPU_BLOCK_SIZE 512
 #include "global.h"
 #include "memory.h"
 #include "io.h"
@@ -38,12 +38,23 @@ typedef enum cpu_defines
     cpu_opcode_xchg,
     cpu_opcode_jmp_far,
     cpu_opcode_jcc_far,
+    cpu_opcode_jncc_far,
     cpu_opcode_call_far,
     cpu_opcode_ret_far,
     cpu_opcode_jmp_near,
     cpu_opcode_jcc_near,
+    cpu_opcode_jncc_near,
     cpu_opcode_call_near,
     cpu_opcode_ret_near,
+    cpu_opcode_add,
+    cpu_opcode_sub,
+    cpu_opcode_adc,
+    cpu_opcode_sbb,
+    cpu_opcode_and,
+    cpu_opcode_or,
+    cpu_opcode_xor,
+    cpu_opcode_mul,
+    cpu_opcode_div,
 
     cpu_flag_lock = 1 << 0,
     cpu_flag_reset = 1 << 1,

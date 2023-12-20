@@ -9,4 +9,4 @@ build:
 	@$(CC) $(BIOSFILES) $(CC_FLAGS)
 	@ld -Tlinker.ld $(LD_FLAGS) `find . -name "*.o"` -o bios.bin
 	@rm -rf `find . -name "*.o"`
-	@rm -rf bios.txt && ndisasm -b32 bios.bin >> bios.txt
+	@rm -rf *.txt && ndisasm -b32 bios.bin >> bios.txt && ndisasm -b16 bios.bin >> bios16.txt

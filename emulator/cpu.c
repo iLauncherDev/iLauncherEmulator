@@ -46,12 +46,6 @@ void cpu_recompile(cpu_t *cpu)
         goto end;
     while (cpu->flags & cpu_flag_lock)
         ;
-    if (cpu->flags & cpu_flag_reset)
-    {
-        if (cpu->reset)
-            cpu->reset(cpu);
-        cpu->flags &= ~cpu_flag_reset;
-    }
     if (cpu->recompile)
     {
         uint64_t pc = cpu->pc;
@@ -95,6 +89,7 @@ end:
 
 uint64_t cpu_block_address(cpu_t *cpu, cpu_block_t *block, uint8_t index)
 {
+    uint8_t size;
     switch (block->values[index].type)
     {
     case cpu_type_int:
@@ -104,13 +99,14 @@ uint64_t cpu_block_address(cpu_t *cpu, cpu_block_t *block, uint8_t index)
     case cpu_type_mem:
         return block->values[index].value;
     case cpu_type_mreg:
+        size = (block->values[index].value >> 56) & 0xff;
         return cpu_read_reg(cpu,
-                            (block->values[index].value >> 0) & 0xffff,
-                            block->values[index].size) +
+                            block->values[index].value & 0xffff,
+                            size) +
                cpu_read_reg(cpu,
                             (block->values[index].value >> 16) & 0xffff,
-                            block->values[index].size) *
-                   ((block->values[index].value >> 32) & 0xffffffff) +
+                            size) *
+                   ((block->values[index].value >> 32) & 0xffff) +
                block->values[index].offset;
     }
     return 0;
@@ -118,6 +114,7 @@ uint64_t cpu_block_address(cpu_t *cpu, cpu_block_t *block, uint8_t index)
 
 uint64_t cpu_block_read(cpu_t *cpu, cpu_block_t *block, uint8_t index)
 {
+    uint8_t size;
     switch (block->values[index].type)
     {
     case cpu_type_int:
@@ -127,13 +124,14 @@ uint64_t cpu_block_read(cpu_t *cpu, cpu_block_t *block, uint8_t index)
     case cpu_type_mem:
         return memory_read(block->values[index].value, block->values[index].size, cpu->big_endian);
     case cpu_type_mreg:
+        size = (block->values[index].value >> 56) & 0xff;
         return memory_read(cpu_read_reg(cpu,
-                                        (block->values[index].value >> 0) & 0xffff,
-                                        block->values[index].size) +
+                                        block->values[index].value & 0xffff,
+                                        size) +
                                cpu_read_reg(cpu,
                                             (block->values[index].value >> 16) & 0xffff,
-                                            block->values[index].size) *
-                                   ((block->values[index].value >> 32) & 0xffffffff) +
+                                            size) *
+                                   ((block->values[index].value >> 32) & 0xffff) +
                                block->values[index].offset,
                            block->values[index].size, cpu->big_endian);
     }
@@ -142,6 +140,7 @@ uint64_t cpu_block_read(cpu_t *cpu, cpu_block_t *block, uint8_t index)
 
 int64_t cpu_block_sread(cpu_t *cpu, cpu_block_t *block, uint8_t index)
 {
+    uint8_t size;
     switch (block->values[index].type)
     {
     case cpu_type_int:
@@ -151,13 +150,14 @@ int64_t cpu_block_sread(cpu_t *cpu, cpu_block_t *block, uint8_t index)
     case cpu_type_mem:
         return memory_sread(block->values[index].value, block->values[index].size, cpu->big_endian);
     case cpu_type_mreg:
+        size = (block->values[index].value >> 56) & 0xff;
         return memory_sread(cpu_read_reg(cpu,
-                                         (block->values[index].value >> 0) & 0xffff,
-                                         block->values[index].size) +
+                                         block->values[index].value & 0xffff,
+                                         size) +
                                 cpu_read_reg(cpu,
                                              (block->values[index].value >> 16) & 0xffff,
-                                             block->values[index].size) *
-                                    ((block->values[index].value >> 32) & 0xffffffff) +
+                                             size) *
+                                    ((block->values[index].value >> 32) & 0xffff) +
                                 block->values[index].offset,
                             block->values[index].size, cpu->big_endian);
     }
@@ -166,6 +166,7 @@ int64_t cpu_block_sread(cpu_t *cpu, cpu_block_t *block, uint8_t index)
 
 void cpu_block_write(cpu_t *cpu, cpu_block_t *block, uint64_t value, uint8_t index)
 {
+    uint8_t size;
     switch (block->values[index].type)
     {
     case cpu_type_reg:
@@ -175,13 +176,14 @@ void cpu_block_write(cpu_t *cpu, cpu_block_t *block, uint64_t value, uint8_t ind
         memory_write(block->values[index].value, value, block->values[index].size, cpu->big_endian);
         return;
     case cpu_type_mreg:
+        size = (block->values[index].value >> 56) & 0xff;
         memory_write(cpu_read_reg(cpu,
-                                  (block->values[index].value >> 0) & 0xffff,
-                                  block->values[index].size) +
+                                  block->values[index].value & 0xffff,
+                                  size) +
                          cpu_read_reg(cpu,
                                       (block->values[index].value >> 16) & 0xffff,
-                                      block->values[index].size) *
-                             ((block->values[index].value >> 32) & 0xffffffff) +
+                                      size) *
+                             ((block->values[index].value >> 32) & 0xffff) +
                          block->values[index].offset,
                      value,
                      block->values[index].size, cpu->big_endian);
@@ -198,6 +200,13 @@ void cpu_execute(cpu_t *cpu)
     cpu_block_t *block = cpu->code_block;
     while (i < CPU_BLOCK_SIZE)
     {
+        if (cpu->flags & cpu_flag_reset)
+        {
+            if (cpu->reset)
+                cpu->reset(cpu);
+            cpu->flags &= ~cpu_flag_reset;
+            goto end;
+        }
         cpu->pc += block->opcode_size;
         switch (block->instruction)
         {
@@ -229,10 +238,12 @@ void cpu_execute(cpu_t *cpu)
                 cache[2] &= ~cpu->neutral_values[cpu_neutral_flag_zero];
             break;
         case cpu_opcode_inc:
-            cpu_block_write(cpu, block, cpu_block_read(cpu, block, 0) + 1, 0);
+            for (uint8_t i = 0; i < block->value_length; i++)
+                cpu_block_write(cpu, block, cpu_block_read(cpu, block, i) + 1, i);
             break;
         case cpu_opcode_dec:
-            cpu_block_write(cpu, block, cpu_block_read(cpu, block, 0) - 1, 0);
+            for (uint8_t i = 0; i < block->value_length; i++)
+                cpu_block_write(cpu, block, cpu_block_read(cpu, block, i) - 1, i);
             break;
         case cpu_opcode_push:
             for (uint8_t i = 0; i < block->value_length; i++)
@@ -270,6 +281,17 @@ void cpu_execute(cpu_t *cpu)
                 goto end;
             }
             break;
+        case cpu_opcode_jncc_far:
+            if (~cpu_read_reg(cpu, cpu->neutral_values[cpu_neutral_reg_flags], cpu->regs_size) &
+                cpu_block_read(cpu, block, 2))
+            {
+                cpu_write_reg(cpu, cpu->neutral_values[cpu_neutral_reg_code_segment],
+                              cpu_block_read(cpu, block, 0),
+                              cpu->regs_size);
+                cpu->pc = cpu_block_read(cpu, block, 1);
+                goto end;
+            }
+            break;
         case cpu_opcode_call_far:
             cpu->push(cpu, cpu->pc + block->opcode_size);
             cpu->push(cpu, cpu_read_reg(cpu,
@@ -288,8 +310,7 @@ void cpu_execute(cpu_t *cpu)
             goto end;
         case cpu_opcode_jmp_near:
             cpu->pc += cpu_block_sread(cpu, block, 0);
-            block = cpu->code_block;
-            for (i = 0; i < CPU_BLOCK_SIZE; i++, block++)
+            for (block = cpu->code_block, i = 0; i < CPU_BLOCK_SIZE; i++, block++)
                 if (block->pc == cpu->pc)
                     goto loop_end;
             goto end;
@@ -298,8 +319,18 @@ void cpu_execute(cpu_t *cpu)
                 cpu_block_read(cpu, block, 1))
             {
                 cpu->pc += cpu_block_sread(cpu, block, 0);
-                block = cpu->code_block;
-                for (i = 0; i < CPU_BLOCK_SIZE; i++, block++)
+                for (block = cpu->code_block, i = 0; i < CPU_BLOCK_SIZE; i++, block++)
+                    if (block->pc == cpu->pc)
+                        goto loop_end;
+                goto end;
+            }
+            break;
+        case cpu_opcode_jncc_near:
+            if (~cpu_read_reg(cpu, cpu->neutral_values[cpu_neutral_reg_flags], cpu->regs_size) &
+                cpu_block_read(cpu, block, 1))
+            {
+                cpu->pc += cpu_block_sread(cpu, block, 0);
+                for (block = cpu->code_block, i = 0; i < CPU_BLOCK_SIZE; i++, block++)
                     if (block->pc == cpu->pc)
                         goto loop_end;
                 goto end;
@@ -308,15 +339,13 @@ void cpu_execute(cpu_t *cpu)
         case cpu_opcode_call_near:
             cpu->push(cpu, cpu->pc + block->opcode_size);
             cpu->pc += cpu_block_sread(cpu, block, 0);
-            block = cpu->code_block;
-            for (i = 0; i < CPU_BLOCK_SIZE; i++, block++)
+            for (block = cpu->code_block, i = 0; i < CPU_BLOCK_SIZE; i++, block++)
                 if (block->pc == cpu->pc)
                     goto loop_end;
             goto end;
         case cpu_opcode_ret_near:
             cpu->pc = cpu->pop(cpu);
-            block = cpu->code_block;
-            for (i = 0; i < CPU_BLOCK_SIZE; i++, block++)
+            for (block = cpu->code_block, i = 0; i < CPU_BLOCK_SIZE; i++, block++)
                 if (block->pc == cpu->pc)
                     goto loop_end;
             goto end;
