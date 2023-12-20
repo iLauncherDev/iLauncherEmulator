@@ -1072,7 +1072,6 @@ start:
         break;
     case 0xb8 ... 0xbf:
         opcode &= 0x07;
-        x86_write_reg(cpu, x86_regs[opcode], x86_read_pc(cpu, operand_size), operand_size);
         cpu_block_add(cpu, cpu_opcode_mov, 0, 2,
                       CPU_BLOCK_VALUE(cpu_type_reg, operand_size, x86_regs[opcode], 0),
                       CPU_BLOCK_VALUE(cpu_type_int, operand_size, x86_read_pc(cpu, operand_size), 0));
