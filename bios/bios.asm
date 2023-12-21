@@ -3,7 +3,7 @@ section .text
 extern main
 
 start:
-    mov dword [dword ebx + ecx * 4], eax
+    mov byte [dword ebx + ecx], al
     inc eax
     inc ecx
     jmp start

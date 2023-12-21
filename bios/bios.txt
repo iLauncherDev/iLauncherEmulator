@@ -1,21 +1,22 @@
-00000000  666789848B00      mov [si+0x8b],ax
-00000006  0000              add [eax],al
-00000008  006640            add [esi+0x40],ah
-0000000B  6641              inc cx
-0000000D  EBF1              jmp short 0x0
-0000000F  BC00308CC8        mov esp,0xc88c3000
-00000014  31C0              xor eax,eax
-00000016  8ED8              mov ds,eax
-00000018  8EC0              mov es,eax
-0000001A  0F20C0            mov eax,cr0
-0000001D  6683C801          or ax,byte +0x1
-00000021  0F22C0            mov cr0,eax
-00000024  EBFE              jmp short 0x24
-00000026  6690              xchg ax,ax
-00000028  6690              xchg ax,ax
-0000002A  6690              xchg ax,ax
-0000002C  6690              xchg ax,ax
-0000002E  6690              xchg ax,ax
+00000000  6788840B00        mov [si+0xb],al
+00000005  0000              add [eax],al
+00000007  006640            add [esi+0x40],ah
+0000000A  6641              inc cx
+0000000C  EBF2              jmp short 0x0
+0000000E  BC00308CC8        mov esp,0xc88c3000
+00000013  31C0              xor eax,eax
+00000015  8ED8              mov ds,eax
+00000017  8EC0              mov es,eax
+00000019  0F20C0            mov eax,cr0
+0000001C  6683C801          or ax,byte +0x1
+00000020  0F22C0            mov cr0,eax
+00000023  EBFE              jmp short 0x23
+00000025  6690              xchg ax,ax
+00000027  6690              xchg ax,ax
+00000029  6690              xchg ax,ax
+0000002B  6690              xchg ax,ax
+0000002D  6690              xchg ax,ax
+0000002F  90                nop
 00000030  55                push ebp
 00000031  89E5              mov ebp,esp
 00000033  8A450C            mov al,[ebp+0xc]

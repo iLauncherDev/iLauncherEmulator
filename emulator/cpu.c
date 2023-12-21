@@ -195,10 +195,9 @@ void cpu_execute(cpu_t *cpu)
 {
     if (!cpu || cpu->flags & cpu_flag_stoped)
         goto end;
-    uint16_t i = 0;
     uint64_t cache[4];
-    cpu_block_t *block = cpu->code_block;
-    while (i < CPU_BLOCK_SIZE)
+    cpu_block_t *block = cpu->code_block, *block_max = &cpu->code_block[CPU_BLOCK_SIZE];
+    do
     {
         if (cpu->flags & cpu_flag_reset)
         {
@@ -298,9 +297,9 @@ void cpu_execute(cpu_t *cpu)
                                         cpu->neutral_values[cpu_neutral_reg_code_segment],
                                         cpu->regs_size));
             cpu_write_reg(cpu, cpu->neutral_values[cpu_neutral_reg_code_segment],
-                          cpu_block_read(cpu, block, 0),
+                          cpu_block_address(cpu, block, 0),
                           cpu->regs_size);
-            cpu->pc = cpu_block_read(cpu, block, 1);
+            cpu->pc = cpu_block_address(cpu, block, 1);
             goto end;
         case cpu_opcode_ret_far:
             cpu_write_reg(cpu, cpu->neutral_values[cpu_neutral_reg_code_segment],
@@ -310,18 +309,26 @@ void cpu_execute(cpu_t *cpu)
             goto end;
         case cpu_opcode_jmp_near:
             cpu->pc += cpu_block_sread(cpu, block, 0);
-            for (block = cpu->code_block, i = 0; i < CPU_BLOCK_SIZE; i++, block++)
+            block = cpu->code_block;
+            do
+            {
                 if (block->pc == cpu->pc)
                     goto loop_end;
+                block++;
+            } while (block < block_max);
             goto end;
         case cpu_opcode_jcc_near:
             if (cpu_read_reg(cpu, cpu->neutral_values[cpu_neutral_reg_flags], cpu->regs_size) &
                 cpu_block_read(cpu, block, 1))
             {
                 cpu->pc += cpu_block_sread(cpu, block, 0);
-                for (block = cpu->code_block, i = 0; i < CPU_BLOCK_SIZE; i++, block++)
+                block = cpu->code_block;
+                do
+                {
                     if (block->pc == cpu->pc)
                         goto loop_end;
+                    block++;
+                } while (block < block_max);
                 goto end;
             }
             break;
@@ -330,31 +337,43 @@ void cpu_execute(cpu_t *cpu)
                 cpu_block_read(cpu, block, 1))
             {
                 cpu->pc += cpu_block_sread(cpu, block, 0);
-                for (block = cpu->code_block, i = 0; i < CPU_BLOCK_SIZE; i++, block++)
+                block = cpu->code_block;
+                do
+                {
                     if (block->pc == cpu->pc)
                         goto loop_end;
+                    block++;
+                } while (block < block_max);
                 goto end;
             }
             break;
         case cpu_opcode_call_near:
-            cpu->push(cpu, cpu->pc + block->opcode_size);
+            cpu->push(cpu, cpu->pc);
             cpu->pc += cpu_block_sread(cpu, block, 0);
-            for (block = cpu->code_block, i = 0; i < CPU_BLOCK_SIZE; i++, block++)
+            block = cpu->code_block;
+            do
+            {
                 if (block->pc == cpu->pc)
                     goto loop_end;
+                block++;
+            } while (block < block_max);
             goto end;
         case cpu_opcode_ret_near:
             cpu->pc = cpu->pop(cpu);
-            for (block = cpu->code_block, i = 0; i < CPU_BLOCK_SIZE; i++, block++)
+            block = cpu->code_block;
+            do
+            {
                 if (block->pc == cpu->pc)
                     goto loop_end;
+                block++;
+            } while (block < block_max);
             goto end;
         }
         cpu_write_reg(cpu, cpu->neutral_values[cpu_neutral_reg_instruction_pointer], cpu->pc, cpu->regs_size);
-        i++, block++;
+        block++;
     loop_end:
         continue;
-    }
+    } while (block < block_max);
 end:
     if (cpu)
         cpu->flags |= cpu_flag_stoped;

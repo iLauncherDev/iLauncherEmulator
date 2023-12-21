@@ -1,22 +1,22 @@
-00000000  666789848B000000  mov [dword ebx+ecx*4+0x0],eax
-         -00
-00000009  6640              inc eax
-0000000B  6641              inc ecx
-0000000D  EBF1              jmp short 0x0
-0000000F  BC0030            mov sp,0x3000
-00000012  8CC8              mov ax,cs
-00000014  31C0              xor ax,ax
-00000016  8ED8              mov ds,ax
-00000018  8EC0              mov es,ax
-0000001A  0F20C0            mov eax,cr0
-0000001D  6683C801          or eax,byte +0x1
-00000021  0F22C0            mov cr0,eax
-00000024  EBFE              jmp short 0x24
-00000026  6690              xchg eax,eax
-00000028  6690              xchg eax,eax
-0000002A  6690              xchg eax,eax
-0000002C  6690              xchg eax,eax
-0000002E  6690              xchg eax,eax
+00000000  6788840B00000000  mov [dword ebx+ecx+0x0],al
+00000008  6640              inc eax
+0000000A  6641              inc ecx
+0000000C  EBF2              jmp short 0x0
+0000000E  BC0030            mov sp,0x3000
+00000011  8CC8              mov ax,cs
+00000013  31C0              xor ax,ax
+00000015  8ED8              mov ds,ax
+00000017  8EC0              mov es,ax
+00000019  0F20C0            mov eax,cr0
+0000001C  6683C801          or eax,byte +0x1
+00000020  0F22C0            mov cr0,eax
+00000023  EBFE              jmp short 0x23
+00000025  6690              xchg eax,eax
+00000027  6690              xchg eax,eax
+00000029  6690              xchg eax,eax
+0000002B  6690              xchg eax,eax
+0000002D  6690              xchg eax,eax
+0000002F  90                nop
 00000030  55                push bp
 00000031  89E5              mov bp,sp
 00000033  8A450C            mov al,[di+0xc]
