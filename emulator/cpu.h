@@ -73,7 +73,7 @@ typedef enum cpu_defines
 typedef struct cpu_block
 {
     uint64_t pc;
-    uint8_t instruction, opcode_size;
+    uint8_t opcode, opcode_size;
     uint8_t sign : 1, value_length : 2;
     struct cpu_block_value
     {
@@ -101,7 +101,7 @@ typedef struct cpu
     uint8_t *regs, *cache;
 } cpu_t;
 
-void cpu_block_add(cpu_t *cpu, uint8_t instruction, uint8_t sign, uint8_t value_length, ...);
+void cpu_block_add(cpu_t *cpu, uint8_t opcode, uint8_t sign, uint8_t value_length, ...);
 uint64_t cpu_read_reg(cpu_t *cpu, uint16_t reg, uint8_t size);
 int64_t cpu_sread_reg(cpu_t *cpu, uint16_t reg, uint8_t size);
 void cpu_write_reg(cpu_t *cpu, uint16_t reg, uint64_t value, uint8_t size);

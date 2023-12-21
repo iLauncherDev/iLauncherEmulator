@@ -65,7 +65,7 @@ end:
     return;
 }
 
-void cpu_block_add(cpu_t *cpu, uint8_t instruction, uint8_t sign, uint8_t value_length, ...)
+void cpu_block_add(cpu_t *cpu, uint8_t opcode, uint8_t sign, uint8_t value_length, ...)
 {
     va_list args;
     uint16_t index;
@@ -73,7 +73,7 @@ void cpu_block_add(cpu_t *cpu, uint8_t instruction, uint8_t sign, uint8_t value_
         goto end;
     va_start(args, value_length);
     index = cpu->code_block_index;
-    cpu->code_block[index].instruction = instruction;
+    cpu->code_block[index].opcode = opcode;
     cpu->code_block[index].sign = sign;
     cpu->code_block[index].value_length = value_length & 3;
     for (uint8_t i = 0; i < cpu->code_block[index].value_length; i++)
@@ -207,7 +207,7 @@ void cpu_execute(cpu_t *cpu)
             goto end;
         }
         cpu->pc += block->opcode_size;
-        switch (block->instruction)
+        switch (block->opcode)
         {
         case cpu_opcode_exit:
             goto end;
