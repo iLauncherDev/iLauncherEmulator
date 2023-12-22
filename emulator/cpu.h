@@ -70,6 +70,18 @@ typedef enum cpu_defines
     cpu_type_mreg,
 } cpu_defines_t;
 
+typedef union cpu_mreg
+{
+    uint64_t value;
+    struct
+    {
+        uint16_t base;
+        uint16_t index;
+        uint32_t scale : 24;
+        uint8_t size;
+    };
+} cpu_mreg_t;
+
 typedef struct cpu_block
 {
     uint64_t pc;

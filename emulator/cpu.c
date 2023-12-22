@@ -89,7 +89,7 @@ end:
 
 uint64_t cpu_block_address(cpu_t *cpu, cpu_block_t *block, uint8_t index)
 {
-    uint8_t size;
+    cpu_mreg_t mreg = {.value = block->values[index].value};
     switch (block->values[index].type)
     {
     case cpu_type_int:
@@ -99,14 +99,9 @@ uint64_t cpu_block_address(cpu_t *cpu, cpu_block_t *block, uint8_t index)
     case cpu_type_mem:
         return block->values[index].value;
     case cpu_type_mreg:
-        size = (block->values[index].value >> 56) & 0xff;
-        return cpu_read_reg(cpu,
-                            block->values[index].value & 0xffff,
-                            size) +
-               cpu_read_reg(cpu,
-                            (block->values[index].value >> 16) & 0xffff,
-                            size) *
-                   ((block->values[index].value >> 32) & 0xffff) +
+        return cpu_read_reg(cpu, mreg.base, mreg.size) +
+               cpu_read_reg(cpu, mreg.index, mreg.size) *
+                   mreg.scale +
                block->values[index].offset;
     }
     return 0;
@@ -114,7 +109,7 @@ uint64_t cpu_block_address(cpu_t *cpu, cpu_block_t *block, uint8_t index)
 
 uint64_t cpu_block_read(cpu_t *cpu, cpu_block_t *block, uint8_t index)
 {
-    uint8_t size;
+    cpu_mreg_t mreg = {.value = block->values[index].value};
     switch (block->values[index].type)
     {
     case cpu_type_int:
@@ -124,14 +119,9 @@ uint64_t cpu_block_read(cpu_t *cpu, cpu_block_t *block, uint8_t index)
     case cpu_type_mem:
         return memory_read(block->values[index].value, block->values[index].size, cpu->big_endian);
     case cpu_type_mreg:
-        size = (block->values[index].value >> 56) & 0xff;
-        return memory_read(cpu_read_reg(cpu,
-                                        block->values[index].value & 0xffff,
-                                        size) +
-                               cpu_read_reg(cpu,
-                                            (block->values[index].value >> 16) & 0xffff,
-                                            size) *
-                                   ((block->values[index].value >> 32) & 0xffff) +
+        return memory_read(cpu_read_reg(cpu, mreg.base, mreg.size) +
+                               cpu_read_reg(cpu, mreg.index, mreg.size) *
+                                   mreg.scale +
                                block->values[index].offset,
                            block->values[index].size, cpu->big_endian);
     }
@@ -140,7 +130,7 @@ uint64_t cpu_block_read(cpu_t *cpu, cpu_block_t *block, uint8_t index)
 
 int64_t cpu_block_sread(cpu_t *cpu, cpu_block_t *block, uint8_t index)
 {
-    uint8_t size;
+    cpu_mreg_t mreg = {.value = block->values[index].value};
     switch (block->values[index].type)
     {
     case cpu_type_int:
@@ -150,14 +140,9 @@ int64_t cpu_block_sread(cpu_t *cpu, cpu_block_t *block, uint8_t index)
     case cpu_type_mem:
         return memory_sread(block->values[index].value, block->values[index].size, cpu->big_endian);
     case cpu_type_mreg:
-        size = (block->values[index].value >> 56) & 0xff;
-        return memory_sread(cpu_read_reg(cpu,
-                                         block->values[index].value & 0xffff,
-                                         size) +
-                                cpu_read_reg(cpu,
-                                             (block->values[index].value >> 16) & 0xffff,
-                                             size) *
-                                    ((block->values[index].value >> 32) & 0xffff) +
+        return memory_sread(cpu_read_reg(cpu, mreg.base, mreg.size) +
+                                cpu_read_reg(cpu, mreg.index, mreg.size) *
+                                    mreg.scale +
                                 block->values[index].offset,
                             block->values[index].size, cpu->big_endian);
     }
@@ -166,7 +151,7 @@ int64_t cpu_block_sread(cpu_t *cpu, cpu_block_t *block, uint8_t index)
 
 void cpu_block_write(cpu_t *cpu, cpu_block_t *block, uint64_t value, uint8_t index)
 {
-    uint8_t size;
+    cpu_mreg_t mreg = {.value = block->values[index].value};
     switch (block->values[index].type)
     {
     case cpu_type_reg:
@@ -176,14 +161,9 @@ void cpu_block_write(cpu_t *cpu, cpu_block_t *block, uint64_t value, uint8_t ind
         memory_write(block->values[index].value, value, block->values[index].size, cpu->big_endian);
         return;
     case cpu_type_mreg:
-        size = (block->values[index].value >> 56) & 0xff;
-        memory_write(cpu_read_reg(cpu,
-                                  block->values[index].value & 0xffff,
-                                  size) +
-                         cpu_read_reg(cpu,
-                                      (block->values[index].value >> 16) & 0xffff,
-                                      size) *
-                             ((block->values[index].value >> 32) & 0xffff) +
+        memory_write(cpu_read_reg(cpu, mreg.base, mreg.size) +
+                         cpu_read_reg(cpu, mreg.index, mreg.size) *
+                             mreg.scale +
                          block->values[index].offset,
                      value,
                      block->values[index].size, cpu->big_endian);
