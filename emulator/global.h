@@ -1,11 +1,12 @@
 #pragma once
 #ifndef GLOBAL_H
 #define GLOBAL_H
+#include <stdio.h>
 #include <stdlib.h>
+#include <sys/mman.h>
 #include <stdint.h>
 #include <stdbool.h>
 #include <pthread.h>
-#include <stdio.h>
 #include <string.h>
 #include <unistd.h>
 #include <SDL2/SDL.h>
