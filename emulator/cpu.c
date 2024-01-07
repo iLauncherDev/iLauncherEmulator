@@ -49,18 +49,18 @@ void cpu_recompile(cpu_t *cpu)
     if (cpu->recompile)
     {
         uint64_t pc = cpu->pc;
-        for (cpu->code_block_index = 0;
-             cpu->code_block_index < CPU_BLOCK_SIZE;
-             cpu->code_block_index++)
+        cpu->code_block_index = 0;
+        do
         {
             uint16_t index = cpu->code_block_index;
             cpu->code_block[index].pc = cpu->pc;
             cpu->recompile(cpu);
+            if (cpu->code_block_index == index)
+                break;
             cpu->code_block[index].opcode_size = cpu->pc - cpu->code_block[index].pc;
-        }
+        } while (cpu->code_block_index < CPU_BLOCK_SIZE);
         cpu->pc = pc;
     }
-    cpu->flags &= ~cpu_flag_stoped;
 end:
     return;
 }
@@ -72,7 +72,7 @@ void cpu_block_add(cpu_t *cpu, uint8_t opcode, uint8_t sign, uint8_t value_lengt
     if (!cpu)
         goto end;
     va_start(args, value_length);
-    index = cpu->code_block_index;
+    index = cpu->code_block_index++;
     cpu->code_block[index].opcode = opcode;
     cpu->code_block[index].sign = sign;
     cpu->code_block[index].value_length = value_length & 3;
@@ -173,7 +173,7 @@ void cpu_block_write(cpu_t *cpu, cpu_block_t *block, uint64_t value, uint8_t ind
 
 void cpu_execute(cpu_t *cpu)
 {
-    if (!cpu || cpu->flags & cpu_flag_stoped)
+    if (!cpu)
         goto end;
     uint64_t cache[4];
     cpu_block_t *block = cpu->code_block, *block_max = &cpu->code_block[CPU_BLOCK_SIZE];
@@ -355,7 +355,5 @@ void cpu_execute(cpu_t *cpu)
         continue;
     } while (block < block_max);
 end:
-    if (cpu)
-        cpu->flags |= cpu_flag_stoped;
     return;
 }
